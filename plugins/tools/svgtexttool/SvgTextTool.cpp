@@ -32,10 +32,14 @@
 #include <QDesktopServices>
 #include <QApplication>
 #include <QStyle>
-#include <QActionGroup>
+#include <QAction>
 #include <QInputMethodEvent>
+#include <QKeyEvent>
+#include <QKeySequence>
+#include <QSignalBlocker>
 #include <QTextCharFormat>
 #include <QTextFormat>
+#include <QWidget>
 
 #include <cmath>
 
@@ -83,6 +87,84 @@ using SvgInlineSizeHelper::InlineSizeInfo;
 
 namespace
 {
+class QtSvgTextCursorHost final : public SvgTextCursor::HostSurface
+{
+public:
+    explicit QtSvgTextCursorHost(KoCanvasBase *canvas)
+        : m_canvas(canvas)
+    {
+    }
+
+    bool isAvailable() const override { return m_canvas && m_canvas->canvasWidget(); }
+    bool hasFocus() const override { return isAvailable() && m_canvas->canvasWidget()->hasFocus(); }
+    PkPoint offsetInWindow() const override
+    {
+        if (!isAvailable()) return {};
+        const QPoint point = m_canvas->canvasWidget()->mapTo(m_canvas->canvasWidget()->window(), QPoint());
+        return PkPoint(point.x(), point.y());
+    }
+    PkRectF geometry() const override
+    {
+        if (!isAvailable()) return {};
+        const QRect rect = m_canvas->canvasWidget()->geometry();
+        return PkRectF(rect.x(), rect.y(), rect.width(), rect.height());
+    }
+
+private:
+    KoCanvasBase *m_canvas;
+};
+
+int adjustedKeyForTextDirection(int key,
+                                KoSvgText::WritingMode writingMode,
+                                KoSvgText::Direction direction)
+{
+    if (direction == KoSvgText::DirectionRightToLeft) {
+        if (key == Qt::Key_Left) key = Qt::Key_Right;
+        else if (key == Qt::Key_Right) key = Qt::Key_Left;
+    }
+
+    if (writingMode == KoSvgText::VerticalRL) {
+        if (key == Qt::Key_Left) key = Qt::Key_Down;
+        else if (key == Qt::Key_Right) key = Qt::Key_Up;
+        else if (key == Qt::Key_Up) key = Qt::Key_Left;
+        else if (key == Qt::Key_Down) key = Qt::Key_Right;
+    }
+    return key;
+}
+
+SvgTextCursor::NativeKeyCommand nativeCommandForSequence(const QKeySequence &sequence)
+{
+    using Command = SvgTextCursor::NativeKeyCommand;
+    if (sequence == QKeySequence::MoveToNextChar) return Command::MoveNextChar;
+    if (sequence == QKeySequence::SelectNextChar) return Command::SelectNextChar;
+    if (sequence == QKeySequence::MoveToPreviousChar) return Command::MovePreviousChar;
+    if (sequence == QKeySequence::SelectPreviousChar) return Command::SelectPreviousChar;
+    if (sequence == QKeySequence::MoveToNextLine) return Command::MoveNextLine;
+    if (sequence == QKeySequence::SelectNextLine) return Command::SelectNextLine;
+    if (sequence == QKeySequence::MoveToPreviousLine) return Command::MovePreviousLine;
+    if (sequence == QKeySequence::SelectPreviousLine) return Command::SelectPreviousLine;
+    if (sequence == QKeySequence::MoveToNextWord) return Command::MoveNextWord;
+    if (sequence == QKeySequence::SelectNextWord) return Command::SelectNextWord;
+    if (sequence == QKeySequence::MoveToPreviousWord) return Command::MovePreviousWord;
+    if (sequence == QKeySequence::SelectPreviousWord) return Command::SelectPreviousWord;
+    if (sequence == QKeySequence::MoveToStartOfLine) return Command::MoveStartOfLine;
+    if (sequence == QKeySequence::SelectStartOfLine) return Command::SelectStartOfLine;
+    if (sequence == QKeySequence::MoveToEndOfLine) return Command::MoveEndOfLine;
+    if (sequence == QKeySequence::SelectEndOfLine) return Command::SelectEndOfLine;
+    if (sequence == QKeySequence::MoveToStartOfBlock || sequence == QKeySequence::MoveToStartOfDocument) return Command::MoveStartOfBlock;
+    if (sequence == QKeySequence::SelectStartOfBlock || sequence == QKeySequence::SelectStartOfDocument) return Command::SelectStartOfBlock;
+    if (sequence == QKeySequence::MoveToEndOfBlock || sequence == QKeySequence::MoveToEndOfDocument) return Command::MoveEndOfBlock;
+    if (sequence == QKeySequence::SelectEndOfBlock || sequence == QKeySequence::SelectEndOfDocument) return Command::SelectEndOfBlock;
+    if (sequence == QKeySequence::DeleteStartOfWord) return Command::DeleteStartOfWord;
+    if (sequence == QKeySequence::DeleteEndOfWord) return Command::DeleteEndOfWord;
+    if (sequence == QKeySequence::DeleteEndOfLine) return Command::DeleteEndOfLine;
+    if (sequence == QKeySequence::DeleteCompleteLine) return Command::DeleteCompleteLine;
+    if (sequence == QKeySequence::Backspace) return Command::Backspace;
+    if (sequence == QKeySequence::Delete) return Command::Delete;
+    if (sequence == QKeySequence::InsertLineSeparator || sequence == QKeySequence::InsertParagraphSeparator) return Command::InsertLineSeparator;
+    return Command::None;
+}
+
 KisDocumentApplicationServices::InputMethodTextFormat nativeTextFormat(const QTextCharFormat &format)
 {
     using Services = KisDocumentApplicationServices;
@@ -125,6 +207,21 @@ KisDocumentApplicationServices::InputMethodTextFormat nativeTextFormat(const QTe
     }
     return result;
 }
+
+}
+
+SvgTextCursor::NativeKeyEvent
+svgTextNativeKeyEvent(const QKeyEvent &event,
+                      KoSvgText::WritingMode writingMode,
+                      KoSvgText::Direction direction)
+{
+    SvgTextCursor::NativeKeyEvent result;
+    result.key = event.key();
+    result.modifiers = Pk::KeyboardModifiers(static_cast<int>(event.modifiers()));
+    result.text = toPkString(event.text());
+    const int adjustedKey = adjustedKeyForTextDirection(event.key(), writingMode, direction);
+    result.command = nativeCommandForSequence(QKeySequence(int(event.modifiers()) | adjustedKey));
+    return result;
 }
 
 KisDocumentApplicationServices::InputMethodEvent
@@ -172,7 +269,8 @@ static bool debugEnabled()
 
 SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
     : KoToolBase(canvas)
-    , m_textCursor(canvas)
+    , m_cursorHost(std::make_unique<QtSvgTextCursorHost>(canvas))
+    , m_textCursor(canvas, m_cursorHost.get())
     , m_textOutlineHelper(new KoSvgTextShapeOutlineHelper(canvas))
 {
      // TODO: figure out whether we should use system config for this, Windows and GTK have values for it, but Qt and MacOS don't(?).
@@ -182,13 +280,25 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
                                  , qApp->cursorFlashTime()
                                  , cursorFlashLimit
                                  , enableCursorWithSelection);
-    QObject::connect(&m_textCursor, SIGNAL(updateCursorDecoration(PkRectF)), this, SLOT(slotUpdateCursorDecoration(PkRectF)));
+    m_textCursor.setDecorationUpdateCallback([this](const PkRectF &rect) { slotUpdateCursorDecoration(rect); });
+    m_textCursor.setSelectionChangedCallback([this] { updateTextPathHelper(); });
+    m_textCursor.setActionStateChangedCallback([this](const PkString &name, bool checked) {
+        QAction *action = m_cursorActions.value(name);
+        if (action && action->isCheckable() && action->isChecked() != checked) {
+            const QSignalBlocker blocker(action);
+            action->setChecked(checked);
+        }
+    });
+    if (canvas->canvasController()) {
+        QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+                         this, [this](int key, const PkVariant &value) {
+            m_textCursor.notifyCanvasResourceChanged(key, value);
+        });
+    }
 
     for (const PkString &name : SvgTextShortCuts::possibleActions()) {
         QAction *a = action(name);
-        if(m_textCursor.registerPropertyAction(a, name)) {
-            dbgTools << "registered" << name << a->shortcut();
-        }
+        if (a) connectCursorAction(name);
     }
 
     const PkStringList extraActions = {
@@ -200,27 +310,21 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
     for (const PkString &name : extraActions) {
         QAction *a = action(name);
         if (a) {
-            if(!m_textCursor.registerPropertyAction(a, name)) {
-                qWarning() << "could not register" << name << a->shortcut();
-            }
+            connectCursorAction(name);
         }
     }
 
-    m_textTypeActionGroup = new QActionGroup(this);
-    addMappedAction(m_textTypeActionGroup, "text_type_preformatted", KoSvgTextShape::PreformattedText);
-    addMappedAction(m_textTypeActionGroup, "text_type_inline_wrap", KoSvgTextShape::InlineWrap);
-    addMappedAction(m_textTypeActionGroup, "text_type_pre_positioned", KoSvgTextShape::PrePositionedText);
+    addMappedAction("text_type_preformatted", KoSvgTextShape::PreformattedText, false);
+    addMappedAction("text_type_inline_wrap", KoSvgTextShape::InlineWrap, false);
+    addMappedAction("text_type_pre_positioned", KoSvgTextShape::PrePositionedText, false);
 
-    m_typeSettingMovementActionGroup = new QActionGroup(this);
-    addMappedAction(m_typeSettingMovementActionGroup, "svg_type_setting_move_selection_start_down_1_px", Qt::Key_Down);
-    addMappedAction(m_typeSettingMovementActionGroup, "svg_type_setting_move_selection_start_up_1_px", Qt::Key_Up);
-    addMappedAction(m_typeSettingMovementActionGroup, "svg_type_setting_move_selection_start_left_1_px", Qt::Key_Left);
-    addMappedAction(m_typeSettingMovementActionGroup, "svg_type_setting_move_selection_start_right_1_px", Qt::Key_Right);
+    addMappedAction("svg_type_setting_move_selection_start_down_1_px", Pk::Key_Down, true);
+    addMappedAction("svg_type_setting_move_selection_start_up_1_px", Pk::Key_Up, true);
+    addMappedAction("svg_type_setting_move_selection_start_left_1_px", Pk::Key_Left, true);
+    addMappedAction("svg_type_setting_move_selection_start_right_1_px", Pk::Key_Right, true);
 
     m_textOutlineHelper->setDrawBoundingRect(false);
     m_textOutlineHelper->setDrawTextWrappingArea(true);
-
-    QObject::connect(&m_textCursor, SIGNAL(selectionChanged()), this, SLOT(updateTextPathHelper()));
 
     m_base_cursor = QCursor(QPixmap(":/tool_text_basic.xpm"), 7, 7);
     m_text_inline_horizontal = QCursor(QPixmap(":/tool_text_inline_horizontal.xpm"), 7, 7);
@@ -259,11 +363,6 @@ void SvgTextTool::activate(const PkSet<KoShape *> &shapes)
 
     canvas()->setCurrentShapeManagerOwnerShape(nullptr);
 
-    QObject::connect(m_textTypeActionGroup, &QActionGroup::triggered, this,
-                     [this](QAction *action) { slotConvertType(m_mappedActionValues.value(action)); });
-    QObject::connect(m_typeSettingMovementActionGroup, &QActionGroup::triggered, this,
-                     [this](QAction *action) { slotMoveTextSelection(m_mappedActionValues.value(action)); });
-
     useCursor(m_base_cursor);
     slotShapeSelectionChanged();
 
@@ -277,9 +376,6 @@ void SvgTextTool::deactivate()
                         this, &SvgTextTool::slotShapeSelectionChanged);
     m_textCursor.setShape(nullptr);
     // Exiting text editing mode is handled by requestStrokeEnd
-    QObject::disconnect(m_textTypeActionGroup, nullptr, this, nullptr);
-    QObject::disconnect(m_typeSettingMovementActionGroup, nullptr, this, nullptr);
-
     m_hoveredShapeHighlightRect = PkPainterPath();
 
     repaintDecorations();
@@ -517,30 +613,29 @@ void SvgTextTool::slotUpdateTextPasteBehaviour()
 void SvgTextTool::slotTextTypeUpdated()
 {
     KoSvgTextShape *shape = selectedShape();
-    QActionGroup *typeConvertGroup = action("text_type_preformatted")->actionGroup();
-    if (typeConvertGroup) {
-        typeConvertGroup->setExclusive(true);
-        Q_FOREACH (QAction *a, typeConvertGroup->actions()) {
-            a->setCheckable(true);
+    const PkStringList textTypeActions = {
+        "text_type_preformatted", "text_type_pre_positioned", "text_type_inline_wrap"
+    };
+    for (const PkString &name : textTypeActions) {
+        if (QAction *hostAction = action(name)) {
+            hostAction->setCheckable(true);
+            hostAction->setEnabled(shape != nullptr);
         }
     }
     if (shape) {
-        if (typeConvertGroup) {
-            typeConvertGroup->setEnabled(true);
-        }
         action("text_type_preformatted")->setChecked(shape->textType() == KoSvgTextShape::PreformattedText);
         action("text_type_pre_positioned")->setChecked(shape->textType() == KoSvgTextShape::PrePositionedText);
         action("text_type_inline_wrap")->setChecked(shape->textType() == KoSvgTextShape::InlineWrap);
-
-    } else {
-        if (typeConvertGroup) {
-            typeConvertGroup->setEnabled(false);
-        }
     }
     // Typesetting mode has no UI to activate it, so it is always disabled.
-    QActionGroup *svgTypeSettingGroup = action("svg_type_setting_move_selection_start_down_1_px")->actionGroup();
-    if (svgTypeSettingGroup) {
-        svgTypeSettingGroup->setEnabled(false);
+    const PkStringList movementActions = {
+        "svg_type_setting_move_selection_start_down_1_px",
+        "svg_type_setting_move_selection_start_up_1_px",
+        "svg_type_setting_move_selection_start_left_1_px",
+        "svg_type_setting_move_selection_start_right_1_px"
+    };
+    for (const PkString &name : movementActions) {
+        if (QAction *hostAction = action(name)) hostAction->setEnabled(false);
     }
     m_textCursor.updateTypeSettingDecorFromShape();
 }
@@ -551,13 +646,13 @@ void SvgTextTool::slotMoveTextSelection(int index)
     if (!shape) return;
     PkPointF offset;
     // test type setting mode.
-    if (index == Qt::Key_Down) {
+    if (index == Pk::Key_Down) {
         offset = PkPointF(0, 1);
-    } else if (index == Qt::Key_Up) {
+    } else if (index == Pk::Key_Up) {
         offset = PkPointF(0, -1);
-    } else if (index == Qt::Key_Right) {
+    } else if (index == Pk::Key_Right) {
         offset = PkPointF(-1, 0);
-    } else if (index == Qt::Key_Left) {
+    } else if (index == Pk::Key_Left) {
         offset = PkPointF(1, 0);
     } else {
         return;
@@ -901,7 +996,7 @@ void SvgTextTool::mouseMoveEvent(KoPointerEvent *event)
             SvgTextCursor::TypeSettingModeHandle handle = m_textCursor.typeSettingHandleAtPos(handleGrabRect(event->point));
             m_textCursor.setTypeSettingHandleHovered(handle);
             if (handle != SvgTextCursor::NoHandle) {
-                cursor = m_textCursor.cursorTypeForTypeSetting();
+                cursor = QCursor(static_cast<Qt::CursorShape>(m_textCursor.cursorTypeForTypeSetting()));
                 m_highlightItem = HighlightItem::TypeSettingHandle;
             }
 
@@ -1025,7 +1120,25 @@ void SvgTextTool::keyPressEvent(QKeyEvent *event)
     } else if (event->key() == Qt::Key_Escape) {
         requestStrokeEnd();
     } else if (selectedShape()) {
-        m_textCursor.keyPressEvent(event);
+        const KoSvgTextProperties properties = selectedShape()->textProperties();
+        const auto writingMode = KoSvgText::WritingMode(
+            properties.propertyOrDefault(KoSvgTextProperties::WritingModeId).toInt());
+        const auto direction = KoSvgText::Direction(
+            properties.propertyOrDefault(KoSvgTextProperties::DirectionId).toInt());
+        const int adjustedKey = adjustedKeyForTextDirection(event->key(), writingMode, direction);
+        const QKeySequence sequence(int(event->modifiers()) | adjustedKey);
+        for (auto it = m_cursorActions.constBegin(); it != m_cursorActions.constEnd(); ++it) {
+            QAction *hostAction = it.value();
+            if (hostAction && hostAction->shortcut() == sequence) {
+                hostAction->trigger();
+                event->accept();
+                return;
+            }
+        }
+        if (m_textCursor.keyPressEvent(svgTextNativeKeyEvent(*event, writingMode, direction))) {
+            event->accept();
+            return;
+        }
     }
 
     event->ignore();
@@ -1095,14 +1208,24 @@ KoSvgText::WritingMode SvgTextTool::writingMode() const
     return KoSvgText::WritingMode(props.propertyOrDefault(KoSvgTextProperties::WritingModeId).toInt());
 }
 
-void SvgTextTool::addMappedAction(QActionGroup *group, const PkString &actionName, int value)
+void SvgTextTool::connectCursorAction(const PkString &actionName)
 {
-    QAction *a = action(actionName);
-    if (a) {
-        m_mappedActionValues.insert(a, value);
-        m_textCursor.registerPropertyAction(a, actionName);
-        if (!a->actionGroup()) {
-            group->addAction(a);
-        }
-    }
+    QAction *hostAction = action(actionName);
+    if (!hostAction) return;
+    m_cursorActions.insert(actionName, hostAction);
+    QObject::connect(hostAction, &QAction::triggered, this,
+                     [this, actionName](bool checked) {
+        m_textCursor.triggerAction(actionName, checked);
+    });
+}
+
+void SvgTextTool::addMappedAction(const PkString &actionName, int value, bool movementAction)
+{
+    QAction *hostAction = action(actionName);
+    if (!hostAction) return;
+    QObject::connect(hostAction, &QAction::triggered, this,
+                     [this, value, movementAction] {
+        if (movementAction) slotMoveTextSelection(value);
+        else slotConvertType(value);
+    });
 }

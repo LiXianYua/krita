@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include <PkFlakeBridge.h>
+#include <PkChar.h>
+#include <PkTimer.h>
 #include <PkVector.h>
 #include "SvgTextCursor.h"
 #include "KoCanvasBase.h"
@@ -33,15 +35,12 @@
 #include <kis_acyclic_signal_connector.h>
 
 #include "kundo2command.h"
-#include <QTimer>
 #include <QDebug>
-#include <QKeyEvent>
-#include <QKeySequence>
-#include <QAction>
 #include <kis_assert.h>
 #include <QBuffer>
-#include <QWidget>
 #include <KLocalizedString>
+
+#include <chrono>
 
 #ifdef Q_OS_ANDROID
 #include <config-qt-patches-present.h>
@@ -161,14 +160,17 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
     };
 
     KoCanvasBase *canvas;
+    SvgTextCursor::HostSurface *hostSurface = nullptr;
     PkObject controllerConnections;
     bool isAddingCommand = false;
     int pos = 0;
     int anchor = 0;
     KoSvgTextShape *shape {nullptr};
 
-    QTimer cursorFlash;
-    QTimer cursorFlashLimit;
+    PkTimer cursorFlash;
+    PkTimer cursorFlashLimit;
+    std::chrono::milliseconds cursorFlashInterval{500};
+    std::chrono::milliseconds cursorFlashLimitInterval{5000};
     bool cursorVisible = false;
     bool hasFocus = false;
 
@@ -209,15 +211,18 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
 
     SvgTextCursorPropertyInterface *interface{nullptr};
 
-    PkList<QAction*> actions;
+    std::function<void(const PkRectF &)> decorationUpdateCallback;
+    std::function<void()> selectionChangedCallback;
+    std::function<void(const PkString &, bool)> actionStateChangedCallback;
 
     KisAcyclicSignalConnector resourceManagerAcyclicConnector;
 };
 
-SvgTextCursor::SvgTextCursor(KoCanvasBase *canvas) :
+SvgTextCursor::SvgTextCursor(KoCanvasBase *canvas, HostSurface *hostSurface) :
     d(new Private)
 {
     d->canvas = canvas;
+    d->hostSurface = hostSurface;
     d->interface = new SvgTextCursorPropertyInterface(this);
     if (d->canvas->canvasController()) {
         // Mockcanvas in the tests has no canvas controller.
@@ -233,18 +238,6 @@ SvgTextCursor::SvgTextCursor(KoCanvasBase *canvas) :
                           &d->controllerConnections, updateTransform);
         PkObject::connect(controller, &KoCanvasControllerProxyObject::documentMirrorStatusChanged,
                           &d->controllerConnections, updateTransform);
-        QObject::connect(d->canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-                         this, [this](int key, const PkVariant &value) {
-            if (d->resourceManagerAcyclicConnector.isLocked()) return;
-            KisAcyclicSignalConnector::Blocker blocker(d->resourceManagerAcyclicConnector);
-            canvasResourceChanged(key, value);
-        });
-        QObject::connect(d->interface, &KoSvgTextPropertiesInterface::textCharacterSelectionChanged,
-                         this, [this]() {
-            if (d->resourceManagerAcyclicConnector.isLocked()) return;
-            KisAcyclicSignalConnector::Blocker blocker(d->resourceManagerAcyclicConnector);
-            updateCanvasResources();
-        });
     }
 
 }
@@ -255,6 +248,8 @@ SvgTextCursor::~SvgTextCursor()
     d->cursorFlash.stop();
     d->cursorFlashLimit.stop();
     d->shape = nullptr;
+    delete d->interface;
+    d->interface = nullptr;
 }
 
 KoSvgTextShape *SvgTextCursor::shape() const
@@ -288,12 +283,10 @@ void SvgTextCursor::setShape(KoSvgTextShape *textShape)
 
 void SvgTextCursor::setCaretSetting(int cursorWidth, int cursorFlash, int cursorFlashLimit, bool drawCursorInAdditionToSelection)
 {
-    d->cursorFlash.setInterval(cursorFlash/2);
-    d->cursorFlashLimit.setInterval(cursorFlashLimit);
+    d->cursorFlashInterval = std::chrono::milliseconds(cursorFlash / 2);
+    d->cursorFlashLimitInterval = std::chrono::milliseconds(cursorFlashLimit);
     d->cursorWidth = cursorWidth;
     d->drawCursorInAdditionToSelection = drawCursorInAdditionToSelection;
-    QObject::connect(&d->cursorFlash, SIGNAL(timeout()), this, SLOT(blinkCursor()));
-    QObject::connect(&d->cursorFlashLimit, SIGNAL(timeout()), this, SLOT(stopBlinkCursor()));
 }
 
 void SvgTextCursor::setVisualMode(bool visualMode)
@@ -422,16 +415,16 @@ void SvgTextCursor::updateTypeSettingDecorFromShape()
     }
 }
 
-QCursor SvgTextCursor::cursorTypeForTypeSetting() const
+Pk::CursorShape SvgTextCursor::cursorTypeForTypeSetting() const
 {
     if (d->hoveredTypeSettingHandle == StartPos ||
             d->hoveredTypeSettingHandle == StartPos ||
             d->typeSettingDecor.testBaselines(d->lastKnownModifiers)) {
-        return Qt::ArrowCursor;
+        return Pk::ArrowCursor;
     } else if (d->shape) {
-        return (d->shape->writingMode() == KoSvgText::HorizontalTB)? Qt::SizeVerCursor: Qt::SizeHorCursor;
+        return (d->shape->writingMode() == KoSvgText::HorizontalTB)? Pk::SizeVerCursor: Pk::SizeHorCursor;
     }
-    return Qt::ArrowCursor;
+    return Pk::ArrowCursor;
 }
 
 PkString SvgTextCursor::handleName(TypeSettingModeHandle handle) const
@@ -1223,7 +1216,7 @@ bool SvgTextCursor::inputMethodEvent(const KisDocumentApplicationServices::Input
 void SvgTextCursor::blinkCursor()
 {
     if (d->shape) {
-        Q_EMIT updateCursorDecoration(d->shape->shapeToDocument(d->cursorShape.boundingRect()) | d->oldCursorRect);
+        notifyDecorationUpdate(d->shape->shapeToDocument(d->cursorShape.boundingRect()) | d->oldCursorRect);
         d->cursorVisible = !d->cursorVisible;
     }
 }
@@ -1234,21 +1227,19 @@ void SvgTextCursor::stopBlinkCursor()
     d->cursorFlashLimit.stop();
     d->cursorVisible = true;
     if (d->shape) {
-        Q_EMIT updateCursorDecoration(d->shape->shapeToDocument(d->cursorShape.boundingRect()) | d->oldCursorRect);
+        notifyDecorationUpdate(d->shape->shapeToDocument(d->cursorShape.boundingRect()) | d->oldCursorRect);
     }
 }
 
 void SvgTextCursor::updateInputMethodItemTransform()
 {
-    // Mockcanvas in the tests has no window.
-    if (!d->canvas->canvasWidget()) {
+    if (!d->hostSurface || !d->hostSurface->isAvailable()) {
         return;
     }
-    const QPoint pos = d->canvas->canvasWidget()->mapTo(d->canvas->canvasWidget()->window(), QPoint());
+    const PkPoint pos = d->hostSurface->offsetInWindow();
     const PkTransform widgetToWindow = PkTransform::fromTranslate(pos.x(), pos.y());
     PkTransform inputItemTransform = widgetToWindow;
-    const QRect widgetGeometry = d->canvas->canvasWidget()->geometry();
-    PkRectF inputRect(widgetGeometry.x(), widgetGeometry.y(), widgetGeometry.width(), widgetGeometry.height());
+    PkRectF inputRect = d->hostSurface->geometry();
     if (d->shape) {
         inputRect = d->shape->outlineRect().normalized();
         const PkTransform shapeTransform = d->shape->absoluteTransformation();
@@ -1300,15 +1291,32 @@ void SvgTextCursor::canvasResourceChanged(int key, const PkVariant &value)
     }
 }
 
-void SvgTextCursor::propertyAction()
+void SvgTextCursor::notifyCanvasResourceChanged(int key, const PkVariant &value)
 {
-    QAction *action = dynamic_cast<QAction*>(QObject::sender());
-    if (!action || !d->shape) return;
+    if (d->resourceManagerAcyclicConnector.isLocked()) return;
+    KisAcyclicSignalConnector::Blocker blocker(d->resourceManagerAcyclicConnector);
+    canvasResourceChanged(key, value);
+}
+
+bool SvgTextCursor::triggerAction(const PkString &name, bool checked)
+{
+    if (name == "svg_paste_rich_text") return pasteRichText();
+    if (name == "svg_paste_plain_text") return pastePlainText();
+    if (name == "svg_remove_transforms_from_range") {
+        removeTransformsFromRange();
+        return true;
+    }
+    if (name == "svg_clear_formatting") {
+        clearFormattingAction();
+        return true;
+    }
+    if (!d->shape || !SvgTextShortCuts::isAction(name)) return false;
 
     const PkList<KoSvgTextProperties> p = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor));
-    KoSvgTextProperties properties = SvgTextShortCuts::getModifiedProperties(action, p);
-    if (properties.isEmpty()) return;
+    KoSvgTextProperties properties = SvgTextShortCuts::getModifiedProperties(name, checked, p);
+    if (properties.isEmpty()) return false;
     mergePropertiesIntoSelection(properties);
+    return true;
 }
 
 void SvgTextCursor::clearFormattingAction()
@@ -1361,240 +1369,139 @@ void SvgTextCursor::notifyMarkupChanged()
     updateTypeSettingDecoration();
 }
 
-void SvgTextCursor::keyPressEvent(QKeyEvent *event)
+bool SvgTextCursor::keyPressEvent(const NativeKeyEvent &event)
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(d->shape);
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(d->shape, false);
 
-    updateModifiers(Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+    updateModifiers(event.modifiers);
 
     if (d->preEditCommand) {
         //MacOS will keep sending keyboard events during IME handling.
-        event->accept();
-        return;
+        return true;
     }
 
-    bool select = event->modifiers().testFlag(Qt::ShiftModifier);
+    const bool select = event.modifiers.testFlag(Pk::ShiftModifier);
 
-    if (!((Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier) & event->modifiers())) {
+    if (!((Pk::ControlModifier | Pk::AltModifier | Pk::MetaModifier) & event.modifiers)) {
 
-        switch (event->key()) {
-        case Qt::Key_Right:
+        switch (event.key) {
+        case Pk::Key_Right:
             moveCursor(SvgTextCursor::MoveRight, !select);
-            event->accept();
-            break;
-        case Qt::Key_Left:
+            return true;
+        case Pk::Key_Left:
             moveCursor(SvgTextCursor::MoveLeft, !select);
-            event->accept();
-            break;
-        case Qt::Key_Up:
+            return true;
+        case Pk::Key_Up:
             moveCursor(SvgTextCursor::MoveUp, !select);
-            event->accept();
-            break;
-        case Qt::Key_Down:
+            return true;
+        case Pk::Key_Down:
             moveCursor(SvgTextCursor::MoveDown, !select);
-            event->accept();
-            break;
-        case Qt::Key_Delete:
+            return true;
+        case Pk::Key_Delete:
             removeText(MoveNone, MoveNextChar);
-            event->accept();
-            break;
-        case Qt::Key_Backspace:
+            return true;
+        case Pk::Key_Backspace:
             removeLastCodePoint();
-            event->accept();
-            break;
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
+            return true;
+        case Pk::Key_Return:
+        case Pk::Key_Enter:
             insertText("\n");
-            event->accept();
-            break;
+            return true;
         default:
-            event->ignore();
-        }
-
-        if (event->isAccepted()) {
-            return;
+            break;
         }
     }
     if (acceptableInput(event)) {
-        insertText(toPkString(event->text()));
-        event->accept();
-        return;
+        insertText(event.text);
+        return true;
     }
 
-    KoSvgTextProperties props = d->shape->textProperties();
-
-    KoSvgText::WritingMode mode = KoSvgText::WritingMode(props.propertyOrDefault(KoSvgTextProperties::WritingModeId).toInt());
-    KoSvgText::Direction direction = KoSvgText::Direction(props.propertyOrDefault(KoSvgTextProperties::DirectionId).toInt());
-
-    // Qt's keysequence stuff doesn't handle vertical, so to test all the standard keyboard shortcuts as if it did,
-    // we reinterpret the direction keys according to direction and writing mode, and test against that.
-
-    int newKey = event->key();
-
-    if (direction == KoSvgText::DirectionRightToLeft) {
-        switch (newKey) {
-        case Qt::Key_Left:
-            newKey = Qt::Key_Right;
-            break;
-        case Qt::Key_Right:
-            newKey = Qt::Key_Left;
-            break;
-        default:
-            break;
-        }
-    }
-
-    if (mode == KoSvgText::VerticalRL) {
-        switch (newKey) {
-        case Qt::Key_Left:
-            newKey = Qt::Key_Down;
-            break;
-        case Qt::Key_Right:
-            newKey = Qt::Key_Up;
-            break;
-        case Qt::Key_Up:
-            newKey = Qt::Key_Left;
-            break;
-        case Qt::Key_Down:
-            newKey = Qt::Key_Right;
-            break;
-        default:
-            break;
-        }
-    } else if (mode == KoSvgText::VerticalRL) {
-        switch (newKey) {
-        case Qt::Key_Left:
-            newKey = Qt::Key_Up;
-            break;
-        case Qt::Key_Right:
-            newKey = Qt::Key_Down;
-            break;
-        case Qt::Key_Up:
-            newKey = Qt::Key_Left;
-            break;
-        case Qt::Key_Down:
-            newKey = Qt::Key_Right;
-            break;
-        default:
-            break;
-        }
-    }
-
-    QKeySequence testSequence(event->modifiers() | newKey);
-
-
-    // Note for future, when we have format changing actions:
-    // We'll need to test format change actions before the standard
-    // keys, as one of the standard keys for deleting a line is ctrl+u
-    // which would probably be expected to do underline before deleting.
-
-    Q_FOREACH(QAction *action, d->actions) {
-        if (action->shortcut() == testSequence) {
-            event->accept();
-            action->trigger();
-            return;
-        }
-    }
-
-    // This first set is already tested above, however, if they still
-    // match, then it's one of the extra sequences for MacOs, which
-    // seem to be purely logical, instead of the visual set we tested
-    // above.
-    if (testSequence == QKeySequence::MoveToNextChar) {
+    switch (event.command) {
+    case NativeKeyCommand::MoveNextChar:
         moveCursor(SvgTextCursor::MoveNextChar, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectNextChar) {
+        return true;
+    case NativeKeyCommand::SelectNextChar:
         moveCursor(SvgTextCursor::MoveNextChar, false);
-        event->accept();
-    } else if (testSequence == QKeySequence::MoveToPreviousChar) {
+        return true;
+    case NativeKeyCommand::MovePreviousChar:
         moveCursor(SvgTextCursor::MovePreviousChar, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectPreviousChar) {
+        return true;
+    case NativeKeyCommand::SelectPreviousChar:
         moveCursor(SvgTextCursor::MovePreviousChar, false);
-        event->accept();
-    } else if (testSequence == QKeySequence::MoveToNextLine) {
+        return true;
+    case NativeKeyCommand::MoveNextLine:
         moveCursor(SvgTextCursor::MoveNextLine, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectNextLine) {
+        return true;
+    case NativeKeyCommand::SelectNextLine:
         moveCursor(SvgTextCursor::MoveNextLine, false);
-        event->accept();
-    } else if (testSequence == QKeySequence::MoveToPreviousLine) {
+        return true;
+    case NativeKeyCommand::MovePreviousLine:
         moveCursor(SvgTextCursor::MovePreviousLine, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectPreviousLine) {
+        return true;
+    case NativeKeyCommand::SelectPreviousLine:
         moveCursor(SvgTextCursor::MovePreviousLine, false);
-        event->accept();
-
-    } else if (testSequence == QKeySequence::MoveToNextWord) {
+        return true;
+    case NativeKeyCommand::MoveNextWord:
         moveCursor(SvgTextCursor::MoveWordEnd, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectNextWord) {
+        return true;
+    case NativeKeyCommand::SelectNextWord:
         moveCursor(SvgTextCursor::MoveWordEnd, false);
-        event->accept();
-    } else if (testSequence == QKeySequence::MoveToPreviousWord) {
+        return true;
+    case NativeKeyCommand::MovePreviousWord:
         moveCursor(SvgTextCursor::MoveWordStart, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectPreviousWord) {
+        return true;
+    case NativeKeyCommand::SelectPreviousWord:
         moveCursor(SvgTextCursor::MoveWordStart, false);
-        event->accept();
-
-    } else if (testSequence == QKeySequence::MoveToStartOfLine) {
+        return true;
+    case NativeKeyCommand::MoveStartOfLine:
         moveCursor(SvgTextCursor::MoveLineStart, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectStartOfLine) {
+        return true;
+    case NativeKeyCommand::SelectStartOfLine:
         moveCursor(SvgTextCursor::MoveLineStart, false);
-        event->accept();
-    } else if (testSequence == QKeySequence::MoveToEndOfLine) {
+        return true;
+    case NativeKeyCommand::MoveEndOfLine:
         moveCursor(SvgTextCursor::MoveLineEnd, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectEndOfLine) {
+        return true;
+    case NativeKeyCommand::SelectEndOfLine:
         moveCursor(SvgTextCursor::MoveLineEnd, false);
-        event->accept();
-
-    } else if (testSequence == QKeySequence::MoveToStartOfBlock
-               || testSequence == QKeySequence::MoveToStartOfDocument) {
+        return true;
+    case NativeKeyCommand::MoveStartOfBlock:
         moveCursor(SvgTextCursor::ParagraphStart, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectStartOfBlock
-               || testSequence == QKeySequence::SelectStartOfDocument) {
+        return true;
+    case NativeKeyCommand::SelectStartOfBlock:
         moveCursor(SvgTextCursor::ParagraphStart, false);
-        event->accept();
-
-    } else if (testSequence == QKeySequence::MoveToEndOfBlock
-               || testSequence == QKeySequence::MoveToEndOfDocument) {
+        return true;
+    case NativeKeyCommand::MoveEndOfBlock:
         moveCursor(SvgTextCursor::ParagraphEnd, true);
-        event->accept();
-    } else if (testSequence == QKeySequence::SelectEndOfBlock
-               || testSequence == QKeySequence::SelectEndOfDocument) {
+        return true;
+    case NativeKeyCommand::SelectEndOfBlock:
         moveCursor(SvgTextCursor::ParagraphEnd, false);
-        event->accept();
-
-    }else if (testSequence == QKeySequence::DeleteStartOfWord) {
+        return true;
+    case NativeKeyCommand::DeleteStartOfWord:
         removeText(MoveWordStart, MoveNone);
-        event->accept();
-    } else if (testSequence == QKeySequence::DeleteEndOfWord) {
+        return true;
+    case NativeKeyCommand::DeleteEndOfWord:
         removeText(MoveNone, MoveWordEnd);
-        event->accept();
-    } else if (testSequence == QKeySequence::DeleteEndOfLine) {
+        return true;
+    case NativeKeyCommand::DeleteEndOfLine:
         removeText(MoveNone, MoveLineEnd);
-        event->accept();
-    } else if (testSequence == QKeySequence::DeleteCompleteLine) {
+        return true;
+    case NativeKeyCommand::DeleteCompleteLine:
         removeText(MoveLineStart, MoveLineEnd);
-        event->accept();
-    } else if (testSequence == QKeySequence::Backspace) {
+        return true;
+    case NativeKeyCommand::Backspace:
         removeLastCodePoint();
-        event->accept();
-    } else if (testSequence == QKeySequence::Delete) {
+        return true;
+    case NativeKeyCommand::Delete:
         removeText(MoveNone, MoveNextChar);
-        event->accept();
-
-    } else if (testSequence == QKeySequence::InsertLineSeparator
-               || testSequence == QKeySequence::InsertParagraphSeparator) {
+        return true;
+    case NativeKeyCommand::InsertLineSeparator:
         insertText("\n");
-        event->accept();
-    } else {
-        event->ignore();
+        return true;
+    case NativeKeyCommand::None:
+        return false;
     }
+    return false;
 }
 
 void SvgTextCursor::updateModifiers(Pk::KeyboardModifiers modifiers)
@@ -1610,8 +1517,8 @@ bool SvgTextCursor::isAddingCommand() const
 
 void SvgTextCursor::focusIn()
 {
-    d->cursorFlash.start();
-    d->cursorFlashLimit.start();
+    d->cursorFlash.start(d->cursorFlashInterval, [this] { blinkCursor(); });
+    d->cursorFlashLimit.start(d->cursorFlashLimitInterval, [this] { stopBlinkCursor(); }, true);
     d->cursorVisible = false;
     d->hasFocus = true;
     blinkCursor();
@@ -1623,33 +1530,29 @@ void SvgTextCursor::focusOut()
     stopBlinkCursor();
 }
 
-bool SvgTextCursor::registerPropertyAction(QAction *action, const PkString &name)
+void SvgTextCursor::setDecorationUpdateCallback(std::function<void(const PkRectF &)> callback)
 {
-    if (SvgTextShortCuts::configureAction(action, name)) {
-        d->actions.append(action);
-        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(propertyAction()));
-        return true;
-    } else if (name == "svg_paste_rich_text") {
-        d->actions.append(action);
-        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(pasteRichText()));
-        return true;
-    } else if (name == "svg_paste_plain_text") {
-        d->actions.append(action);
-        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(pastePlainText()));
-        return true;
-    } else if (name == "svg_remove_transforms_from_range") {
-        d->actions.append(action);
-        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(removeTransformsFromRange()));
-        return true;
-    } else if (name == "svg_clear_formatting") {
-        d->actions.append(action);
-        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(clearFormattingAction()));
-        return true;
-    } else if (action) {
-        d->actions.append(action);
-        return true;
-    }
-    return false;
+    d->decorationUpdateCallback = std::move(callback);
+}
+
+void SvgTextCursor::setSelectionChangedCallback(std::function<void()> callback)
+{
+    d->selectionChangedCallback = std::move(callback);
+}
+
+void SvgTextCursor::setActionStateChangedCallback(std::function<void(const PkString &, bool)> callback)
+{
+    d->actionStateChangedCallback = std::move(callback);
+}
+
+void SvgTextCursor::notifyDecorationUpdate(const PkRectF &rect)
+{
+    if (d->decorationUpdateCallback) d->decorationUpdateCallback(rect);
+}
+
+void SvgTextCursor::notifySelectionChanged()
+{
+    if (d->selectionChangedCallback) d->selectionChangedCallback();
 }
 
 KoSvgTextPropertiesInterface *SvgTextCursor::textPropertyInterface()
@@ -1663,7 +1566,7 @@ void SvgTextCursor::updateCursor(bool firstUpdate)
         d->oldCursorRect = d->shape->shapeToDocument(d->cursorShape.boundingRect());
         d->posIndex = d->shape->indexForPos(d->pos);
         d->anchorIndex = d->shape->indexForPos(d->anchor);
-        emit selectionChanged();
+        notifySelectionChanged();
         updateTypeSettingDecoration();
     }
     d->cursorColor = PkColor();
@@ -1673,17 +1576,16 @@ void SvgTextCursor::updateCursor(bool firstUpdate)
         KisDocumentApplicationServices::instance()->updateInputMethod(Pk::ImQueryInput);
     }
     d->interface->emitCharacterSelectionChange();
-    if (!(d->canvas->canvasWidget() && d->canvas->canvasController())) {
-        // Mockcanvas in the tests has neither.
+    if (!(d->hostSurface && d->hostSurface->isAvailable() && d->canvas->canvasController())) {
         return;
     }
     if (d->shape && !firstUpdate) {
         PkRectF rect = d->shape->shapeToDocument(d->cursorShape.boundingRect());
         d->canvas->canvasController()->ensureVisibleDoc(rect, false);
     }
-    if (d->canvas->canvasWidget()->hasFocus()) {
-        d->cursorFlash.start();
-        d->cursorFlashLimit.start();
+    if (d->hostSurface->hasFocus()) {
+        d->cursorFlash.start(d->cursorFlashInterval, [this] { blinkCursor(); });
+        d->cursorFlashLimit.start(d->cursorFlashLimitInterval, [this] { stopBlinkCursor(); }, true);
         d->cursorVisible = false;
         blinkCursor();
     }
@@ -1695,7 +1597,7 @@ void SvgTextCursor::updateSelection()
         d->oldSelectionRect = d->shape->shapeToDocument(d->selection.boundingRect());
         d->shape->cursorForPos(d->anchor, d->anchorCaret, d->cursorColor);
         d->selection = d->shape->selectionBoxes(d->pos, d->anchor);
-        Q_EMIT updateCursorDecoration(d->shape->shapeToDocument(d->selection.boundingRect()) | d->oldSelectionRect);
+        notifyDecorationUpdate(d->shape->shapeToDocument(d->selection.boundingRect()) | d->oldSelectionRect);
 
         if (!d->blockQueryUpdates) {
             KisDocumentApplicationServices::instance()->updateInputMethod(Pk::ImQueryInput);
@@ -1726,7 +1628,7 @@ void SvgTextCursor::updateIMEDecoration()
             }
         }
 
-        Q_EMIT updateCursorDecoration(d->shape->shapeToDocument(d->IMEDecoration.boundingRect()) | d->oldIMEDecorationRect);
+        notifyDecorationUpdate(d->shape->shapeToDocument(d->IMEDecoration.boundingRect()) | d->oldIMEDecorationRect);
     }
 }
 
@@ -1954,7 +1856,7 @@ void SvgTextCursor::updateTypeSettingDecoration()
         updateRect = d->shape->shapeToDocument(d->typeSettingDecor.boundingRect(d->handleRadius));
     }
     updateTypeSettingDecorFromShape(); // To remove the text-in-path nodes..
-    Q_EMIT updateCursorDecoration(updateRect | d->oldTypeSettingRect);
+    notifyDecorationUpdate(updateRect | d->oldTypeSettingRect);
     d->oldTypeSettingRect = updateRect;
 }
 
@@ -2043,27 +1945,28 @@ int SvgTextCursor::moveModeResult(const SvgTextCursor::MoveMode mode, int &pos, 
     return newPos;
 }
 
-/// More or less copied from bool QInputControl::isAcceptableInput(const QKeyEvent *event) const
-bool SvgTextCursor::acceptableInput(const QKeyEvent *event) const
+/// Preserve the accepted-text rules of Qt 5.15's input control using native payloads.
+bool SvgTextCursor::acceptableInput(const NativeKeyEvent &event) const
 {
-    const QString text = event->text();
+    const PkString &text = event.text;
     if (text.isEmpty())
         return false;
-    const QChar c = text.at(0);
+    const PkChar c(text.at(0));
     // Formatting characters such as ZWNJ, ZWJ, RLM, etc. This needs to go before the
     // next test, since CTRL+SHIFT is sometimes used to input it on Windows.
-    if (c.category() == QChar::Other_Format)
+    if (c.category() == PkChar::Other_Format)
         return true;
     // QTBUG-35734: ignore Ctrl/Ctrl+Shift; accept only AltGr (Alt+Ctrl) on German keyboards
-    if (event->modifiers() == Qt::ControlModifier
-            || event->modifiers() == (Qt::ShiftModifier | Qt::ControlModifier)) {
+    if (event.modifiers == Pk::ControlModifier
+            || event.modifiers == (Pk::ShiftModifier | Pk::ControlModifier)) {
         return false;
     }
-    if (c.isPrint())
+    const PkChar::Category category = c.category();
+    if (category < PkChar::Other_Control || category > PkChar::Other_NotAssigned)
         return true;
-    if (c.category() == QChar::Other_PrivateUse)
+    if (c.category() == PkChar::Other_PrivateUse)
         return true;
-    if (c == QLatin1Char('\t'))
+    if (c == PkChar(PkChar::Tabulation))
         return true;
     return false;
 }
@@ -2113,17 +2016,12 @@ void SvgTextCursor::updateCanvasResources()
             }
         }
 
-        Q_FOREACH (QAction *action, d->actions) {
-            // Blocking signals so that we don't get a toggle action while evaluating the checked-ness.
-            action->blockSignals(true);
-            const PkList<KoSvgTextProperties> r = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor), true);
-            if (action->isCheckable() && SvgTextShortCuts::possibleActions().contains(toPkString(action->objectName()))) {
-                const bool checked = SvgTextShortCuts::actionEnabled(action, r);
-                if (action->isChecked() != checked) {
-                    action->setChecked(checked);
-                }
+        if (d->actionStateChangedCallback) {
+            const PkList<KoSvgTextProperties> properties =
+                d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor), true);
+            for (const PkString &name : SvgTextShortCuts::possibleActions()) {
+                d->actionStateChangedCallback(name, SvgTextShortCuts::actionEnabled(name, properties));
             }
-            action->blockSignals(false);
         }
     }
 }
@@ -2141,7 +2039,7 @@ struct SvgTextCursorPropertyInterface::Private {
 };
 
 SvgTextCursorPropertyInterface::SvgTextCursorPropertyInterface(SvgTextCursor *parent)
-    : KoSvgTextPropertiesInterface(parent), d(new Private(parent))
+    : KoSvgTextPropertiesInterface(nullptr), d(new Private(parent))
 {
     d->compressorConnection =
         PkObject::connect(&d->compressor, &KisSignalCompressor::timeout,
@@ -2149,7 +2047,13 @@ SvgTextCursorPropertyInterface::SvgTextCursorPropertyInterface(SvgTextCursor *pa
     d->characterCompressorConnection =
         PkObject::connect(&d->characterCompressor, &KisSignalCompressor::timeout,
                           &d->characterCompressor,
-                          [this]() { Q_EMIT textCharacterSelectionChanged(); });
+                          [this]() {
+        Q_EMIT textCharacterSelectionChanged();
+        if (d->parent && !d->parent->d->resourceManagerAcyclicConnector.isLocked()) {
+            KisAcyclicSignalConnector::Blocker blocker(d->parent->d->resourceManagerAcyclicConnector);
+            d->parent->updateCanvasResources();
+        }
+    });
 }
 
 SvgTextCursorPropertyInterface::~SvgTextCursorPropertyInterface()

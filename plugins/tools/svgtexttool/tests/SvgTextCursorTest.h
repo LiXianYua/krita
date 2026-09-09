@@ -19,6 +19,9 @@ private Q_SLOTS:
     void clipboardRichFallbackUsesSingleSnapshot();
     void nativeInputMethodEventPreservesEditingLifecycle();
     void qtInputMethodAdapterMatchesQt515Payload();
+    void nativeKeyDispatchMatchesQt515Adapter();
+    void nativeActionDispatchPreservesPropertySemantics();
+    void nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery();
     void shortcutValuesMatchQt515Oracle();
     void configHandlesMatchKConfigOracle();
 

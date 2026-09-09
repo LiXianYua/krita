@@ -19,12 +19,12 @@
 #include <KisDocumentApplicationServices.h>
 #include "kritatoolsvgtext_export.h"
 
+#include <functional>
+
 class KoCanvasBase;
 class SvgTextInsertCommand;
 class SvgTextRemoveCommand;
 class KUndo2Command;
-class QKeyEvent;
-class QAction;
 
 /**
  * @brief The SvgTextCursor class
@@ -50,9 +50,56 @@ class QAction;
 
 class KRITATOOLSVGTEXT_EXPORT SvgTextCursor : public KoToolSelection, public KoSvgTextShape::TextCursorChangeListener
 {
-    Q_OBJECT
 public:
-    explicit SvgTextCursor(KoCanvasBase *canvas);
+    class HostSurface
+    {
+    public:
+        virtual ~HostSurface() = default;
+        virtual bool isAvailable() const = 0;
+        virtual bool hasFocus() const = 0;
+        virtual PkPoint offsetInWindow() const = 0;
+        virtual PkRectF geometry() const = 0;
+    };
+
+    enum class NativeKeyCommand {
+        None,
+        MoveNextChar,
+        SelectNextChar,
+        MovePreviousChar,
+        SelectPreviousChar,
+        MoveNextLine,
+        SelectNextLine,
+        MovePreviousLine,
+        SelectPreviousLine,
+        MoveNextWord,
+        SelectNextWord,
+        MovePreviousWord,
+        SelectPreviousWord,
+        MoveStartOfLine,
+        SelectStartOfLine,
+        MoveEndOfLine,
+        SelectEndOfLine,
+        MoveStartOfBlock,
+        SelectStartOfBlock,
+        MoveEndOfBlock,
+        SelectEndOfBlock,
+        DeleteStartOfWord,
+        DeleteEndOfWord,
+        DeleteEndOfLine,
+        DeleteCompleteLine,
+        Backspace,
+        Delete,
+        InsertLineSeparator
+    };
+
+    struct NativeKeyEvent {
+        int key = 0;
+        Pk::KeyboardModifiers modifiers;
+        PkString text;
+        NativeKeyCommand command = NativeKeyCommand::None;
+    };
+
+    explicit SvgTextCursor(KoCanvasBase *canvas, HostSurface *hostSurface = nullptr);
 
     enum MoveMode {
         MoveNone,
@@ -162,7 +209,7 @@ public:
     void updateTypeSettingDecorFromShape();
 
     /// Return appropriate typeSetting cursor;
-    QCursor cursorTypeForTypeSetting() const;
+    Pk::CursorShape cursorTypeForTypeSetting() const;
 
     /**
      * @brief handleName
@@ -290,8 +337,8 @@ public:
 
     void notifyMarkupChanged() override;
 
-    /// Handle the cursor-related key events.
-    void keyPressEvent(QKeyEvent *event);
+    /// Handle a host-normalized key event. Returns whether it was consumed.
+    bool keyPressEvent(const NativeKeyEvent &event);
 
     void updateModifiers(Pk::KeyboardModifiers modifiers);
 
@@ -304,21 +351,19 @@ public:
     /// Stops blinking cursor.
     void focusOut();
 
-    /// Register an action.
-    bool registerPropertyAction(QAction *action, const PkString &name);
+    /// Dispatch an action after the host has normalized its stable identifier.
+    bool triggerAction(const PkString &name, bool checked = false);
+
+    void notifyCanvasResourceChanged(int key, const PkVariant &value);
+    void setDecorationUpdateCallback(std::function<void(const PkRectF &)> callback);
+    void setSelectionChangedCallback(std::function<void()> callback);
+    void setActionStateChangedCallback(std::function<void(const PkString &, bool)> callback);
 
     /// The text properties interface. This is how the text properties docker
     /// communicates with the text tool.
     KoSvgTextPropertiesInterface *textPropertyInterface();
 
-Q_SIGNALS:
-
-    /// Sents an update to the parent tool to update it's decorations.
-    void updateCursorDecoration(PkRectF updateRect);
-    /// Sents an update selection was changed.
-    void selectionChanged();
-
-private Q_SLOTS:
+private:
     /// Called by timer, toggles the text cursor visible or invisible.
     void blinkCursor();
     /// Called by timer, stops the text blinking animation.
@@ -331,8 +376,6 @@ private Q_SLOTS:
     void updateInputMethodItemTransform();
     /// Called when the canvas resources (foreground/background) change.
     void canvasResourceChanged(int key, const PkVariant &value);
-    /// Called by the actions to execute a property change based on their data.
-    void propertyAction();
     /// Called by the clear formatting action.
     void clearFormattingAction();
 
@@ -359,6 +402,7 @@ private Q_SLOTS:
     void updateCanvasResources();
 
 private:
+    friend class SvgTextCursorPropertyInterface;
 
     /**
      * @brief removeSelection
@@ -384,7 +428,10 @@ private:
     /// Tests whether the current keyboard input can be printed as text, or is
     /// probably a shortcut. This is so that various keyboard events,
     /// like print don't get inserted as text.
-    bool acceptableInput(const QKeyEvent *event) const;
+    bool acceptableInput(const NativeKeyEvent &event) const;
+
+    void notifyDecorationUpdate(const PkRectF &rect);
+    void notifySelectionChanged();
 
     /// This applies any running IME interactions, used when the shape is
     /// deselected halfways through an IME interaction.
@@ -413,8 +460,5 @@ private:
     struct Private;
     const QScopedPointer<Private> d;
 };
-
-Q_DECLARE_METATYPE(SvgTextCursor::MoveMode)
-
 
 #endif // SVGTEXTCURSOR_H

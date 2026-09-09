@@ -14,6 +14,7 @@
 #include <SvgTextInputMethodAdapter.h>
 #include <KisDocumentApplicationServices.h>
 #include <PkConfigGroup.h>
+#include <PkThreadCallQueue.h>
 #include <kundo2command.h>
 #include <KConfig>
 #include <KConfigGroup>
@@ -30,9 +31,14 @@
 #include <QTextCharFormat>
 #include <QWidget>
 
+#include <chrono>
+#include <thread>
+
 #include <tests/MockShapes.h>
 #include <simpletest.h>
 #include <testui.h>
+
+Q_DECLARE_METATYPE(SvgTextCursor::MoveMode)
 
 namespace {
 class CursorCanvas final : public MockCanvas
@@ -144,6 +150,20 @@ public:
     {
         KisDocumentApplicationServices::setInstance(nullptr);
     }
+};
+
+class NativeCursorHost final : public SvgTextCursor::HostSurface
+{
+public:
+    bool isAvailable() const override { return available; }
+    bool hasFocus() const override { return focused; }
+    PkPoint offsetInWindow() const override { return offset; }
+    PkRectF geometry() const override { return rect; }
+
+    bool available = true;
+    bool focused = true;
+    PkPoint offset{17, 23};
+    PkRectF rect{0, 0, 640, 480};
 };
 }
 
@@ -322,6 +342,86 @@ void SvgTextCursorTest::qtInputMethodAdapterMatchesQt515Payload()
     QCOMPARE(native.attributes.at(2).type, KisDocumentApplicationServices::InputMethodAttributeType::Cursor);
 }
 
+void SvgTextCursorTest::nativeKeyDispatchMatchesQt515Adapter()
+{
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">one two</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    ApplyingCanvas canvas;
+    SvgTextCursor cursor(&canvas);
+    const int end = shape.posForIndex(shape.plainText().size());
+    cursor.setShape(&shape);
+    cursor.setPos(end, end);
+
+    QKeyEvent qtWordLeft(QEvent::KeyPress, Qt::Key_Left, Qt::ControlModifier);
+    const SvgTextCursor::NativeKeyEvent nativeWordLeft =
+        svgTextNativeKeyEvent(qtWordLeft, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
+    QCOMPARE(nativeWordLeft.command, SvgTextCursor::NativeKeyCommand::MovePreviousWord);
+    QVERIFY(cursor.keyPressEvent(nativeWordLeft));
+    QCOMPARE(cursor.getPos(), shape.wordStart(end));
+
+    QKeyEvent qtPrintable(QEvent::KeyPress, Qt::Key_Z, Qt::NoModifier, QStringLiteral("Z"));
+    const SvgTextCursor::NativeKeyEvent nativePrintable =
+        svgTextNativeKeyEvent(qtPrintable, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
+    QVERIFY(cursor.keyPressEvent(nativePrintable));
+    QCOMPARE(toQString(shape.plainText()), QStringLiteral("one Ztwo"));
+}
+
+void SvgTextCursorTest::nativeActionDispatchPreservesPropertySemantics()
+{
+    KoSvgTextProperties properties;
+    properties.setProperty(KoSvgTextProperties::FontWeightId, PkVariant(400));
+    const KoSvgTextProperties modified =
+        SvgTextShortCuts::getModifiedProperties("svg_weight_bold", true, {properties});
+    QCOMPARE(modified.property(KoSvgTextProperties::FontWeightId).toInt(), 700);
+    QVERIFY(SvgTextShortCuts::actionEnabled("svg_weight_bold", {modified}));
+    QVERIFY(!SvgTextShortCuts::isAction("not-an-svg-text-action"));
+
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\" font-weight=\"400\">abc</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    ApplyingCanvas canvas;
+    SvgTextCursor cursor(&canvas);
+    cursor.setShape(&shape);
+    const int end = shape.posForIndex(shape.plainText().size());
+    cursor.setPos(end, 0);
+    QVERIFY(cursor.triggerAction("svg_weight_bold", true));
+    QCOMPARE(shape.propertiesForPos(1, true).propertyOrDefault(KoSvgTextProperties::FontWeightId).toInt(), 700);
+    QVERIFY(!cursor.triggerAction("not-an-svg-text-action", false));
+}
+
+void SvgTextCursorTest::nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery()
+{
+    using namespace std::chrono_literals;
+    PkThreadCallQueue::warmUpCurrentThread();
+
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">blink</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    ApplyingCanvas canvas;
+    int updates = 0;
+    {
+        SvgTextCursor cursor(&canvas);
+        cursor.setDecorationUpdateCallback([&](const PkRectF &) { ++updates; });
+        cursor.setShape(&shape);
+        cursor.setCaretSetting(1, 10, 100, false);
+        cursor.focusIn();
+        updates = 0;
+
+        std::this_thread::sleep_for(25ms);
+        QCOMPARE(updates, 0);
+        QVERIFY(PkThreadCallQueue::pendingCount() >= std::size_t(1));
+        QVERIFY(PkThreadCallQueue::processPendingCalls() >= 1);
+        QVERIFY(updates > 0);
+
+        updates = 0;
+        std::this_thread::sleep_for(25ms);
+    }
+
+    PkThreadCallQueue::processPendingCalls();
+    QCOMPARE(updates, 0);
+}
+
 void SvgTextCursorTest::shortcutValuesMatchQt515Oracle()
 {
     // Qt QVariant is the independent numeric carrier used by the original
@@ -335,21 +435,14 @@ void SvgTextCursorTest::shortcutValuesMatchQt515Oracle()
         {"svg_decrease_font_size", false, KoSvgTextProperties::FontSizeId, QVariant(12.5), QVariant(11.5)}
     };
     for (const Case &item : cases) {
-        QAction action;
-        action.setObjectName(QString::fromLatin1(item.name));
-        action.setCheckable(true);
-        action.setChecked(item.checked);
-        QVERIFY(SvgTextShortCuts::configureAction(&action, item.name));
+        QVERIFY(SvgTextShortCuts::isAction(item.name));
         KoSvgTextProperties properties;
         properties.setProperty(KoSvgTextProperties::PropertyId(item.property), PkVariant(item.before.toDouble()));
-        const auto result = SvgTextShortCuts::getModifiedProperties(&action, {properties});
+        const auto result = SvgTextShortCuts::getModifiedProperties(item.name, item.checked, {properties});
         QCOMPARE(result.property(KoSvgTextProperties::PropertyId(item.property)).toDouble(), item.after.toDouble());
     }
-    QVERIFY(!SvgTextShortCuts::actionEnabled(nullptr, {}));
-    QVERIFY(!SvgTextShortCuts::configureAction(nullptr, "svg_weight_bold"));
-    QAction unknown;
-    unknown.setObjectName("unknown");
-    QVERIFY(!SvgTextShortCuts::configureAction(&unknown, "unknown"));
+    QVERIFY(!SvgTextShortCuts::actionEnabled("unknown", {}));
+    QVERIFY(!SvgTextShortCuts::isAction("unknown"));
 }
 
 void SvgTextCursorTest::configHandlesMatchKConfigOracle()
@@ -410,15 +503,15 @@ void SvgTextCursorTest::controllerChangesUpdateImeTransform()
     KoSvgTextShape shape;
     KoSvgTextShapeMarkupConverter converter(&shape);
     QVERIFY(converter.convertFromSvg("<text font-size=\"10\">Hello</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
-    SvgTextCursor cursor(&canvas);
+    NativeCursorHost host;
+    SvgTextCursor cursor(&canvas, &host);
     cursor.setShape(&shape);
     cursor.focusIn();
-    canvas.widget.move(17, 23);
     controller.proxyObject->emitSizeChanged(PkSize(640, 480));
     QCOMPARE(services.inputItemTransform.map(PkPointF()), PkPointF(17, 23));
     QVERIFY(services.inputMethodVisible);
     QVERIFY(services.updateCount > 0);
-    canvas.widget.move(31, 47);
+    host.offset = PkPoint(31, 47);
     controller.proxyObject->emitMoveDocumentOffset(PkPointF(), PkPointF(14, 24));
     QCOMPARE(services.inputItemTransform.map(PkPointF()), PkPointF(31, 47));
     cursor.setShape(nullptr);

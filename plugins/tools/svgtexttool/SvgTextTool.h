@@ -12,7 +12,6 @@
 #include <KoToolBase.h>
 #include <PkMap.h>
 #include <QCursor>
-#include <QPointer>
 
 #include <KoSvgTextShapeOutlineHelper.h>
 
@@ -27,12 +26,10 @@ class KoSelection;
 class KoSvgTextShape;
 class KoInteractionStrategy;
 class KUndo2Command;
-class QActionGroup;
+class QAction;
 
 class SvgTextTool : public KoToolBase
 {
-    Q_OBJECT
-
     friend class SvgCreateTextStrategy;
     friend class SvgChangeTextPathInfoStrategy;
 
@@ -97,7 +94,8 @@ private:
 
     KoSvgText::WritingMode writingMode() const;
 
-    void addMappedAction(QActionGroup *group, const PkString &actionName, int value);
+    void connectCursorAction(const PkString &actionName);
+    void addMappedAction(const PkString &actionName, int value, bool movementAction);
 
     /**
      * @brief nodeEditable
@@ -106,7 +104,7 @@ private:
      */
     bool nodeEditable();
 
-private Q_SLOTS:
+private:
 
     void updateTextPathHelper();
 
@@ -194,12 +192,9 @@ private:
     HighlightItem m_highlightItem {HighlightItem::None};
     bool m_strategyAddingCommand {false};
 
-    QActionGroup *m_textTypeActionGroup {nullptr};
-    QActionGroup *m_typeSettingMovementActionGroup {nullptr};
-    PkMap<QAction *, int> m_mappedActionValues;
-
-
+    std::unique_ptr<SvgTextCursor::HostSurface> m_cursorHost;
     SvgTextCursor m_textCursor;
+    PkMap<PkString, QAction *> m_cursorActions;
     SvgTextOnPathDecorationHelper m_textOnPathHelper;
     QScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
 

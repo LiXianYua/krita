@@ -46,16 +46,20 @@ generate_export_header(krita_tool_svgtext_static BASE_NAME kritatoolsvgtext)
 
 target_include_directories(krita_tool_svgtext_static PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/concurrent
     ${CMAKE_SOURCE_DIR}/pk/geometry
-    ${CMAKE_SOURCE_DIR}/pk/namespace)
+    ${CMAKE_SOURCE_DIR}/pk/namespace
+    ${CMAKE_SOURCE_DIR}/pk/string)
 
 target_link_libraries(krita_tool_svgtext_static
     kritacanvas
     kritaimpex
     kritashapemodel
     pkcontainer
+    pkconcurrent
     pkgeometry
     pknamespace
+    pkstring
     KF${KF_MAJOR}::I18n)
 
 target_link_libraries(krita_tool_svgtext PRIVATE krita_tool_svgtext_static)

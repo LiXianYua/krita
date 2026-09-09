@@ -6,7 +6,6 @@
 #ifndef SVGTEXTSHORTCUTS_H
 #define SVGTEXTSHORTCUTS_H
 
-#include <QAction>
 #include <PkStringList.h>
 
 class KoSvgTextProperties;
@@ -24,11 +23,13 @@ class SvgTextShortCuts
 {
 public:
     static PkStringList possibleActions();
-    static bool configureAction(QAction *action, const PkString &name);
+    static bool isAction(const PkString &name);
 
-    static bool actionEnabled(QAction *action, const PkList<KoSvgTextProperties> currentProperties);
+    static bool actionEnabled(const PkString &name, const PkList<KoSvgTextProperties> currentProperties);
 
-    static KoSvgTextProperties getModifiedProperties(const QAction *action, PkList<KoSvgTextProperties> currentProperties);
+    static KoSvgTextProperties getModifiedProperties(const PkString &name,
+                                                     bool checked,
+                                                     PkList<KoSvgTextProperties> currentProperties);
 
 private:
 };

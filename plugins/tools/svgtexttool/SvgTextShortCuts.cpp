@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "SvgTextShortCuts.h"
-#include <QAction>
-#include <PkFlakeBridge.h>
 #include <KoSvgTextProperties.h>
 
 /**
@@ -166,10 +164,9 @@ PkStringList SvgTextShortCuts::possibleActions()
     return textShortCuts.keys();
 }
 
-bool SvgTextShortCuts::configureAction(QAction *action, const PkString &name)
+bool SvgTextShortCuts::isAction(const PkString &name)
 {
-    return action && textShortCuts.contains(name)
-        && toPkString(action->objectName()) == name;
+    return textShortCuts.contains(name);
 }
 /**
  * @brief testPropertyEnabled
@@ -234,11 +231,9 @@ bool testPropertyEnabled(const SvgTextShortcutInfo &info, const PkList<KoSvgText
     return false;
 }
 
-bool SvgTextShortCuts::actionEnabled(QAction *action, const PkList<KoSvgTextProperties> currentProperties) {
-    if (!action) return false;
-    const PkString actionName = toPkString(action->objectName());
-    if (!action->isCheckable() || !textShortCuts.contains(actionName)) return action->isChecked();
-    const SvgTextShortcutInfo info = textShortCuts.value(actionName);
+bool SvgTextShortCuts::actionEnabled(const PkString &name, const PkList<KoSvgTextProperties> currentProperties) {
+    if (!textShortCuts.contains(name)) return false;
+    const SvgTextShortcutInfo info = textShortCuts.value(name);
 
     if (info.type != SvgTextShortcutInfo::Toggle && info.type != SvgTextShortcutInfo::Set) {
         return false;
@@ -332,16 +327,16 @@ PkVariant adjustValue(SvgTextShortcutInfo info, PkVariant oldValue) {
     return newVal;
 }
 
-KoSvgTextProperties SvgTextShortCuts::getModifiedProperties(const QAction *action, PkList<KoSvgTextProperties> currentProperties)
+KoSvgTextProperties SvgTextShortCuts::getModifiedProperties(const PkString &name,
+                                                            bool checked,
+                                                            PkList<KoSvgTextProperties> currentProperties)
 {
-    if (!action || currentProperties.isEmpty()) return KoSvgTextProperties();
-    const PkString actionName = toPkString(action->objectName());
-    if (!textShortCuts.contains(actionName)) return KoSvgTextProperties();
-    const SvgTextShortcutInfo info = textShortCuts.value(actionName);
+    if (currentProperties.isEmpty() || !textShortCuts.contains(name)) return KoSvgTextProperties();
+    const SvgTextShortcutInfo info = textShortCuts.value(name);
 
     PkVariant newVal;
     if (info.type == SvgTextShortcutInfo::Toggle) {
-        newVal = toggleProperty(info, action->isChecked(), currentProperties);
+        newVal = toggleProperty(info, checked, currentProperties);
     } else if (info.type == SvgTextShortcutInfo::Set) {
         KoSvgTextProperties properties = currentProperties.first();
         PkVariant oldValue = properties.propertyOrDefault(info.propertyId);

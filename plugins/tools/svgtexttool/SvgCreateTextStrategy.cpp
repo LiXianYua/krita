@@ -67,7 +67,7 @@ void SvgCreateTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::K
 
 KUndo2Command *SvgCreateTextStrategy::createCommand()
 {
-    SvgTextTool *const tool = qobject_cast<SvgTextTool *>(this->tool());
+    SvgTextTool *const tool = dynamic_cast<SvgTextTool *>(this->tool());
 
     PkRectF rectangle = PkRectF(m_dragStart, m_dragEnd).normalized();
 

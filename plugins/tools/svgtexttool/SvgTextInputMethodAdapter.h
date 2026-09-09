@@ -7,10 +7,17 @@
 #define SVG_TEXT_INPUT_METHOD_ADAPTER_H
 
 #include <KisDocumentApplicationServices.h>
+#include "SvgTextCursor.h"
 
 class QInputMethodEvent;
+class QKeyEvent;
 
 KisDocumentApplicationServices::InputMethodEvent
 svgTextNativeInputMethodEvent(const QInputMethodEvent &event);
+
+SvgTextCursor::NativeKeyEvent
+svgTextNativeKeyEvent(const QKeyEvent &event,
+                      KoSvgText::WritingMode writingMode,
+                      KoSvgText::Direction direction);
 
 #endif
