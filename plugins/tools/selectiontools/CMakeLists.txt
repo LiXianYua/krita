@@ -34,6 +34,7 @@ target_include_directories(kritaselectiontools PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/geometry
     ${CMAKE_SOURCE_DIR}/pk/image
+    ${CMAKE_SOURCE_DIR}/pk/input
     ${CMAKE_SOURCE_DIR}/pk/namespace
     ${CMAKE_SOURCE_DIR}/pk/pointer
     ${CMAKE_SOURCE_DIR}/pk/render

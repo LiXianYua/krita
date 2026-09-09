@@ -16,6 +16,7 @@
 #include <kis_tool_select_base.h>
 #include "kis_selection_tool_config_widget_helper.h"
 #include <PkString.h>
+#include <pk/input/PkKeySequence.h>
 #include "selection_tools.h"
 
 
@@ -47,7 +48,7 @@ public:
         setToolTip(PkString("Rectangular Selection Tool"));
         setSection(ToolBoxSection::Select);
         setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
-        setShortcut(QKeySequence(selectionToolShortcutChord(SelectionToolKind::Rectangular)));
+        setShortcut(PkKeySequence({selectionToolShortcutChord(SelectionToolKind::Rectangular)}));
         setPriority(0);
     }
 

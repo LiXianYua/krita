@@ -23,6 +23,7 @@ class SelectionToolsTest : public QObject
 
 private Q_SLOTS:
     void registeredFactoryShortcutsMatchQt515Parser();
+    void registeredFactoryShortcutsRetainNativeChords();
     void thresholdFallbackMatchesKConfig();
 };
 
@@ -41,6 +42,23 @@ void SelectionToolsTest::registeredFactoryShortcutsMatchQt515Parser()
              QKeySequence(QStringLiteral("Ctrl+R"))[0]);
     QCOMPARE(elliptical->shortcut()[0],
              QKeySequence(QStringLiteral("J"))[0]);
+}
+
+void SelectionToolsTest::registeredFactoryShortcutsRetainNativeChords()
+{
+    registerSelectionTools();
+
+    KoToolFactoryBase *rectangular =
+        KoToolRegistry::instance()->value(PkString("KisToolSelectRectangular"));
+    KoToolFactoryBase *elliptical =
+        KoToolRegistry::instance()->value(PkString("KisToolSelectElliptical"));
+    QVERIFY(rectangular);
+    QVERIFY(elliptical);
+
+    QCOMPARE(rectangular->shortcut()[0],
+             selectionToolShortcutChord(SelectionToolKind::Rectangular));
+    QCOMPARE(elliptical->shortcut()[0],
+             selectionToolShortcutChord(SelectionToolKind::Elliptical));
 }
 
 void SelectionToolsTest::thresholdFallbackMatchesKConfig()
