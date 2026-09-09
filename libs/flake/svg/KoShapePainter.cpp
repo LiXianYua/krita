@@ -22,6 +22,8 @@
 #include "PkImageRasterBackend.h"
 #include <PkImage.h>
 
+#include <algorithm>
+
 class SimpleCanvas : public KoCanvasBase
 {
 public:
@@ -108,7 +110,7 @@ private:
     std::function<void(const PkRectF&)> m_updateFunc;
 };
 
-class Q_DECL_HIDDEN KoShapePainter::Private
+class KoShapePainter::Private
 {
 public:
     Private()
@@ -136,7 +138,7 @@ void KoShapePainter::setShapes(const PkList<KoShape*> &shapes)
 
 void KoShapePainter::paint(PkPainter &painter)
 {
-    foreach (KoShape *shape, d->canvas->shapeManager()->shapes()) {
+    for (KoShape *shape : d->canvas->shapeManager()->shapes()) {
         shape->waitUntilReady(false);
     }
 
@@ -156,7 +158,7 @@ void KoShapePainter::paint(PkPainter &painter, const PkRect &painterRect, const 
     // so that the content fits into the image
     qreal zoomW = paintBox.width() / documentRect.width();
     qreal zoomH = paintBox.height() / documentRect.height();
-    qreal zoom = qMin(zoomW, zoomH);
+    const qreal zoom = std::min(zoomW, zoomH);
 
     // now set the zoom into the zoom handler used for painting the shape
     converter.setZoom(zoom);
@@ -197,7 +199,7 @@ void KoShapePainter::paint(PkImage &image)
 PkRectF KoShapePainter::contentRect() const
 {
     PkRectF bound;
-    foreach (KoShape *shape, d->canvas->shapeManager()->shapes()) {
+    for (KoShape *shape : d->canvas->shapeManager()->shapes()) {
         if (!shape->isVisible())
             continue;
         if (dynamic_cast<KoShapeGroup*>(shape))

@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoClipPath.h"
 #include "KoPathShape.h"
@@ -13,26 +12,28 @@
 #include <PkTransform.h>
 #include <PkPainterPath.h>
 #include <PkPainter.h>
-#include <QVarLengthArray>
+#include <PkContainerAlgo.h>
+
+#include <algorithm>
 
 #include <kis_algebra_2d.h>
 
 
 PkTransform scaleToPercent(const PkSizeF &size)
 {
-    const qreal w = qMax(static_cast<qreal>(1e-5), size.width());
-    const qreal h = qMax(static_cast<qreal>(1e-5), size.height());
+    const qreal w = std::max(static_cast<qreal>(1e-5), size.width());
+    const qreal h = std::max(static_cast<qreal>(1e-5), size.height());
     return PkTransform().scale(1.0/w, 1.0/h);
 }
 
 PkTransform scaleFromPercent(const PkSizeF &size)
 {
-    const qreal w = qMax(static_cast<qreal>(1e-5), size.width());
-    const qreal h = qMax(static_cast<qreal>(1e-5), size.height());
+    const qreal w = std::max(static_cast<qreal>(1e-5), size.width());
+    const qreal h = std::max(static_cast<qreal>(1e-5), size.height());
     return PkTransform().scale(w/1.0, h/1.0);
 }
 
-class Q_DECL_HIDDEN KoClipPath::Private
+class KoClipPath::Private
 {
 public:
     Private()
@@ -45,7 +46,7 @@ public:
         , initialTransformToShape(rhs.initialTransformToShape)
         , initialShapeSize(rhs.initialShapeSize)
     {
-        Q_FOREACH (KoShape *shape, rhs.shapes) {
+        PK_FOREACH (KoShape *shape, rhs.shapes) {
             KoShape *clonedShape = shape->cloneShape();
             KIS_ASSERT_RECOVER(clonedShape) { continue; }
 
@@ -55,7 +56,7 @@ public:
 
     ~Private()
     {
-        qDeleteAll(shapes);
+        pkDeleteAll(shapes);
         shapes.clear();
     }
 
@@ -68,7 +69,7 @@ public:
             PkList<KoShape*> shapes = groupShape->shapes();
             std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 
-            Q_FOREACH (const KoShape *child, shapes) {
+            PK_FOREACH (const KoShape *child, shapes) {
                 collectShapePath(result, child);
             }
         }
@@ -86,7 +87,7 @@ public:
 
         std::sort(clipShapes.begin(), clipShapes.end(), KoShape::compareShapeZIndex);
 
-        Q_FOREACH (KoShape *path, clipShapes) {
+        PK_FOREACH (KoShape *path, clipShapes) {
             if (!path) continue;
 
             collectShapePath(&clipPath, path);
@@ -176,7 +177,7 @@ PkList<KoPathShape*> KoClipPath::clipPathShapes() const
 
     PkList<KoPathShape*> shapes;
 
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    PK_FOREACH (KoShape *shape, d->shapes) {
         KoPathShape *pathShape = dynamic_cast<KoPathShape*>(shape);
         if (pathShape) {
             shapes << pathShape;

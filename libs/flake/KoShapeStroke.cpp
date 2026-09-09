@@ -30,11 +30,13 @@
 #include <KoPathSegment.h>
 #include <KoPathPoint.h>
 #include <cmath>
+#include <algorithm>
+#include <PkContainerAlgo.h>
 #include "KisQPainterStateSaver.h"
 
 #include "kis_global.h"
 
-class Q_DECL_HIDDEN KoShapeStroke::Private
+class KoShapeStroke::Private
 {
 public:
     Private(KoShapeStroke *_q) : q(_q) {}
@@ -184,7 +186,7 @@ KoShapeStroke::KoShapeStroke(const KoShapeStroke &other)
 KoShapeStroke::KoShapeStroke(qreal lineWidth, const PkColor &color)
         : d(new Private(this))
 {
-    d->pen.setWidthF(qMax(qreal(0.0), lineWidth));
+    d->pen.setWidthF(std::max(qreal(0.0), lineWidth));
     d->pen.setJoinStyle(Pk::MiterJoin);
     d->color = color;
 }
@@ -221,7 +223,7 @@ void KoShapeStroke::strokeInsets(const KoShape *shape, KoInsets &insets) const
 
     if (joinStyle() == Pk::MiterJoin) {
         // miter limit in Qt is normalized by the line width (and not half-width)
-        extent = qMax(extent, d->pen.widthF() * miterLimit());
+        extent = std::max(extent, d->pen.widthF() * miterLimit());
     }
 
     insets.top = extent;
@@ -243,9 +245,9 @@ qreal KoShapeStroke::strokeMaxMarkersInset(const KoShape *shape) const
         markers << pathShape->marker(KoFlake::MidMarker);
         markers << pathShape->marker(KoFlake::EndMarker);
 
-        Q_FOREACH (const KoMarker *marker, markers) {
+        PK_FOREACH (const KoMarker *marker, markers) {
             if (marker) {
-                result = qMax(result, marker->maxInset(lineWidth));
+                result = std::max(result, marker->maxInset(lineWidth));
             }
         }
     }
@@ -341,7 +343,7 @@ Pk::PenJoinStyle KoShapeStroke::joinStyle() const
 
 void KoShapeStroke::setLineWidth(qreal lineWidth)
 {
-    d->pen.setWidthF(qMax(qreal(0.0), lineWidth));
+    d->pen.setWidthF(std::max(qreal(0.0), lineWidth));
 }
 
 qreal KoShapeStroke::lineWidth() const

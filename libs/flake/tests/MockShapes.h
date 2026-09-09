@@ -5,7 +5,8 @@
 #ifndef MOCKSHAPES_H
 #define MOCKSHAPES_H
 
-#include <QtMath>
+#include <PkGlobal.h>
+#include <PkFlakeBridge.h>
 #include <KoSelectedShapesProxySimple.h>
 #include <KoShapeGroup.h>
 #include <KoCanvasBase.h>
@@ -34,7 +35,6 @@ public:
 };
 
 #include <SimpleShapeContainerModel.h>
-#include <PkFlakeBridge.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkScopedPointer.h>
 

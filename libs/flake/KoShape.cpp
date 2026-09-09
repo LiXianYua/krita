@@ -9,6 +9,8 @@
 */
 
 #include <limits>
+#include <algorithm>
+#include <numeric>
 
 #include "KisMpl.h"
 #include "KoShape.h"
@@ -44,6 +46,7 @@
 #include <PkPainterPath.h>
 #include <PkList.h>
 #include <PkMap.h>
+#include <PkContainerAlgo.h>
 #include <FlakeDebug.h>
 
 #include "kis_assert.h"
@@ -107,11 +110,11 @@ void KoShape::shapeChangedPriv(KoShape::ChangeType type)
 
     this->shapeChanged(type);
 
-    Q_FOREACH (KoShape * shape, d->dependees) {
+    PK_FOREACH (KoShape * shape, d->dependees) {
         shape->shapeChanged(type, this);
     }
 
-    Q_FOREACH (KoShape::ShapeChangeListener *listener, d->listeners) {
+    PK_FOREACH (KoShape::ShapeChangeListener *listener, d->listeners) {
         listener->notifyShapeChangedImpl(type, this);
     }
 }
@@ -161,7 +164,7 @@ KoShape::~KoShape()
     }
 
     KIS_SAFE_ASSERT_RECOVER (d->shapeManagers.isEmpty()) {
-        Q_FOREACH (KoShapeManager *manager, d->shapeManagers) {
+        PK_FOREACH (KoShapeManager *manager, d->shapeManagers) {
             manager->shapeInterface()->notifyShapeDestructed(this);
         }
         d->shapeManagers.clear();
@@ -529,7 +532,7 @@ void KoShape::update() const
 
     if (!d->shapeManagers.isEmpty()) {
         const PkRectF rect(boundingRect());
-        Q_FOREACH (KoShapeManager * manager, d->shapeManagers) {
+        PK_FOREACH (KoShapeManager * manager, d->shapeManagers) {
             manager->update(rect, this, true);
         }
     }
@@ -543,7 +546,7 @@ void KoShape::updateAbsolute(const PkRectF &rect) const
 
 
     if (!d->shapeManagers.isEmpty() && isVisible()) {
-        Q_FOREACH (KoShapeManager *manager, d->shapeManagers) {
+        PK_FOREACH (KoShapeManager *manager, d->shapeManagers) {
             manager->update(rect);
         }
     }
@@ -559,8 +562,8 @@ PkPainterPath KoShape::outline() const
 PkRectF KoShape::outlineRect() const
 {
     const PkSizeF s = size();
-    return PkRectF(PkPointF(0, 0), PkSizeF(qMax(s.width(),  qreal(0.0001)),
-                                        qMax(s.height(), qreal(0.0001))));
+    return PkRectF(PkPointF(0, 0), PkSizeF(std::max(s.width(), qreal(0.0001)),
+                                           std::max(s.height(), qreal(0.0001))));
 }
 
 PkPointF KoShape::absolutePosition(KoFlake::AnchorPosition anchor) const
@@ -610,7 +613,7 @@ void KoShape::copySettings(const KoShape *shape)
 
 void KoShape::notifyChanged()
 {
-    Q_FOREACH (KoShapeManager * manager, d->shapeManagers) {
+    PK_FOREACH (KoShapeManager * manager, d->shapeManagers) {
         manager->notifyShapeChanged(this);
     }
 }
@@ -634,7 +637,7 @@ bool KoShape::hasTransparency() const
 
 void KoShape::setTransparency(qreal transparency)
 {
-    s->transparency = qBound<qreal>(0.0, transparency, 1.0);
+    s->transparency = std::max(qreal(0.0), std::min(qreal(1.0), transparency));
 
     shapeChangedPriv(TransparencyChanged);
     notifyChanged();
@@ -1107,7 +1110,7 @@ void KoShape::setHyperLink(const PkString &hyperLink)
 
 KoShape::ShapeChangeListener::~ShapeChangeListener()
 {
-    Q_FOREACH(KoShape *shape, m_registeredShapes) {
+    PK_FOREACH(KoShape *shape, m_registeredShapes) {
         shape->removeShapeChangeListener(this);
     }
 }
@@ -1160,7 +1163,7 @@ PkList<KoShape *> KoShape::linearizeSubtree(const PkList<KoShape *> &shapes)
 {
     PkList<KoShape *> result;
 
-    Q_FOREACH (KoShape *shape, shapes) {
+    PK_FOREACH (KoShape *shape, shapes) {
         result << shape;
 
         KoShapeContainer *container = dynamic_cast<KoShapeContainer*>(shape);
@@ -1179,7 +1182,7 @@ PkList<KoShape *> KoShape::linearizeSubtreeSorted(const PkList<KoShape *> &shape
 
     PkList<KoShape *> result;
 
-    Q_FOREACH (KoShape *shape, sortedShapes) {
+    PK_FOREACH (KoShape *shape, sortedShapes) {
         result << shape;
 
         KoShapeContainer *container = dynamic_cast<KoShapeContainer*>(shape);

@@ -10,6 +10,7 @@
 #include "KoShapeContainerModel.h"
 #include <kis_debug.h>
 #include <KoShapeManager.h>
+#include <PkContainerAlgo.h>
 
 /// \internal
 class SimpleShapeContainerModel: public KoShapeContainerModel
@@ -23,7 +24,7 @@ public:
           m_inheritsTransform(rhs.m_inheritsTransform),
           m_clipped(rhs.m_clipped)
     {
-        Q_FOREACH (KoShape *shape, rhs.m_members) {
+        PK_FOREACH (KoShape *shape, rhs.m_members) {
             KoShape *clone = shape->cloneShape();
             KIS_SAFE_ASSERT_RECOVER_NOOP(clone && "Copying this shape is not implemented!");
             if (clone) {
@@ -126,7 +127,7 @@ public:
      */
     void setAssociatedRootShapeManager(KoShapeManager *manager) {
         if (m_associatedRootShapeManager) {
-            Q_FOREACH(KoShape *shape, this->shapes()) {
+            PK_FOREACH(KoShape *shape, this->shapes()) {
                 m_associatedRootShapeManager->remove(shape);
             }
         }
@@ -134,7 +135,7 @@ public:
         m_associatedRootShapeManager = manager;
 
         if (m_associatedRootShapeManager) {
-            Q_FOREACH(KoShape *shape, this->shapes()) {
+            PK_FOREACH(KoShape *shape, this->shapes()) {
                 m_associatedRootShapeManager->addShape(shape);
             }
         }

@@ -18,7 +18,7 @@
 #include <PkPoint.h>
 #include <FlakeDebug.h>
 
-class Q_DECL_HIDDEN KoShapeAnchor::Private
+class KoShapeAnchor::Private
 {
 public:
     Private(KoShape *s)

@@ -17,6 +17,8 @@
 #include <PkPainter.h>
 #include <PkPainterPath.h>
 
+#include <algorithm>
+
 class KoPatternBackground::Private
 {
 public:
@@ -181,8 +183,8 @@ PkPointF KoPatternBackground::referencePointOffset() const
 
 void KoPatternBackground::setReferencePointOffset(const PkPointF &offset)
 {
-    qreal ox = qMax(qreal(0.0), qMin(qreal(100.0), offset.x()));
-    qreal oy = qMax(qreal(0.0), qMin(qreal(100.0), offset.y()));
+    const qreal ox = std::max(qreal(0.0), std::min(qreal(100.0), offset.x()));
+    const qreal oy = std::max(qreal(0.0), std::min(qreal(100.0), offset.y()));
 
     d->refPointOffsetPercent = PkPointF(ox, oy);
 }

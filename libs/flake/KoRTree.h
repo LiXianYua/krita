@@ -23,7 +23,7 @@
 
 // #define CALLIGRA_RTREE_DEBUG
 #ifdef CALLIGRA_RTREE_DEBUG
-#include <QPainter>
+#include <PkPainter.h>
 #endif
 
 /**
@@ -137,7 +137,7 @@ public:
      *
      * @param p painter which should be used for painting
      */
-    void paint(QPainter & p) const;
+    void paint(PkPainter & p) const;
 
     /**
      * @brief Print the tree using qdebug
@@ -222,13 +222,13 @@ protected:
             return m_nodeId;
         }
 
-        virtual void paint(QPainter & p, int level) const = 0;
+        virtual void paint(PkPainter & p, int level) const = 0;
         virtual void debug(PkString line) const = 0;
 
     protected:
 #define levelColorSize 5
         static PkColor levelColor[levelColorSize];
-        virtual void paintRect(QPainter & p, int level) const;
+        virtual void paintRect(PkPainter & p, int level) const;
 #endif
     protected:
         Node * m_parent;
@@ -266,7 +266,7 @@ class NonLeafNode : virtual public Node
         virtual Node * getNode(int index) const;
 
 #ifdef CALLIGRA_RTREE_DEBUG
-        virtual void paint(QPainter & p, int level) const;
+        virtual void paint(PkPainter & p, int level) const;
         virtual void debug(PkString line) const;
 #endif
     protected:
@@ -307,7 +307,7 @@ class LeafNode : virtual public Node
 
 #ifdef CALLIGRA_RTREE_DEBUG
         virtual void debug(PkString line) const;
-        virtual void paint(QPainter & p, int level) const;
+        virtual void paint(PkPainter & p, int level) const;
 #endif
     protected:
         PkVector<T> m_data;
@@ -371,7 +371,10 @@ void KoRTree<T>::insertHelper(const PkRectF& bb, const T& data, int id)
     PkRectF nbb(bb.normalized());
     // This has to be done as it is not possible to use PkRectF::united() with a isNull()
     if (nbb.isNull()) {
-        qWarning() <<  "KoRTree::insert boundingBox isNull setting size to" << nbb.size();
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning(
+            "KoRTree::insert boundingBox isNull setting size to %g x %g",
+            nbb.width(),
+            nbb.height());
 
         nbb.setWidth(0.0001);
         nbb.setHeight(0.0001);
@@ -526,7 +529,7 @@ PkList<T> KoRTree<T>::values() const
 
 #ifdef CALLIGRA_RTREE_DEBUG
 template <typename T>
-void KoRTree<T>::paint(QPainter & p) const
+void KoRTree<T>::paint(PkPainter & p) const
 {
     if (m_root) {
         m_root->paint(p, 0);
@@ -752,7 +755,8 @@ void KoRTree<T>::condenseTree(Node *node, PkVector<Node*> & reinsert)
                 m_root->setParent(0);
                 //debugFlake << " new root" << m_root;
             } else {
-                qFatal("KoRTree::condenseTree cast to NonLeafNode failed");
+                PkMessageLogger(__FILE__, __LINE__, __func__).fatal(
+                    "KoRTree::condenseTree cast to NonLeafNode failed");
             }
         }
     }
@@ -762,11 +766,11 @@ void KoRTree<T>::condenseTree(Node *node, PkVector<Node*> & reinsert)
 #ifdef CALLIGRA_RTREE_DEBUG
 template <typename T>
 PkColor KoRTree<T>::Node::levelColor[] = {
-    PkColor(Qt::green),
-    PkColor(Qt::red),
-    PkColor(Qt::cyan),
-    PkColor(Qt::magenta),
-    PkColor(Qt::yellow),
+    PkColor(Pk::green),
+    PkColor(Pk::red),
+    PkColor(Pk::cyan),
+    PkColor(Pk::magenta),
+    PkColor(Pk::yellow),
 };
 
 template <class T>
@@ -814,7 +818,7 @@ void KoRTree<T>::Node::clear()
 
 #ifdef CALLIGRA_RTREE_DEBUG
 template <typename T>
-void KoRTree<T>::Node::paintRect(QPainter & p, int level) const
+void KoRTree<T>::Node::paintRect(PkPainter & p, int level) const
 {
     PkColor c(Pk::black);
     if (level < levelColorSize) {
@@ -979,13 +983,14 @@ template <typename T>
 void KoRTree<T>::NonLeafNode::debug(PkString line) const
 {
     for (int i = 0; i < this->m_counter; ++i) {
-        qDebug("%s %d %d", qPrintable(line), this->nodeId(), i);
+        PkMessageLogger(__FILE__, __LINE__, __func__).debug(
+            "%s %d %d", line.PkToUtf8().c_str(), this->nodeId(), i);
         m_childs[i]->debug(line + "       ");
     }
 }
 
 template <typename T>
-void KoRTree<T>::NonLeafNode::paint(QPainter & p, int level) const
+void KoRTree<T>::NonLeafNode::paint(PkPainter & p, int level) const
 {
     this->paintRect(p, level);
     for (int i = 0; i < this->m_counter; ++i) {
@@ -1045,7 +1050,8 @@ void KoRTree<T>::LeafNode::remove(const T& data)
         }
     }
     if (old_counter == this->m_counter) {
-        qWarning() << "LeafNode::remove( const T&data) data not found";
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning(
+            "LeafNode::remove( const T&data) data not found");
     }
 }
 
@@ -1073,7 +1079,8 @@ typename KoRTree<T>::NonLeafNode * KoRTree<T>::LeafNode::chooseNode(const PkRect
 {
     Q_UNUSED(bb);
     Q_UNUSED(level);
-    qFatal("LeafNode::chooseNode called. This should not happen!");
+    PkMessageLogger(__FILE__, __LINE__, __func__).fatal(
+        "LeafNode::chooseNode called. This should not happen!");
     return 0;
 }
 
@@ -1140,13 +1147,19 @@ template <typename T>
 void KoRTree<T>::LeafNode::debug(PkString line) const
 {
     for (int i = 0; i < this->m_counter; ++i) {
-        qDebug("%s %d %d %p", qPrintable(line), this->nodeId(), i, &(m_data[i]));
-        debugFlake << this->m_childBoundingBox[i].toRect();
+        PkMessageLogger(__FILE__, __LINE__, __func__).debug(
+            "%s %d %d %p",
+            line.PkToUtf8().c_str(),
+            this->nodeId(),
+            i,
+            static_cast<const void *>(&m_data[i]));
+        PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+            << this->m_childBoundingBox[i].toRect();
     }
 }
 
 template <typename T>
-void KoRTree<T>::LeafNode::paint(QPainter & p, int level) const
+void KoRTree<T>::LeafNode::paint(PkPainter & p, int level) const
 {
     if (this->m_counter) {
         this->paintRect(p, level);

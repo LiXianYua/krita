@@ -49,8 +49,7 @@ void KoInteractionStrategy::handleMouseMove(const PkPointF &, Pk::KeyboardModifi
 
 KoToolBase *KoInteractionStrategy::tool() const
 {
-    Q_D(const KoInteractionStrategy);
-    return d->tool;
+    return d_ptr->tool;
 }
 
 uint KoInteractionStrategy::handleRadius() const
