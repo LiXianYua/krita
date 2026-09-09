@@ -11,7 +11,10 @@
 class KoPathShapeLoaderPrivate : public PkSvgPathParser<KoPathShape>
 {
 public:
-    using PkSvgPathParser<KoPathShape>::PkSvgPathParser;
+    explicit KoPathShapeLoaderPrivate(KoPathShape *path)
+        : PkSvgPathParser<KoPathShape>(path, PkSvgArcPolicy::Krita)
+    {
+    }
 };
 
 KoPathShapeLoader::KoPathShapeLoader(KoPathShape *path)

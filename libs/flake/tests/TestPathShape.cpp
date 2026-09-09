@@ -7,6 +7,7 @@
 
 #include <PkPainterPath.h>
 #include "KoPathShape.h"
+#include "KoPathShapeLoader.h"
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"
 #include "KoPathSegment.h"
@@ -769,6 +770,34 @@ void TestPathShape::closeMerge()
     ppath.cubicTo(50, 100, 0, 50, 0, 0);
 
     QVERIFY(path.outline() == ppath);
+}
+
+void TestPathShape::svgArcKeepsKritaGeometry()
+{
+    KoPathShape path;
+    KoPathShapeLoader loader(&path);
+    loader.parseSvg("M 0 0 A 100 100 0 0 1 100 100", true);
+
+    QCOMPARE(path.pointCount(), 3);
+
+    const KoPathPoint *start = path.pointByIndex({0, 0});
+    const KoPathPoint *middle = path.pointByIndex({0, 1});
+    const KoPathPoint *end = path.pointByIndex({0, 2});
+    QVERIFY(start);
+    QVERIFY(middle);
+    QVERIFY(end);
+
+    const auto nearPoint = [](const PkPointF &actual, qreal x, qreal y) {
+        return std::abs(actual.x() - x) < 1e-9 && std::abs(actual.y() - y) < 1e-9;
+    };
+
+    QVERIFY(nearPoint(start->point(), 0.0, 0.0));
+    QVERIFY(nearPoint(start->controlPoint2(), 26.511477349130246, 0.0));
+    QVERIFY(nearPoint(middle->controlPoint1(), 51.964232705811192, 10.542876468501710));
+    QVERIFY(nearPoint(middle->point(), 70.710678118654741, 29.289321881345259));
+    QVERIFY(nearPoint(middle->controlPoint2(), 89.457123531498297, 48.035767294188808));
+    QVERIFY(nearPoint(end->controlPoint1(), 100.0, 73.488522650869754));
+    QVERIFY(nearPoint(end->point(), 100.0, 100.0));
 }
 
 

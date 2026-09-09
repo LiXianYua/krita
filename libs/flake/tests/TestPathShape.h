@@ -35,6 +35,7 @@ private Q_SLOTS:
     void removeSubpath();
     void addSubpath();
     void closeMerge();
+    void svgArcKeepsKritaGeometry();
 
     void koPathPointDataLess();
 

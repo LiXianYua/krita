@@ -14,12 +14,20 @@
 #include <cmath>
 #include <string>
 
+enum class PkSvgArcPolicy {
+    Krita,
+    QtSvg
+};
+
 // Extracted KoPathShapeLoader algorithm; Path supplies clear/moveTo/lineTo/curveTo/closeMerge.
 template<class Path>
 class PkSvgPathParser
 {
 public:
-    PkSvgPathParser(Path * p) : path(p) {
+    PkSvgPathParser(Path *p, PkSvgArcPolicy arcPolicy)
+        : path(p)
+        , arcPolicy(arcPolicy)
+    {
         assert(path);
         path->clear();
     }
@@ -40,11 +48,14 @@ public:
     const char *getCoord(const char *, qreal &);
     const char *getFlag(const char *ptr, bool &flag);
     void calculateArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal r1, qreal r2, bool largeArcFlag, bool sweepFlag);
+    void calculateKritaArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal r1, qreal r2, bool largeArcFlag, bool sweepFlag);
+    void calculateQtSvgArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal r1, qreal r2, bool largeArcFlag, bool sweepFlag);
 
     static qreal angleBetweenVectors(const PkPointF &a, const PkPointF &b)
     { return std::atan2(b.y(), b.x()) - std::atan2(a.y(), a.x()); }
 
     Path * path; ///< the path shape to work on
+    PkSvgArcPolicy arcPolicy;
     PkPointF lastPoint;
 };
 
@@ -410,12 +421,140 @@ const char * PkSvgPathParser<Path>::getFlag(const char *ptr, bool &flag)
     return ptr;
 }
 
+template<class Path>
+void PkSvgPathParser<Path>::calculateArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal rx, qreal ry, bool largeArcFlag, bool sweepFlag)
+{
+    if (arcPolicy == PkSvgArcPolicy::QtSvg) {
+        calculateQtSvgArc(relative, curx, cury, angle, x, y, rx, ry, largeArcFlag, sweepFlag);
+    } else {
+        calculateKritaArc(relative, curx, cury, angle, x, y, rx, ry, largeArcFlag, sweepFlag);
+    }
+}
+
+// Krita/flake's original SVG-to-cubic conversion. It intentionally uses
+// at-most-45-degree segments and represents zero-radius arcs as lines.
+template<class Path>
+void PkSvgPathParser<Path>::calculateKritaArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal rx, qreal ry, bool largeArcFlag, bool sweepFlag)
+{
+    if (pkQtFuzzyCompare(rx, 0.0) || pkQtFuzzyCompare(ry, 0.0)
+        || (!relative && pkQtFuzzyCompare(curx - x, 0) && pkQtFuzzyCompare(cury - y, 0))
+        || (relative && pkQtFuzzyCompare(x, 0) && pkQtFuzzyCompare(y, 0))) {
+        qreal x2 = x;
+        qreal y2 = y;
+
+        if (relative) {
+            x2 += curx;
+            y2 += cury;
+        }
+        svgLineTo(x2, y2);
+        return;
+    }
+
+    const qreal angleRadians = angle * (M_PI / 180.0);
+    const qreal sinTh = std::sin(angleRadians);
+    const qreal cosTh = std::cos(angleRadians);
+
+    qreal dx;
+    qreal x2 = x;
+    if (!relative) {
+        dx = (curx - x) / 2.0;
+    } else {
+        dx = -(x / 2.0);
+        x2 = curx + x;
+    }
+
+    qreal dy;
+    qreal y2 = y;
+    if (!relative) {
+        dy = (cury - y) / 2.0;
+    } else {
+        dy = -(y / 2.0);
+        y2 = cury + y;
+    }
+
+    const qreal x1Prime = cosTh * dx + sinTh * dy;
+    const qreal y1Prime = -sinTh * dx + cosTh * dy;
+    const qreal x1PrimeSquared = x1Prime * x1Prime;
+    const qreal y1PrimeSquared = y1Prime * y1Prime;
+    qreal radiusXSquared = rx * rx;
+    qreal radiusYSquared = ry * ry;
+
+    const qreal check = x1PrimeSquared / radiusXSquared + y1PrimeSquared / radiusYSquared;
+    if (check > 1) {
+        rx *= std::sqrt(check);
+        ry *= std::sqrt(check);
+        radiusXSquared = rx * rx;
+        radiusYSquared = ry * ry;
+    }
+
+    const qreal radiiSquared = radiusXSquared * radiusYSquared;
+    const qreal ellipseValue = radiusXSquared * y1PrimeSquared + radiusYSquared * x1PrimeSquared;
+    qreal coefficient = std::sqrt(std::fabs((radiiSquared - ellipseValue) / ellipseValue));
+    if (sweepFlag == largeArcFlag) {
+        coefficient = -coefficient;
+    }
+
+    const qreal centerXPrime = coefficient * (rx * y1Prime) / ry;
+    const qreal centerYPrime = coefficient * -(ry * x1Prime) / rx;
+    const qreal centerX = cosTh * centerXPrime - sinTh * centerYPrime + (curx + x2) * 0.5;
+    const qreal centerY = sinTh * centerXPrime + cosTh * centerYPrime + (cury + y2) * 0.5;
+
+    const PkPointF startVector = {
+        (x1Prime - centerXPrime) / rx,
+        (y1Prime - centerYPrime) / ry
+    };
+    const qreal theta = angleBetweenVectors({1.0, 0.0}, startVector);
+    qreal delta = std::fmod(
+        angleBetweenVectors(startVector,
+                            {(-x1Prime - centerXPrime) / rx,
+                             (-y1Prime - centerYPrime) / ry}),
+        M_PI * 2);
+
+    if (sweepFlag && delta < 0) {
+        delta += M_PI * 2;
+    } else if (!sweepFlag && delta > 0) {
+        delta -= M_PI * 2;
+    }
+
+    const int segments = int(std::ceil(std::fabs(delta / (M_PI * 0.25))));
+    for (int i = 0; i < segments; ++i) {
+        const qreal start = theta + i * delta / segments;
+        const qreal end = theta + (i + 1) * delta / segments;
+        const qreal half = 0.5 * (end - start);
+
+        const auto ellipsePoint = [sinTh, cosTh](qreal cx, qreal cy, qreal eta, qreal radiusX, qreal radiusY) {
+            return PkPointF(cx + radiusX * cosTh * std::cos(eta) - radiusY * sinTh * std::sin(eta),
+                            cy + radiusX * sinTh * std::cos(eta) + radiusY * cosTh * std::sin(eta));
+        };
+        const auto ellipseDerivative = [sinTh, cosTh](qreal eta, qreal radiusX, qreal radiusY) {
+            return PkPointF(-radiusX * cosTh * std::sin(eta) - radiusY * sinTh * std::cos(eta),
+                            -radiusX * sinTh * std::sin(eta) + radiusY * cosTh * std::cos(eta));
+        };
+
+        const PkPointF p1 = ellipsePoint(centerX, centerY, start, rx, ry);
+        const PkPointF p2 = ellipsePoint(centerX, centerY, end, rx, ry);
+        const qreal alpha = std::sin(end - start)
+            * (std::sqrt(4 + 3 * std::tan(half) * std::tan(half)) - 1) / 3;
+        const PkPointF control1 = p1 + alpha * ellipseDerivative(start, rx, ry);
+        const PkPointF control2 = p2 - alpha * ellipseDerivative(end, rx, ry);
+        svgCurveToCubic(control1.x(), control1.y(), control2.x(), control2.y(), p2.x(), p2.y());
+    }
+
+    if (!relative) {
+        curx = x;
+        cury = y;
+    } else {
+        curx += x;
+        cury += y;
+    }
+}
+
 // QtSvg 5.15's pathArc()/pathArcSegment() conversion, originally from XSVG.
 // SPDX-SnippetBegin
 // SPDX-License-Identifier: BSD-3-Clause
 // SPDX-SnippetCopyrightText: 2002 USC/Information Sciences Institute
 template<class Path>
-void PkSvgPathParser<Path>::calculateArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal rx, qreal ry, bool largeArcFlag, bool sweepFlag)
+void PkSvgPathParser<Path>::calculateQtSvgArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal rx, qreal ry, bool largeArcFlag, bool sweepFlag)
 {
     const qreal endX = relative ? curx + x : x;
     const qreal endY = relative ? cury + y : y;

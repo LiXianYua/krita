@@ -276,7 +276,7 @@ public:
                         if (!i) path.moveTo(points[i], points[i + 1]); else path.lineTo(points[i], points[i + 1]);
                     if (tag == "polygon") path.closeSubpath();
                 } else if (tag == "path") {
-                    PkSvgPathParser<Path> loader(&path);
+                    PkSvgPathParser<Path> loader(&path, PkSvgArcPolicy::QtSvg);
                     loader.parseSvg(e.attribute("d"), true);
                 }
                 path.setFillRule(prop(s, "fill-rule") == "evenodd" ? Pk::OddEvenFill : Pk::WindingFill);
@@ -546,7 +546,7 @@ private:
                 const auto unicode = child.attribute("unicode").PkToU16();
                 Glyph glyph;
                 glyph.advance = number(attr(child, "horiz-adv-x", attr(font, "horiz-adv-x", "0").c_str()));
-                PkSvgPathParser<Path> parser(&glyph.path);
+                PkSvgPathParser<Path> parser(&glyph.path, PkSvgArcPolicy::QtSvg);
                 parser.parseSvg(child.attribute("d"), true);
                 glyph.path.setFillRule(Pk::WindingFill);
                 glyphs[unicode.empty() ? 0 : unicode.front()] = std::move(glyph);
