@@ -18,10 +18,9 @@
 
 #include <flake/kis_node_shape.h>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
+#include <PkNamespace.h>
 
-namespace PkNs = Qt;
+namespace PkNs = Pk;
 using PkToolCursorShape = PkNs::CursorShape;
 constexpr PkToolCursorShape PkToolArrowCursor = PkNs::ArrowCursor;
 constexpr PkToolCursorShape PkToolPointingHandCursor = PkNs::PointingHandCursor;
