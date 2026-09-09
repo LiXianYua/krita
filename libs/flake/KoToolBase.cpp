@@ -19,6 +19,10 @@
 #include "KoViewConverter.h"
 #include "KoShapeController.h"
 #include "KoShapeControllerBase.h"
+#include "KoShapeManager.h"
+#include "KoSelectedShapesProxy.h"
+#include "KoSelection.h"
+#include "KoShape.h"
 #include "KoToolSelection.h"
 #include "KoCanvasController.h"
 #include "KoToolProxy.h"
@@ -31,9 +35,7 @@
 #include <PkXmlDocument.h>
 #include <PkXmlElement.h>
 #include <QApplication>
-
-#include <QInputMethodEvent>
-#include <QFocusEvent>
+#include <KoColor.h>
 
 KoToolBase::KoToolBase(KoCanvasBase *canvas)
     : d_ptr(new KoToolBasePrivate(this, canvas))
@@ -52,6 +54,104 @@ KoToolBase::KoToolBase(KoToolBasePrivate &dd)
 KoToolBase::~KoToolBase()
 {
     delete d_ptr;
+}
+
+void KoToolBase::watchSelectedShapesChanged(std::function<void()> callback)
+{
+    Q_D(KoToolBase);
+    if (!d->canvas || !d->canvas->selectedShapesProxy()) {
+        return;
+    }
+
+    PkObject::connect(d->canvas->selectedShapesProxy(),
+                      &KoSelectedShapesProxy::selectionChanged,
+                      this,
+                      std::move(callback));
+}
+
+PkToolPointerEventData KoToolBase::pointerEventData(const KoPointerEvent *event) const
+{
+    return {event->point,
+            event->pressure(),
+            event->rotation(),
+            event->xTilt(),
+            event->yTilt(),
+            event->x()};
+}
+
+PkRectF KoToolBase::documentRectToView(const KoViewConverter &converter,
+                                       const PkRectF &rect) const
+{
+    return PkRectF(converter.documentToView(rect.topLeft()),
+                   converter.documentToView(rect.bottomRight()));
+}
+
+PkTransform KoToolBase::documentToViewTransform(const KoViewConverter &converter) const
+{
+    return converter.documentToView();
+}
+
+PkColor KoToolBase::canvasForegroundColor() const
+{
+    Q_D(const KoToolBase);
+    return d->canvas && d->canvas->resourceManager()
+        ? d->canvas->resourceManager()->foregroundColor().toQColor()
+        : PkColor(Pk::black);
+}
+
+void KoToolBase::requestCanvasUpdate(const PkRectF &rect)
+{
+    Q_D(KoToolBase);
+    if (d->canvas) {
+        d->canvas->updateCanvas(rect);
+    }
+}
+
+bool KoToolBase::selectShapeAt(const PkPointF &point)
+{
+    Q_D(KoToolBase);
+    if (!d->canvas || !d->canvas->shapeManager()) {
+        return false;
+    }
+
+    KoShapeManager *manager = d->canvas->shapeManager();
+    KoShape *shape = manager->shapeAt(point);
+    if (!shape || !manager->selection()) {
+        return false;
+    }
+
+    manager->selection()->deselectAll();
+    manager->selection()->select(shape);
+    return true;
+}
+
+bool KoToolBase::addShapeToCanvas(KoShape *shape)
+{
+    Q_D(KoToolBase);
+    if (!shape || !d->canvas || !d->canvas->shapeController()) {
+        return false;
+    }
+
+    KUndo2Command *command = d->canvas->shapeController()->addShape(shape, nullptr);
+    if (!command) {
+        return false;
+    }
+
+    d->canvas->addCommand(command);
+    d->canvas->updateCanvas(shape->boundingRect());
+    return true;
+}
+
+PkToolSelectedShapes KoToolBase::selectedShapes() const
+{
+    Q_D(const KoToolBase);
+    if (!d->canvas || !d->canvas->shapeManager() ||
+        !d->canvas->shapeManager()->selection()) {
+        return {};
+    }
+
+    KoSelection *selection = d->canvas->shapeManager()->selection();
+    return {selection->firstSelectedShape(), selection->count()};
 }
 
 
@@ -146,22 +246,22 @@ PkVariant KoToolBase::inputMethodQuery(Pk::InputMethodQuery query) const
     }
 }
 
-void KoToolBase::inputMethodEvent(QInputMethodEvent * event)
+void KoToolBase::inputMethodEvent(PkToolInputMethodEvent *event)
 {
-    if (! event->commitString().isEmpty()) {
+    if (!event->commitString.isEmpty()) {
         PkToolKeyEvent keyEvent(static_cast<Pk::Key>(-1), Pk::NoModifier, false,
-                                false, toPkString(event->commitString()));
+                                false, event->commitString);
         pkKeyPressEvent(&keyEvent);
     }
     event->accept();
 }
 
-void KoToolBase::focusInEvent(QFocusEvent *event)
+void KoToolBase::focusInEvent(PkToolEvent *event)
 {
     event->ignore();
 }
 
-void KoToolBase::focusOutEvent(QFocusEvent *event)
+void KoToolBase::focusOutEvent(PkToolEvent *event)
 {
     event->ignore();
 }
@@ -186,6 +286,11 @@ void KoToolBase::useCursor(const QCursor &cursor)
     Q_D(KoToolBase);
     d->currentCursor = cursor;
     Q_EMIT cursorChanged(d->currentCursor);
+}
+
+void KoToolBase::useCursor(Pk::CursorShape cursorShape)
+{
+    useCursor(QCursor(static_cast<Qt::CursorShape>(cursorShape)));
 }
 
 PkList<QPointer<QWidget> > KoToolBase::optionWidgets()
@@ -363,18 +468,18 @@ void KoToolBase::copy() const
 {
 }
 
-void KoToolBase::dragMoveEvent(QDragMoveEvent *event, const PkPointF &point)
+void KoToolBase::dragMoveEvent(PkToolEvent *event, const PkPointF &point)
 {
     Q_UNUSED(event);
     Q_UNUSED(point);
 }
 
-void KoToolBase::dragLeaveEvent(QDragLeaveEvent *event)
+void KoToolBase::dragLeaveEvent(PkToolEvent *event)
 {
     Q_UNUSED(event);
 }
 
-void KoToolBase::dropEvent(QDropEvent *event, const PkPointF &point)
+void KoToolBase::dropEvent(PkToolEvent *event, const PkPointF &point)
 {
     Q_UNUSED(event);
     Q_UNUSED(point);

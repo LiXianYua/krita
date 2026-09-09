@@ -54,8 +54,8 @@ public:
     void pkKeyPressEvent(PkToolKeyEvent *event) override;
     void pkKeyReleaseEvent(PkToolKeyEvent *event) override;
 
-    void focusInEvent(QFocusEvent *event) override;
-    void focusOutEvent(QFocusEvent *event) override;
+    void focusInEvent(PkToolEvent *event) override;
+    void focusOutEvent(PkToolEvent *event) override;
 
     /// reimplemented from KoToolBase
     void activate(const PkSet<KoShape *> &shapes) override;
@@ -65,7 +65,7 @@ public:
     KisPopupWidgetInterface* popupWidget() override;
 
     PkVariant inputMethodQuery(Pk::InputMethodQuery query) const override;
-    void inputMethodEvent(QInputMethodEvent *event) override;
+    void inputMethodEvent(PkToolInputMethodEvent *event) override;
 
     /// reimplemented from superclass
     void copy() const override;

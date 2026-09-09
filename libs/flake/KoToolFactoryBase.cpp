@@ -77,12 +77,12 @@ PkList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
     PkList<QAction *> toolActions;
 
     PkList<QAction*> actions = createActionsImpl();
-    QAction *action = new QAction(this);
+    QAction *action = new QAction(actionCollection);
     action->setObjectName(toQString(id()));
     if (actionCollection) {
         action->setParent(actionCollection);
     }
-    QObject::connect(action, &QAction::triggered, this,
+    QObject::connect(action, &QAction::triggered, action,
                      [toolId = id()] { KoToolManager::instance()->switchToolRequested(toolId); });
     //qDebug() << action << action->shortcut();
 
@@ -240,7 +240,11 @@ QAction *KoToolFactoryBase::createHostAction(const char *text,
                                              const PkString &objectName,
                                              Pk::Key shortcut)
 {
-    auto *action = new QAction(translateHostActionText(text), this);
+    // Keep the candidate unparented until createActions() has checked the
+    // collection for an existing action with the same object name. Parenting
+    // it here would make findChild() return the candidate itself and the
+    // duplicate-reuse path would delete it, leaving a dangling pointer.
+    auto *action = new QAction(translateHostActionText(text), nullptr);
     action->setObjectName(toQString(objectName));
     if (shortcut != static_cast<Pk::Key>(0)) {
         action->setShortcut(static_cast<int>(shortcut));

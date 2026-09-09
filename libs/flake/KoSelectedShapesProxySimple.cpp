@@ -16,9 +16,24 @@ KoSelectedShapesProxySimple::KoSelectedShapesProxySimple(KoShapeManager *shapeMa
 {
     KIS_ASSERT_RECOVER_RETURN(m_shapeManager);
 
-    QObject::connect(m_shapeManager.data(), &KoShapeManager::selectionChanged, this, &KoSelectedShapesProxy::selectionChanged);
-    QObject::connect(m_shapeManager.data(), &KoShapeManager::selectionContentChanged, this, &KoSelectedShapesProxy::selectionContentChanged);
-    QObject::connect(m_shapeManager->selection(), &KoSelection::currentLayerChanged, this, &KoSelectedShapesProxy::currentLayerChanged);
+    const PkPointer<KoSelectedShapesProxySimple> guard(this);
+    m_hostConnections.append(QObject::connect(
+        m_shapeManager.data(), &KoShapeManager::selectionChanged, m_shapeManager.data(),
+        [guard] { if (guard) guard->selectionChanged(); }));
+    m_hostConnections.append(QObject::connect(
+        m_shapeManager.data(), &KoShapeManager::selectionContentChanged, m_shapeManager.data(),
+        [guard] { if (guard) guard->selectionContentChanged(); }));
+    KoSelection *selection = m_shapeManager->selection();
+    m_hostConnections.append(QObject::connect(
+        selection, &KoSelection::currentLayerChanged, selection,
+        [guard](const KoShapeLayer *layer) { if (guard) guard->currentLayerChanged(layer); }));
+}
+
+KoSelectedShapesProxySimple::~KoSelectedShapesProxySimple()
+{
+    for (const QMetaObject::Connection &connection : m_hostConnections) {
+        QObject::disconnect(connection);
+    }
 }
 
 KoSelection *KoSelectedShapesProxySimple::selection()
@@ -26,4 +41,3 @@ KoSelection *KoSelectedShapesProxySimple::selection()
     KIS_ASSERT_RECOVER_RETURN_VALUE(m_shapeManager, 0);
     return m_shapeManager->selection();
 }
-

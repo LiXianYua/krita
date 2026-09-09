@@ -10,7 +10,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include <sys/types.h>
-#include <QtEndian>
+
+#include <cstring>
 
 #include "kis_gbr_brush.h"
 
@@ -31,6 +32,24 @@
 #include "kis_image.h"
 #include "KisBrushPixelUtils.h"
 #include "KisBrushStreamUtils.h"
+
+namespace {
+
+constexpr quint32 fromBigEndian32(quint32 value)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    return __builtin_bswap32(value);
+#else
+    return value;
+#endif
+}
+
+constexpr quint32 toBigEndian32(quint32 value)
+{
+    return fromBigEndian32(value);
+}
+
+}
 
 struct GimpBrushV1Header {
     quint32 header_size;  /*  header_size = sizeof (BrushHeader) + brush name  */
@@ -141,19 +160,19 @@ bool KisGbrBrush::init()
     }
 
     memcpy(&bh, d->data.constData(), sizeof(GimpBrushHeader));
-    bh.header_size = qFromBigEndian(bh.header_size);
+    bh.header_size = fromBigEndian32(bh.header_size);
     d->header_size = bh.header_size;
 
-    bh.version = qFromBigEndian(bh.version);
+    bh.version = fromBigEndian32(bh.version);
     d->version = bh.version;
 
-    bh.width = qFromBigEndian(bh.width);
-    bh.height = qFromBigEndian(bh.height);
+    bh.width = fromBigEndian32(bh.width);
+    bh.height = fromBigEndian32(bh.height);
 
-    bh.bytes = qFromBigEndian(bh.bytes);
+    bh.bytes = fromBigEndian32(bh.bytes);
     d->bytes = bh.bytes;
 
-    bh.magic_number = qFromBigEndian(bh.magic_number);
+    bh.magic_number = fromBigEndian32(bh.magic_number);
     d->magic_number = bh.magic_number;
 
     if (bh.version == 1) {
@@ -161,7 +180,7 @@ bool KisGbrBrush::init()
         bh.spacing = static_cast<int>(DEFAULT_SPACING * 100);
     }
     else {
-        bh.spacing = qFromBigEndian(bh.spacing);
+        bh.spacing = fromBigEndian32(bh.spacing);
 
         if (bh.spacing > 1000) {
             warnKrita << filename()  << "GBR could not be loaded, spacing above 1000. Spacing:" << bh.spacing;
@@ -307,22 +326,22 @@ bool KisGbrBrush::saveToDevice(PkStream* dev) const
     GimpBrushHeader bh;
     const std::string utf8Name = name().PkToUtf8(); // Names in v2 brushes are in UTF-8
     char const* name = utf8Name.data();
-    int nameLength = qstrlen(name);
+    int nameLength = static_cast<int>(std::strlen(name));
     int wrote;
 
-    bh.header_size = qToBigEndian((quint32)sizeof(GimpBrushHeader) + nameLength + 1);
-    bh.version = qToBigEndian((quint32)2); // Only RGBA8 data needed atm, no cinepaint stuff
-    bh.width = qToBigEndian((quint32)width());
-    bh.height = qToBigEndian((quint32)height());
+    bh.header_size = toBigEndian32((quint32)sizeof(GimpBrushHeader) + nameLength + 1);
+    bh.version = toBigEndian32((quint32)2); // Only RGBA8 data needed atm, no cinepaint stuff
+    bh.width = toBigEndian32((quint32)width());
+    bh.height = toBigEndian32((quint32)height());
     // Hardcoded, 4 bytes RGBA or 1 byte GREY
     if (!isImageType()) {
-        bh.bytes = qToBigEndian((quint32)1);
+        bh.bytes = toBigEndian32((quint32)1);
     }
     else {
-        bh.bytes = qToBigEndian((quint32)4);
+        bh.bytes = toBigEndian32((quint32)4);
     }
-    bh.magic_number = qToBigEndian((quint32)GimpV2BrushMagic);
-    bh.spacing = qToBigEndian(static_cast<quint32>(spacing() * 100.0));
+    bh.magic_number = toBigEndian32((quint32)GimpV2BrushMagic);
+    bh.spacing = toBigEndian32(static_cast<quint32>(spacing() * 100.0));
 
     // Write header: first bh, then the name
     PkByteArray bytes(reinterpret_cast<char*>(&bh), sizeof(GimpBrushHeader));

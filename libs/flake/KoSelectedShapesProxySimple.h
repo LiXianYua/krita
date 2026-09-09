@@ -9,19 +9,21 @@
 
 #include <PkPointer.h>
 #include <KoSelectedShapesProxy.h>
+#include <QMetaObject>
 
 class KoShapeManager;
 
 
 class KRITAFLAKE_EXPORT KoSelectedShapesProxySimple : public KoSelectedShapesProxy
 {
-    Q_OBJECT
 public:
     KoSelectedShapesProxySimple(KoShapeManager *shapeManager);
+    ~KoSelectedShapesProxySimple() override;
     KoSelection *selection() override;
 
 private:
     PkPointer<KoShapeManager> m_shapeManager;
+    PkList<QMetaObject::Connection> m_hostConnections;
 };
 
 #endif // KOSELECTEDSHAPESPROXYSIMPLE_H

@@ -97,6 +97,16 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
+// Toolkit-neutral d-pointer declaration. The generated d_func() API matches
+// the private implementation access used by existing Q_D call sites, while
+// public Pk-facing headers no longer need QtGlobal merely for this macro.
+#define PK_DECLARE_PRIVATE(Class) \
+    inline Class##Private *d_func() noexcept \
+    { return reinterpret_cast<Class##Private *>(d_ptr); } \
+    inline const Class##Private *d_func() const noexcept \
+    { return reinterpret_cast<const Class##Private *>(d_ptr); } \
+    friend class Class##Private;
+
 // 让位给真 Qt（R-34，R-35 放宽守卫口径）：real Qt 的对应头已进 TU（各自 include
 // guard 宏定义）时，本头里与 Qt 同名的一切（qAbs/qRound/qMin/qMax/qBound/qIsNull/
 // qFuzzyCompare/qFuzzyIsNull/qFloor/qCeil/qNextPowerOfTwo/qIsNaN/qInf/qQNaN 与
@@ -178,10 +188,10 @@ constexpr inline bool pkIsNull(float f) { return f == 0.0f; }
 constexpr inline bool pkIsNull(double d) { return d == 0.0; }
 
 // 对外的 Qt 名字只是转发，公式不重复第二遍（两份公式必然漂移）。
-// 仅在 Qt 缺席时提供（QT_CORE_LIB 未定义）；Qt 在场时由真 Qt 的 qglobal.h 提供，
+// 仅在 Qt 缺席时提供（QGLOBAL_H 未定义）；Qt 在场时由真 Qt 的 qglobal.h 提供，
 // 本头不再以 Qt 名定义任何东西（Qt 名与 pk 名彻底分离，与原「让位」设计等价但
 // 不再依赖 include 顺序）。
-#if !defined(QT_CORE_LIB) && !defined(qFuzzyCompare) && !defined(qFuzzyIsNull)
+#if !defined(QT_CORE_LIB) && !defined(QGLOBAL_H) && !defined(qFuzzyCompare) && !defined(qFuzzyIsNull)
 constexpr inline bool qFuzzyCompare(double p1, double p2) { return pkQtFuzzyCompare(p1, p2); }
 constexpr inline bool qFuzzyCompare(float p1, float p2) { return pkQtFuzzyCompare(p1, p2); }
 constexpr inline bool qFuzzyIsNull(double d) { return pkQtFuzzyIsNull(d); }

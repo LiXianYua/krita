@@ -64,6 +64,7 @@ target_link_libraries(kritapsdutils_noqt_compile_interface INTERFACE
         pknamespace
         pkfont
         pktextstream
+        ${LINK_OPENEXR_LIB}
         Boost::boost
         Eigen3::Eigen
 )

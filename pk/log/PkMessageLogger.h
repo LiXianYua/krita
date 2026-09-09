@@ -138,8 +138,8 @@ private:
 // Task 的文件，本 Task 不顺手重构它。已知偏差：真 Qt 装了 handler 之后默认
 // 输出（这里对应 spdlog 的 stderr 落盘）会被完全接管，这里只是"多一路"，
 // PkLogBackend.cpp 该怎么落盘还怎么落盘，handler 收到的是旁路的第二份。
-#if !defined(QT_CORE_LIB)
+#if !defined(QT_CORE_LIB) && !defined(QLOGGING_H)
 using QtMessageHandler = void (*)(PkLogLevel type, const PkLogContext &context,
                                    const char *message);
 QtMessageHandler qInstallMessageHandler(QtMessageHandler handler);
-#endif // !defined(QT_CORE_LIB)
+#endif // !defined(QT_CORE_LIB) && !defined(QLOGGING_H)

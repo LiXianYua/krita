@@ -28,7 +28,7 @@ public:
 private:
     /// pointer to the path tool
     KoPathTool *m_tool;
-    Q_DECLARE_PRIVATE(KoShapeRubberSelectStrategy)
+    PK_DECLARE_PRIVATE(KoShapeRubberSelectStrategy)
 };
 
 #endif /* KOPATHPOINTRUBBERSELECTSTRATEGY_H */

@@ -57,7 +57,7 @@ protected:
     virtual SelectionMode currentMode() const;
 
 private:
-    Q_DECLARE_PRIVATE(KoShapeRubberSelectStrategy)
+    PK_DECLARE_PRIVATE(KoShapeRubberSelectStrategy)
 };
 
 #endif /* KOSHAPERUBBERSELECTSTRATEGY_H */

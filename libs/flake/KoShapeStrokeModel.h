@@ -12,7 +12,7 @@
 
 #include "kritaflake_export.h"
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 class KoShape;
 class KoShapeSavingContext;

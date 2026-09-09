@@ -28,7 +28,8 @@ public:
     /// Provides access to the shape writer
     KoXmlWriter &shapeWriter();
 private:
-    Q_DISABLE_COPY(HtmlSavingContext)
+    HtmlSavingContext(const HtmlSavingContext &) = delete;
+    HtmlSavingContext &operator=(const HtmlSavingContext &) = delete;
 private:
     struct Private;
     const PkScopedPointer<Private> d;

@@ -91,7 +91,11 @@ void KoCanvasBase::disconnectCanvasObserver(QObject *object)
             PkObject::disconnect(toolProxy(), nullptr, pkObserver, nullptr);
         }
     }
-    if (selectedShapesProxy()) selectedShapesProxy()->disconnect(object);
+    if (selectedShapesProxy()) {
+        if (auto *pkObserver = dynamic_cast<PkObject *>(object)) {
+            PkObject::disconnect(selectedShapesProxy(), nullptr, pkObserver, nullptr);
+        }
+    }
 }
 
 

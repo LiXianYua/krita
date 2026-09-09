@@ -14,6 +14,12 @@
 #include <QClipboard>
 #include <QEvent>
 #include <QKeyEvent>
+#include <QInputMethodEvent>
+#include <QFocusEvent>
+#include <QDragMoveEvent>
+#include <QDragLeaveEvent>
+#include <QDropEvent>
+#include <QTextFormat>
 
 #include <PkThreadCallQueue.h>
 
@@ -42,6 +48,57 @@
 #include "kis_assert.h"
 #include "kis_global.h"
 #include "kis_algebra_2d.h"
+
+namespace {
+
+void syncAcceptedState(const PkToolEvent &source, QEvent *target)
+{
+    source.isAccepted() ? target->accept() : target->ignore();
+}
+
+PkToolInputMethodTextFormat toolInputMethodTextFormat(const QTextCharFormat &format)
+{
+    PkToolInputMethodTextFormat result;
+    if (format.hasProperty(QTextFormat::FontUnderline)) {
+        result.underline = format.property(QTextFormat::FontUnderline).toBool();
+    }
+    if (format.hasProperty(QTextFormat::FontOverline)) {
+        result.overline = format.property(QTextFormat::FontOverline).toBool();
+    }
+    if (format.hasProperty(QTextFormat::FontStrikeOut)) {
+        result.strikeOut = format.property(QTextFormat::FontStrikeOut).toBool();
+    }
+    if (format.hasProperty(QTextFormat::TextUnderlineStyle)) {
+        const QTextCharFormat::UnderlineStyle style = format.underlineStyle();
+        result.underline = style != QTextCharFormat::NoUnderline;
+        if (style == QTextCharFormat::DotLine) {
+            result.style = PkToolInputMethodLineStyle::Dotted;
+        } else if (style == QTextCharFormat::DashUnderline) {
+            result.style = PkToolInputMethodLineStyle::Dashed;
+        } else if (style == QTextCharFormat::WaveUnderline || style == QTextCharFormat::SpellCheckUnderline) {
+            result.style = PkToolInputMethodLineStyle::Wavy;
+#ifdef Q_OS_MACOS
+            if (style == QTextCharFormat::SpellCheckUnderline) {
+                result.style = PkToolInputMethodLineStyle::Dotted;
+            }
+#endif
+        }
+    }
+    if (format.hasProperty(QTextFormat::BackgroundBrush)) {
+        result.thick = format.background().isOpaque();
+#ifdef Q_OS_LINUX
+        if (result.style == PkToolInputMethodLineStyle::Dashed) {
+            result.style = PkToolInputMethodLineStyle::Solid;
+        }
+#endif
+    }
+    if (!result.underline && !result.overline && !result.strikeOut) {
+        result.underline = true;
+    }
+    return result;
+}
+
+}
 
 
 KoToolProxyPrivate::KoToolProxyPrivate(KoToolProxy *p)
@@ -377,17 +434,52 @@ PkVariant KoToolProxy::inputMethodQuery(Pk::InputMethodQuery query) const
 
 void KoToolProxy::inputMethodEvent(QInputMethodEvent *event)
 {
-    if (d->activeTool) d->activeTool->inputMethodEvent(event);
+    if (!d->activeTool) return;
+
+    PkToolInputMethodEvent nativeEvent;
+    event->isAccepted() ? nativeEvent.accept() : nativeEvent.ignore();
+    nativeEvent.commitString = toPkString(event->commitString());
+    nativeEvent.preeditString = toPkString(event->preeditString());
+    nativeEvent.replacementStart = event->replacementStart();
+    nativeEvent.replacementLength = event->replacementLength();
+    for (const QInputMethodEvent::Attribute &attribute : event->attributes()) {
+        PkToolInputMethodAttribute nativeAttribute;
+        nativeAttribute.start = attribute.start;
+        nativeAttribute.length = attribute.length;
+        if (attribute.type == QInputMethodEvent::Selection) {
+            nativeAttribute.type = PkToolInputMethodAttributeType::Selection;
+        } else if (attribute.type == QInputMethodEvent::Cursor) {
+            nativeAttribute.type = PkToolInputMethodAttributeType::Cursor;
+        } else if (attribute.type == QInputMethodEvent::TextFormat) {
+            if (attribute.length == 0 || attribute.start < 0 || !attribute.value.isValid()) {
+                continue;
+            }
+            nativeAttribute.type = PkToolInputMethodAttributeType::TextFormat;
+            nativeAttribute.format = toolInputMethodTextFormat(
+                attribute.value.value<QTextFormat>().toCharFormat());
+        } else {
+            continue;
+        }
+        nativeEvent.attributes.append(nativeAttribute);
+    }
+    d->activeTool->inputMethodEvent(&nativeEvent);
+    syncAcceptedState(nativeEvent, event);
 }
 
 void KoToolProxy::focusInEvent(QFocusEvent *event)
 {
-    if (d->activeTool) d->activeTool->focusInEvent(event);
+    if (!d->activeTool) return;
+    PkToolEvent nativeEvent(event->isAccepted());
+    d->activeTool->focusInEvent(&nativeEvent);
+    syncAcceptedState(nativeEvent, event);
 }
 
 void KoToolProxy::focusOutEvent(QFocusEvent *event)
 {
-    if (d->activeTool) d->activeTool->focusOutEvent(event);
+    if (!d->activeTool) return;
+    PkToolEvent nativeEvent(event->isAccepted());
+    d->activeTool->focusOutEvent(&nativeEvent);
+    syncAcceptedState(nativeEvent, event);
 }
 
 QMenu *KoToolProxy::popupActionsMenu()
@@ -510,20 +602,26 @@ void KoToolProxy::deselect()
 
 void KoToolProxy::dragMoveEvent(QDragMoveEvent *event, const PkPointF &point)
 {
-    if (d->activeTool)
-        d->activeTool->dragMoveEvent(event, point);
+    if (!d->activeTool) return;
+    PkToolEvent nativeEvent(event->isAccepted());
+    d->activeTool->dragMoveEvent(&nativeEvent, point);
+    syncAcceptedState(nativeEvent, event);
 }
 
 void KoToolProxy::dragLeaveEvent(QDragLeaveEvent *event)
 {
-    if (d->activeTool)
-        d->activeTool->dragLeaveEvent(event);
+    if (!d->activeTool) return;
+    PkToolEvent nativeEvent(event->isAccepted());
+    d->activeTool->dragLeaveEvent(&nativeEvent);
+    syncAcceptedState(nativeEvent, event);
 }
 
 void KoToolProxy::dropEvent(QDropEvent *event, const PkPointF &point)
 {
-    if (d->activeTool)
-        d->activeTool->dropEvent(event, point);
+    if (!d->activeTool) return;
+    PkToolEvent nativeEvent(event->isAccepted());
+    d->activeTool->dropEvent(&nativeEvent, point);
+    syncAcceptedState(nativeEvent, event);
 }
 
 void KoToolProxy::deleteSelection()

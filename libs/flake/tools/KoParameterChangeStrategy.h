@@ -36,7 +36,7 @@ protected:
     KoParameterChangeStrategy(KoParameterChangeStrategyPrivate &);
 
 private:
-    Q_DECLARE_PRIVATE(KoParameterChangeStrategy)
+    PK_DECLARE_PRIVATE(KoParameterChangeStrategy)
 };
 
 #endif /* KOPARAMETERCHANGESTRATEGY_H */

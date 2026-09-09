@@ -22,7 +22,7 @@ void KoShapeContainerModel::deleteOwnedShapes()
 {
     PkList<KoShape*> ownedShapes = this->shapes();
 
-    Q_FOREACH (KoShape *shape, ownedShapes) {
+    for (KoShape *shape : ownedShapes) {
         shape->setParent(0);
         delete shape;
     }

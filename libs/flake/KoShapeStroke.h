@@ -16,7 +16,6 @@
 
 #include "kritaflake_export.h"
 
-#include <QMetaType>
 #include <PkColor.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkVector.h>
@@ -105,7 +104,5 @@ private:
     class Private;
     Private * const d;
 };
-
-Q_DECLARE_METATYPE( KoShapeStroke )
 
 #endif // KOSHAPESTROKE_H

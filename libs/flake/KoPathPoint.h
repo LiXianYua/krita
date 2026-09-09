@@ -11,13 +11,12 @@
 
 #include "kritaflake_export.h"
 
-#include <QFlags>
+#include <PkFlags.h>
 
 class KoPathShape;
 class PkPointF;
 class PkTransform;
 class PkRectF;
-class QPainter;
 class KisHandlePainterHelper;
 
 /**
@@ -41,7 +40,7 @@ public:
         IsSmooth = 16, ///< it is smooth, both control points on a line through the point
         IsSymmetric = 32 ///< it is symmetric, like smooth but control points have same distance to point
     };
-    Q_DECLARE_FLAGS(PointProperties, PointProperty)
+    PK_DECLARE_FLAGS(PointProperties, PointProperty)
 
     /// the type for identifying part of a KoPathPoint
     enum PointType {
@@ -51,7 +50,7 @@ public:
         ControlPoint2 = 4,  ///< the second control point
         All = 7
     };
-    Q_DECLARE_FLAGS(PointTypes, PointType)
+    PK_DECLARE_FLAGS(PointTypes, PointType)
 
     /// Default constructor
     KoPathPoint();
@@ -266,7 +265,7 @@ private:
 //   /// The position of a path point within a path shape
 //   typedef std::pair<KoSubpath*, int> KoPointPosition;
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KoPathPoint::PointProperties)
-Q_DECLARE_OPERATORS_FOR_FLAGS(KoPathPoint::PointTypes)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KoPathPoint::PointProperties)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KoPathPoint::PointTypes)
 
 #endif

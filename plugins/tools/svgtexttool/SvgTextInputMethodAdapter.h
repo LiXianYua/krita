@@ -11,9 +11,13 @@
 
 class QInputMethodEvent;
 class QKeyEvent;
+class PkToolInputMethodEvent;
 
 KisDocumentApplicationServices::InputMethodEvent
 svgTextNativeInputMethodEvent(const QInputMethodEvent &event);
+
+KisDocumentApplicationServices::InputMethodEvent
+svgTextNativeInputMethodEvent(const PkToolInputMethodEvent &event);
 
 SvgTextCursor::NativeKeyEvent
 svgTextNativeKeyEvent(const QKeyEvent &event,

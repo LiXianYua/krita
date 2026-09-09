@@ -86,7 +86,7 @@ private:
     KoInteractionTool(const KoInteractionTool&);
     KoInteractionTool& operator=(const KoInteractionTool&);
 
-    Q_DECLARE_PRIVATE(KoInteractionTool)
+    PK_DECLARE_PRIVATE(KoInteractionTool)
 };
 
 #endif /* KOINTERACTIONTOOL_H */

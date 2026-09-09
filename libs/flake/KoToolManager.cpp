@@ -468,7 +468,6 @@ KoToolBase *KoToolManager::Private::createTool(KoCanvasController *controller, K
     KoToolBase *tool = toolAction->toolFactory()->createTool(controller->canvas());
     if (tool) {
         tool->setFactory(toolAction->toolFactory());
-        tool->QObject::setObjectName(toQString(toolAction->id()));
     }
 
     KoZoomTool *zoomTool = dynamic_cast<KoZoomTool*>(tool);
@@ -547,7 +546,6 @@ void KoToolManager::Private::disconnectActiveTool()
         // data needed for the repaint
         q->aboutToChangeTool(canvasData->canvas);
         canvasData->activeTool->deactivate();
-        QObject::disconnect(canvasData->activeTool, nullptr, q, nullptr);
         PkObject::disconnect(canvasData->activeTool, nullptr, q, nullptr);
     }
 
@@ -780,7 +778,7 @@ void KoToolManager::Private::attachCanvas(KoCanvasController *controller)
     KoShapeManager *shapeManager = controller->canvas()->shapeManager();
     QObject::connect(shapeManager, &KoShapeManager::selectionChanged, q,
             [this, shapeManager] { this->selectionChanged(shapeManager->selection()->selectedShapes()); });
-    QObject::connect(controller->canvas()->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged, q,
+    PkObject::connect(controller->canvas()->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged, q,
             [this](const KoShapeLayer *layer) { this->currentLayerChanged(layer); });
 
     q->changedCanvas(canvasData ? canvasData->canvas->canvas() : 0);

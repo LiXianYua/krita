@@ -14,16 +14,7 @@
 #include "kritaglobal_export.h"
 
 #include <PkGlobal.h>
-// QFlags 兼容垫片只在 Qt-free 剥离构建里需要（把 QFlags 宏映射到 PkFlags）。
-// real-Qt-first 过渡构建（QT_CORE_LIB 定义）里拉它会无条件把 QFlags/Q_DECLARE_FLAGS
-// 宏覆盖成 Pk 版本，污染本 TU 后续所有 QFlags token（含 QtTest 头——QSignalSpy 等在
-// simpletest.h 垫片 pop 之前被 include 就中招，链接时缺 processEvents(PkFlags) 等符号）。
-// 让位用真 Qt 的 QFlags 转发头，语义不变。
-#if defined(QT_CORE_LIB)
-#include <QtCore/QFlags>
-#else
-#include <compat/QFlags>
-#endif
+#include <PkFlags.h>
 #include <PkTransform.h>
 
 #include <PkString.h>
@@ -99,7 +90,7 @@ public:
         HidePixel = 1,
         HideMask = HidePixel
     };
-     Q_DECLARE_FLAGS(ListOptions, ListOption)
+    PK_DECLARE_FLAGS(ListOptions, ListOption)
 
     /** Returns a KoUnit instance with the type at the @p index of the UI list with the given @p listOptions. */
     static KoUnit fromListForUi(int index, ListOptions listOptions = ListAll, qreal factor = 1.0);
@@ -224,6 +215,6 @@ private:
 KRITAGLOBAL_EXPORT PkDebug operator<<(PkDebug, const KoUnit &);
 #endif
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KoUnit::ListOptions)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KoUnit::ListOptions)
 
 #endif

@@ -14,9 +14,9 @@
 #include "KoToolBase.h"
 #include "KoPathToolSelection.h"
 #include "kis_signal_auto_connection.h"
-#include "KisQtConnectionsStore.h"
 #include <PkList.h>
 #include <QCursor>
+#include <QMetaObject>
 #include <KoShapeFillResourceConnector.h>
 #include "KoPathPointTypeCommand.h"
 #include <KoSvgTextShapeOutlineHelper.h>
@@ -133,10 +133,11 @@ private:
     QCursor m_moveCursor;
     PkScopedPointer<QMenu> m_contextMenu;
     PkScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
-    KisQtConnectionsStore m_canvasConnections;
+    KisSignalAutoConnectionsStore m_canvasConnections;
+    PkList<QMetaObject::Connection> m_actionConnections;
     KoShapeFillResourceConnector m_shapeFillResourceConnector;
 
-    Q_DECLARE_PRIVATE(KoToolBase)
+    PK_DECLARE_PRIVATE(KoToolBase)
 };
 
 #endif

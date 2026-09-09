@@ -12,6 +12,7 @@
 #include "KoCanvasBase.h"
 #include "KoShapeController.h"
 #include <PkHash.h>
+#include <PkPointer.h>
 #include <QPointer>
 #include <QWidget>
 #include <string.h> // for the qt version check
@@ -48,14 +49,21 @@ public:
         if (canvas) { // in the case of KoToolManagers dummy tool it can be zero :(
             KoCanvasResourceProvider * crp = canvas->resourceManager();
             Q_ASSERT_X(crp, "KoToolBase::KoToolBase", "No Canvas KoResourceManager");
-            if (crp)
-                q->QObject::connect(crp, &KoCanvasResourceProvider::canvasResourceChanged, q,
-                        &KoToolBase::canvasResourceChanged);
+            if (crp) {
+                const PkPointer<KoToolBase> guard(q);
+                QObject::connect(crp, &KoCanvasResourceProvider::canvasResourceChanged, crp,
+                                 [guard](int key, const PkVariant &value) {
+                    if (guard) guard->canvasResourceChanged(key, value);
+                });
+            }
 
             KoDocumentResourceManager *scrm = canvas->shapeController()->resourceManager();
             if (scrm) {
-                q->QObject::connect(scrm, &KoDocumentResourceManager::resourceChanged, q,
-                        &KoToolBase::documentResourceChanged);
+                const PkPointer<KoToolBase> guard(q);
+                QObject::connect(scrm, &KoDocumentResourceManager::resourceChanged, scrm,
+                                 [guard](int key, const PkVariant &value) {
+                    if (guard) guard->documentResourceChanged(key, value);
+                });
             }
         }
     }

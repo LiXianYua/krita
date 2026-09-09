@@ -12,8 +12,8 @@
 
 #include "kritaflake_export.h"
 
+#include <PkFlags.h>
 #include <PkMap.h>
-// [migrate] missing include for Pk/Qt type
 #include <PkString.h>
 
 class KoShape;
@@ -60,7 +60,7 @@ public:
          */
         ZIndex = 16
     };
-    Q_DECLARE_FLAGS(ShapeSavingOptions, ShapeSavingOption)
+    PK_DECLARE_FLAGS(ShapeSavingOptions, ShapeSavingOption)
 
     /**
      * @brief Constructor
@@ -202,6 +202,6 @@ private:
     KoShapeSavingContextPrivate * const d;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KoShapeSavingContext::ShapeSavingOptions)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KoShapeSavingContext::ShapeSavingOptions)
 
 #endif // KOSHAPESAVINGCONTEXT_H

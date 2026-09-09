@@ -44,7 +44,7 @@ public:
 
     void normalize() {
         qreal len = length();
-        if (qFuzzyCompare(len, qreal(0.0))) {
+        if (pkQtFuzzyCompare(len, qreal(0.0))) {
             return;
         }
         m_X /= len; m_Y /= len;
@@ -57,7 +57,7 @@ public:
 
     void scale(qreal s) {
         qreal len = length();
-        if (qFuzzyCompare(len, qreal(0.0))) {
+        if (pkQtFuzzyCompare(len, qreal(0.0))) {
             return;
         }
         m_X *= s / len;
@@ -126,7 +126,7 @@ static qreal *ChordLengthParameterize(const PkList<PkPointF> &points, int first,
     }
 
     qreal denominator = u[last-first];
-    if (qFuzzyCompare(denominator, qreal(0.0))) {
+    if (pkQtFuzzyCompare(denominator, qreal(0.0))) {
         denominator = Zero;
     }
 
@@ -277,9 +277,9 @@ PkPointF* GenerateBezier(const PkList<PkPointF> &points, int first, int last, qr
     det_X_C1  = X[0]    * C[1][1] - X[1]    * C[0][1];
 
     /* Finally, derive alpha values */
-    if (qFuzzyCompare(det_C0_C1, qreal(0.0))) {
+    if (pkQtFuzzyCompare(det_C0_C1, qreal(0.0))) {
         det_C0_C1 = (C[0][0] * C[1][1]) * 10e-12;
-        if (qFuzzyCompare(det_C0_C1, qreal(0.0))) {
+        if (pkQtFuzzyCompare(det_C0_C1, qreal(0.0))) {
             det_C0_C1 = Zero;
         }
     }
@@ -414,7 +414,7 @@ static qreal NewtonRaphsonRootFind(PkPointF *Q, PkPointF P, qreal u)
     denominator = (Q1_u.x()) * (Q1_u.x()) + (Q1_u.y()) * (Q1_u.y()) +
                   (Q_u.x() - P.x()) * (Q2_u.x()) + (Q_u.y() - P.y()) * (Q2_u.y());
 
-    if (qFuzzyCompare(denominator, qreal(0.0))) {
+    if (pkQtFuzzyCompare(denominator, qreal(0.0))) {
         denominator = Zero;
     }
 
@@ -564,4 +564,3 @@ KoPathShape * bezierFit(const PkList<PkPointF> &points, float error)
     delete[] curve;
     return path;
 }
-

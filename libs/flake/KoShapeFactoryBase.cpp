@@ -7,11 +7,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoShapeFactoryBase.h"
 
-#include <QDebug>
+#include <cassert>
 
 #include "KoDocumentResourceManager.h"
 #include "KoDeferredShapeFactoryBase.h"
@@ -22,9 +21,6 @@
 
 #include <PkMutex.h>
 #include <PkMutex.h>
-#include <PkPointer.h>
-
-
 #include <FlakeDebug.h>
 
 class Q_DECL_HIDDEN KoShapeFactoryBase::Private
@@ -41,8 +37,9 @@ public:
     }
 
     ~Private() {
-        Q_FOREACH (const KoShapeTemplate & t, templates)
+        for (const KoShapeTemplate &t : templates) {
             delete t.properties;
+        }
         templates.clear();
     }
 
@@ -58,7 +55,6 @@ public:
     int loadingPriority;
     PkList<std::pair<PkString, PkStringList> > xmlElements; // xml name space -> xml element names
     bool hidden;
-    PkList<PkPointer<KoDocumentResourceManager> > resourceManagers;
 };
 
 
@@ -162,15 +158,14 @@ void KoShapeFactoryBase::setHidden(bool hidden)
 
 void KoShapeFactoryBase::newDocumentResourceManager(KoDocumentResourceManager *manager) const
 {
-    d->resourceManagers.append(manager);
-    QObject::connect(manager, &QObject::destroyed, this, &KoShapeFactoryBase::pruneDocumentResourceManager);
+    (void)manager;
 }
 
 KoShape *KoShapeFactoryBase::createDefaultShape(KoDocumentResourceManager *documentResources) const
 {
     if (!d->deferredPluginName.isEmpty()) {
         const_cast<KoShapeFactoryBase*>(this)->getDeferredPlugin();
-        Q_ASSERT(d->deferredFactory);
+        assert(d->deferredFactory);
         if (d->deferredFactory) {
             return d->deferredFactory->createDefaultShape(documentResources);
         }
@@ -183,7 +178,7 @@ KoShape *KoShapeFactoryBase::createShape(const KoProperties* properties,
 {
     if (!d->deferredPluginName.isEmpty()) {
         const_cast<KoShapeFactoryBase*>(this)->getDeferredPlugin();
-        Q_ASSERT(d->deferredFactory);
+        assert(d->deferredFactory);
         if (d->deferredFactory) {
             return d->deferredFactory->createShape(properties, documentResources);
         }
@@ -196,15 +191,4 @@ void KoShapeFactoryBase::getDeferredPlugin()
     // S-08: 插件加载已随 D-12 删除。deferredPluginName 恒为空（无子类传第三参），
     // deferredFactory 永不填充，本函数为 no-op；createShape/createDefaultShape 的
     // deferredFactory 分支同样不可达。
-}
-
-void KoShapeFactoryBase::pruneDocumentResourceManager(QObject *)
-{
-    PkList<PkPointer<KoDocumentResourceManager> > rms;
-    Q_FOREACH(PkPointer<KoDocumentResourceManager> rm, d->resourceManagers) {
-        if (rm) {
-            rms << rm;
-        }
-    }
-    d->resourceManagers = rms;
 }

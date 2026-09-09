@@ -127,7 +127,7 @@ void KisShapeController::addNodeImpl(KisNodeSP node, KisNodeSP parent, KisNodeSP
                 this, &KisShapeController::selectionChanged);
         QObject::connect(shapeLayer->shapeManager(), &KoShapeManager::selectionContentChanged,
                 this, &KisShapeController::selectionContentChanged);
-        QObject::connect(shapeLayer->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
+        PkObject::connect(shapeLayer->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
                 this, &KisShapeController::currentLayerChanged);
     }
 }
@@ -137,7 +137,7 @@ void KisShapeController::removeNodeImpl(KisNodeSP node)
     KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(node.data());
     if (shapeLayer) {
         QObject::disconnect(shapeLayer->shapeManager(), nullptr, this, nullptr);
-        QObject::disconnect(shapeLayer->selectedShapesProxy(), nullptr, this, nullptr);
+        PkObject::disconnect(shapeLayer->selectedShapesProxy(), nullptr, this, nullptr);
     }
 
     m_d->shapesGraph.removeNode(node);

@@ -278,10 +278,10 @@ void KisShapeLayer::initShapeLayerImpl(KoShapeControllerBase* controller,
     m_d->canvas->moveToThread(QThread::currentThread());
     m_d->controller = controller;
 
-    QObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
-                     [this]() { selectionChanged(); });
-    QObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
-                     [this](const KoShapeLayer *layer) { currentLayerChanged(layer); });
+    PkObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+                      this, [this]() { selectionChanged(); });
+    PkObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
+                      this, [this](const KoShapeLayer *layer) { currentLayerChanged(layer); });
 
     PkObject::connect(this, &KisShapeLayer::sigMoveShapes,
                       this, &KisShapeLayer::slotMoveShapes);

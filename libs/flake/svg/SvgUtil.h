@@ -151,7 +151,7 @@ public:
         };
 
         bool defer = false;
-        Qt::AspectRatioMode mode = Qt::IgnoreAspectRatio;
+        Pk::AspectRatioMode mode = Pk::IgnoreAspectRatio;
         Alignment xAlignment = Min;
         Alignment yAlignment = Min;
 

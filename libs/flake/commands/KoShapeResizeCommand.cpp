@@ -117,8 +117,8 @@ bool KoShapeResizeCommand::mergeWith(const KUndo2Command *command)
 
     // check if the significant orientations coincide
     if (m_d->useGlobalMode && !m_d->usePostScaling) {
-        Qt::Orientation our = KoFlake::significantScaleOrientation(m_d->scaleX, m_d->scaleY);
-        Qt::Orientation their = KoFlake::significantScaleOrientation(other->m_d->scaleX, other->m_d->scaleY);
+        Pk::Orientation our = KoFlake::significantScaleOrientation(m_d->scaleX, m_d->scaleY);
+        Pk::Orientation their = KoFlake::significantScaleOrientation(other->m_d->scaleX, other->m_d->scaleY);
 
         if (our != their) {
             return false;

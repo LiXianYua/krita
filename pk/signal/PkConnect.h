@@ -27,8 +27,8 @@ enum class PkConnectionType { Auto, Direct, Queued, BlockingQueued, Unique = 0x8
 // QOverload<Args...>::of(ptr) —— 信号/槽重载消歧。Qt 里同名信号有多组参数时，
 // `&C::sig` 是模糊的，必须 `QOverload<const QString&, const QString&>::of(&C::sig)`。
 // 让位守卫：真 Qt 的 qglobal.h 也定义 QOverload（同名同用途），real Qt 已进 TU
-// （QT_CORE_LIB）时让位，否则与真 Qt 头重定义（libs/global 基线测试的场景）。
-#if !defined(QT_CORE_LIB)
+// （QGLOBAL_H）时让位，否则与真 Qt 头重定义（libs/global 基线测试的场景）。
+#if !defined(QT_CORE_LIB) && !defined(QGLOBAL_H)
 template <typename... Args>
 struct QOverload {
     template <typename R, typename T>

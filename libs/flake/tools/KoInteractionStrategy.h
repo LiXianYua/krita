@@ -89,7 +89,7 @@ protected:
     uint grabSensitivity() const;
 
 private:
-    Q_DECLARE_PRIVATE(KoInteractionStrategy)
+    PK_DECLARE_PRIVATE(KoInteractionStrategy)
 };
 
 #endif

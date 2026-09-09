@@ -101,6 +101,6 @@ protected:
     PkList<QPointer<QWidget> > createOptionWidgets() override;
 
 private:
-    Q_DECLARE_PRIVATE(KoCreatePathTool)
+    PK_DECLARE_PRIVATE(KoCreatePathTool)
 };
 #endif

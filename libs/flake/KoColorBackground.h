@@ -9,7 +9,6 @@
 
 #include "KoShapeBackground.h"
 #include "kritaflake_export.h"
-#include <Qt>
 #include <PkSharedDataPointer.h>
 #include <PkBrush.h>
 

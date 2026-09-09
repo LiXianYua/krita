@@ -35,64 +35,49 @@ PkList<QAction *> KoPathToolFactory::createActionsImpl()
 {
     PkList<QAction *> actions;
 
-    QAction *action = new QAction(this);
-    action->setObjectName("pathpoint-corner");
+    QAction *action = createHostAction("", "pathpoint-corner");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathpoint-smooth");
+    action = createHostAction("", "pathpoint-smooth");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathpoint-symmetric");
+    action = createHostAction("", "pathpoint-symmetric");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathpoint-curve");
+    action = createHostAction("", "pathpoint-curve");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathpoint-line");
+    action = createHostAction("", "pathpoint-line");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathsegment-line");
+    action = createHostAction("", "pathsegment-line");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathsegment-curve");
+    action = createHostAction("", "pathsegment-curve");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathpoint-insert");
+    action = createHostAction("", "pathpoint-insert");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathpoint-remove");
+    action = createHostAction("", "pathpoint-remove");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("path-break-point");
+    action = createHostAction("", "path-break-point");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("path-break-segment");
+    action = createHostAction("", "path-break-segment");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("path-break-selection");
+    action = createHostAction("", "path-break-selection");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathpoint-join");
+    action = createHostAction("", "pathpoint-join");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("pathpoint-merge");
+    action = createHostAction("", "pathpoint-merge");
     actions << action;
 
-    action = new QAction(this);
-    action->setObjectName("convert-to-path");
+    action = createHostAction("", "convert-to-path");
     actions << action;
 
     return actions;

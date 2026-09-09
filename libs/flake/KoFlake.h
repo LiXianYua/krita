@@ -18,7 +18,7 @@ class PkSizeF;
 class KoShape;
 class PkTransform;
 
-#include <Qt>
+#include <PkNamespace.h>
 
 /**
  * Flake reference
@@ -127,7 +127,7 @@ namespace KoFlake
      */
     KRITAFLAKE_EXPORT PkPointF toAbsolute(const PkPointF &relative, const PkSizeF &size);
 
-    KRITAFLAKE_EXPORT Qt::Orientation significantScaleOrientation(qreal scaleX, qreal scaleY);
+    KRITAFLAKE_EXPORT Pk::Orientation significantScaleOrientation(qreal scaleX, qreal scaleY);
 
     KRITAFLAKE_EXPORT void scaleShape(KoShape *shape, qreal scaleX, qreal scaleY,
                                       const PkPointF &absoluteStillPoint,

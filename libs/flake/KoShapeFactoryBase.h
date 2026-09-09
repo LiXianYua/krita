@@ -9,13 +9,12 @@
 #ifndef KOSHAPEFACTORYBASE_H
 #define KOSHAPEFACTORYBASE_H
 
-#include <QObject>
 #include <PkString.h>
+#include <PkStringList.h>
 #include <PkList.h>
 #include <PkXmlDocument.h>
 
 #include "kritaflake_export.h"
-#include <KisQStringListFwd.h>
 
 class KoShape;
 class KoProperties;
@@ -70,7 +69,7 @@ public:
  * After you created the factory you should create a plugin that can announce the factory to the
  * KoShapeRegistry.  See the KoPluginLoader as well.
  */
-class KRITAFLAKE_EXPORT KoShapeFactoryBase : public QObject
+class KRITAFLAKE_EXPORT KoShapeFactoryBase
 {
 public:
 
@@ -80,7 +79,7 @@ public:
      * @param name the user visible name of the shape this factory creates.
      */
     KoShapeFactoryBase(const PkString &id, const PkString &name, const PkString &deferredPluginName = PkString());
-    ~KoShapeFactoryBase() override;
+    virtual ~KoShapeFactoryBase();
 
     /**
      * return the id for the shape this factory creates.
@@ -251,11 +250,6 @@ protected:
 private:
 
     void getDeferredPlugin();
-
-private:
-
-    /// called whenever a document KoDocumentResourceManager is deleted
-    void pruneDocumentResourceManager(QObject *);
 
 private:
 

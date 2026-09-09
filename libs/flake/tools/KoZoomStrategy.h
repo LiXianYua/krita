@@ -40,7 +40,7 @@ private:
     KoCanvasController *m_controller;
 
     bool m_forceZoomOut;
-    Q_DECLARE_PRIVATE(KoShapeRubberSelectStrategy)
+    PK_DECLARE_PRIVATE(KoShapeRubberSelectStrategy)
 };
 
 #endif

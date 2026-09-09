@@ -10,13 +10,11 @@
 #include "KoPathShape.h"
 
 #include <FlakeDebug.h>
-#include <QPainter>
 #include <PkPoint.h>
 #include <KisHandlePainterHelper.h>
 
 #include <math.h>
 
-#include <qnumeric.h> // for qIsNaN
 static bool qIsNaNPoint(const PkPointF &p) {
     return pkIsNaN(p.x()) || pkIsNaN(p.y());
 }

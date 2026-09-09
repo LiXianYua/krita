@@ -135,12 +135,12 @@ void findMinMaxPoints(const PkPolygonF &poly, int *minPoint, int *maxPoint, std:
 }
 
 
-Qt::Orientation KoFlake::significantScaleOrientation(qreal scaleX, qreal scaleY)
+Pk::Orientation KoFlake::significantScaleOrientation(qreal scaleX, qreal scaleY)
 {
     const qreal scaleXDeviation = qAbs(1.0 - scaleX);
     const qreal scaleYDeviation = qAbs(1.0 - scaleY);
 
-    return scaleXDeviation > scaleYDeviation ? Qt::Horizontal : Qt::Vertical;
+    return scaleXDeviation > scaleYDeviation ? Pk::Horizontal : Pk::Vertical;
 }
 
 void KoFlake::scaleShape(KoShape *shape, qreal scaleX, qreal scaleY,
@@ -213,11 +213,11 @@ void KoFlake::resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
          */
 
         // choose the most significant scale direction
-        Qt::Orientation significantOrientation = significantScaleOrientation(scaleX, scaleY);
+        Pk::Orientation significantOrientation = significantScaleOrientation(scaleX, scaleY);
 
         std::function<qreal(const PkPointF&)> dimension;
 
-        if (significantOrientation == Qt::Horizontal) {
+        if (significantOrientation == Pk::Horizontal) {
             dimension = [] (const PkPointF &pt) {
                 return pt.x();
             };

@@ -6,6 +6,7 @@
 */
 
 #include <PkFlakeBridge.h>
+#include <PkPointer.h>
 #include "SvgTextTool.h"
 #include "KoSvgTextProperties.h"
 #include "KoSvgTextShape.h"
@@ -255,6 +256,49 @@ svgTextNativeInputMethodEvent(const QInputMethodEvent &event)
     return result;
 }
 
+KisDocumentApplicationServices::InputMethodEvent
+svgTextNativeInputMethodEvent(const PkToolInputMethodEvent &event)
+{
+    using Services = KisDocumentApplicationServices;
+    Services::InputMethodEvent result;
+    result.commitString = event.commitString;
+    result.preeditString = event.preeditString;
+    result.replacementStart = event.replacementStart;
+    result.replacementLength = event.replacementLength;
+    for (const PkToolInputMethodAttribute &attribute : event.attributes) {
+        Services::InputMethodAttribute nativeAttribute;
+        nativeAttribute.start = attribute.start;
+        nativeAttribute.length = attribute.length;
+        if (attribute.type == PkToolInputMethodAttributeType::Selection) {
+            nativeAttribute.type = Services::InputMethodAttributeType::Selection;
+        } else if (attribute.type == PkToolInputMethodAttributeType::Cursor) {
+            nativeAttribute.type = Services::InputMethodAttributeType::Cursor;
+        } else {
+            nativeAttribute.type = Services::InputMethodAttributeType::TextFormat;
+            nativeAttribute.format.underline = attribute.format.underline;
+            nativeAttribute.format.overline = attribute.format.overline;
+            nativeAttribute.format.strikeOut = attribute.format.strikeOut;
+            nativeAttribute.format.thick = attribute.format.thick;
+            switch (attribute.format.style) {
+            case PkToolInputMethodLineStyle::Dotted:
+                nativeAttribute.format.style = Services::InputMethodLineStyle::Dotted;
+                break;
+            case PkToolInputMethodLineStyle::Dashed:
+                nativeAttribute.format.style = Services::InputMethodLineStyle::Dashed;
+                break;
+            case PkToolInputMethodLineStyle::Wavy:
+                nativeAttribute.format.style = Services::InputMethodLineStyle::Wavy;
+                break;
+            case PkToolInputMethodLineStyle::Solid:
+                nativeAttribute.format.style = Services::InputMethodLineStyle::Solid;
+                break;
+            }
+        }
+        result.attributes.append(nativeAttribute);
+    }
+    return result;
+}
+
 constexpr double INLINE_SIZE_DASHES_PATTERN_A = 4.0; /// Size of the visible part of the inline-size handle dashes.
 constexpr double INLINE_SIZE_DASHES_PATTERN_B = 8.0; /// Size of the hidden part of the inline-size handle dashes.
 constexpr int INLINE_SIZE_DASHES_PATTERN_LENGTH = 3; /// Total amount of trailing dashes on inline-size handles.
@@ -290,9 +334,11 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
         }
     });
     if (canvas->canvasController()) {
-        QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-                         this, [this](int key, const PkVariant &value) {
-            m_textCursor.notifyCanvasResourceChanged(key, value);
+        KoCanvasResourceProvider *resourceManager = canvas->resourceManager();
+        const PkPointer<SvgTextTool> toolGuard(this);
+        QObject::connect(resourceManager, &KoCanvasResourceProvider::canvasResourceChanged,
+                         resourceManager, [toolGuard](int key, const PkVariant &value) {
+            if (toolGuard) toolGuard->m_textCursor.notifyCanvasResourceChanged(key, value);
         });
     }
 
@@ -343,8 +389,8 @@ SvgTextTool::~SvgTextTool()
 void SvgTextTool::activate(const PkSet<KoShape *> &shapes)
 {
     KoToolBase::activate(shapes);
-    QObject::connect(canvas()->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
-                     this, &SvgTextTool::slotShapeSelectionChanged, Qt::UniqueConnection);
+    PkObject::connect(canvas()->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+                      this, &SvgTextTool::slotShapeSelectionChanged, PkConnectionType::Unique);
 
     // toolId() only becomes valid once KoToolManager has set the tool's
     // factory, which happens after construction (KoToolBase::toolId() reads
@@ -372,8 +418,7 @@ void SvgTextTool::activate(const PkSet<KoShape *> &shapes)
 void SvgTextTool::deactivate()
 {
     KoToolBase::deactivate();
-    QObject::disconnect(canvas()->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
-                        this, &SvgTextTool::slotShapeSelectionChanged);
+    PkObject::disconnect(canvas()->selectedShapesProxy(), nullptr, this, nullptr);
     m_textCursor.setShape(nullptr);
     // Exiting text editing mode is handled by requestStrokeEnd
     m_hoveredShapeHighlightRect = PkPainterPath();
@@ -395,7 +440,7 @@ PkVariant SvgTextTool::inputMethodQuery(Pk::InputMethodQuery query) const
     }
 }
 
-void SvgTextTool::inputMethodEvent(QInputMethodEvent *event)
+void SvgTextTool::inputMethodEvent(PkToolInputMethodEvent *event)
 {
     if (m_textCursor.inputMethodEvent(svgTextNativeInputMethodEvent(*event))) {
         event->accept();
@@ -1162,13 +1207,13 @@ void SvgTextTool::pkKeyReleaseEvent(PkToolKeyEvent *event)
     }
 }
 
-void SvgTextTool::focusInEvent(QFocusEvent *event)
+void SvgTextTool::focusInEvent(PkToolEvent *event)
 {
     m_textCursor.focusIn();
     event->accept();
 }
 
-void SvgTextTool::focusOutEvent(QFocusEvent *event)
+void SvgTextTool::focusOutEvent(PkToolEvent *event)
 {
     m_textCursor.focusOut();
     event->accept();
@@ -1217,9 +1262,10 @@ void SvgTextTool::connectCursorAction(const PkString &actionName)
     QAction *hostAction = action(actionName);
     if (!hostAction) return;
     m_cursorActions.insert(actionName, hostAction);
-    QObject::connect(hostAction, &QAction::triggered, this,
-                     [this, actionName](bool checked) {
-        m_textCursor.triggerAction(actionName, checked);
+    const PkPointer<SvgTextTool> toolGuard(this);
+    QObject::connect(hostAction, &QAction::triggered, hostAction,
+                     [toolGuard, actionName](bool checked) {
+        if (toolGuard) toolGuard->m_textCursor.triggerAction(actionName, checked);
     });
 }
 
@@ -1228,9 +1274,11 @@ void SvgTextTool::addMappedAction(const PkString &actionName, int value, bool mo
     QAction *hostAction = action(actionName);
     if (!hostAction) return;
     m_cursorActions.insert(actionName, hostAction);
-    QObject::connect(hostAction, &QAction::triggered, this,
-                     [this, value, movementAction] {
-        if (movementAction) slotMoveTextSelection(value);
-        else slotConvertType(value);
+    const PkPointer<SvgTextTool> toolGuard(this);
+    QObject::connect(hostAction, &QAction::triggered, hostAction,
+                     [toolGuard, value, movementAction] {
+        if (!toolGuard) return;
+        if (movementAction) toolGuard->slotMoveTextSelection(value);
+        else toolGuard->slotConvertType(value);
     });
 }

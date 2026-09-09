@@ -6,6 +6,11 @@
 #include <QTest>
 #include <QKeyEvent>
 #include <QKeySequence>
+#include <QInputMethodEvent>
+#include <QFocusEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QMimeData>
 
 #include "KoCanvasBase.h"
 #include "KoCanvasController.h"
@@ -95,7 +100,11 @@ public:
     void addCommand(KUndo2Command *) override {}
     KoShapeManager *shapeManager() const override { return const_cast<KoShapeManager *>(&manager); }
     KoSelectedShapesProxy *selectedShapesProxy() const override { return const_cast<KoSelectedShapesProxySimple *>(&selectedShapes); }
-    void updateCanvas(const PkRectF &) override {}
+    void updateCanvas(const PkRectF &rect) override
+    {
+        lastUpdatedRect = rect;
+        ++updateCanvasCalls;
+    }
     KoToolProxy *toolProxy() const override { return m_toolProxy; }
     void setToolProxy(KoToolProxy *proxy) { m_toolProxy = proxy; }
     const KoViewConverter *viewConverter() const override { return &converter; }
@@ -108,6 +117,8 @@ public:
     KoSelectedShapesProxySimple selectedShapes;
     KoViewConverter converter;
     KoToolProxy *m_toolProxy = nullptr;
+    PkRectF lastUpdatedRect;
+    int updateCanvasCalls = 0;
 };
 
 class MinimalController final : public KoCanvasController
@@ -183,6 +194,16 @@ public:
     {
     }
 
+    void watchSelectedShapes(std::function<void()> callback)
+    {
+        watchSelectedShapesChanged(std::move(callback));
+    }
+
+    void requestUpdate(const PkRectF &rect)
+    {
+        requestCanvasUpdate(rect);
+    }
+
     void paint(PkPainter &painter, const KoViewConverter &) override
     {
         reached = true;
@@ -220,11 +241,52 @@ public:
         event->ignore();
     }
 
+    void inputMethodEvent(PkToolInputMethodEvent *event) override
+    {
+        ++inputMethodCalls;
+        lastCommitString = event->commitString;
+        lastPreeditString = event->preeditString;
+        lastReplacementStart = event->replacementStart;
+        lastReplacementLength = event->replacementLength;
+        event->accept();
+    }
+
+    void focusInEvent(PkToolEvent *event) override
+    {
+        ++focusInCalls;
+        event->accept();
+    }
+
+    void focusOutEvent(PkToolEvent *event) override
+    {
+        ++focusOutCalls;
+        event->ignore();
+    }
+
+    void dragMoveEvent(PkToolEvent *event, const PkPointF &point) override
+    {
+        ++dragMoveCalls;
+        lastDragPoint = point;
+        event->accept();
+    }
+
+    void dropEvent(PkToolEvent *event, const PkPointF &point) override
+    {
+        ++dropCalls;
+        lastDropPoint = point;
+        event->accept();
+    }
+
     bool reached = false;
     int mouseMoveCalls = 0;
     int mouseReleaseCalls = 0;
     int keyPressCalls = 0;
     int keyReleaseCalls = 0;
+    int inputMethodCalls = 0;
+    int focusInCalls = 0;
+    int focusOutCalls = 0;
+    int dragMoveCalls = 0;
+    int dropCalls = 0;
     PkPointF lastMouseMovePoint;
     Qt::MouseButtons lastMouseMoveButtons;
     Pk::Key lastKey = static_cast<Pk::Key>(0);
@@ -232,6 +294,12 @@ public:
     bool lastAcceptedOnEntry = false;
     bool lastAutoRepeat = false;
     PkString lastText;
+    PkString lastCommitString;
+    PkString lastPreeditString;
+    int lastReplacementStart = 0;
+    int lastReplacementLength = 0;
+    PkPointF lastDragPoint;
+    PkPointF lastDropPoint;
 };
 
 class DualCanvasObserver final : public QObject, public PkObject
@@ -296,12 +364,13 @@ static_assert(std::is_same_v<decltype(&KoZoomTool::pkKeyReleaseEvent),
                             void (KoZoomTool::*)(PkToolKeyEvent *)>);
 static_assert(std::is_same_v<decltype(&KoCanvasBase::qt_metacall),
                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KoShapeFactoryBase::qt_metacall),
-                            decltype(&QObject::qt_metacall)>);
+static_assert(!std::is_base_of_v<QObject, KoShapeFactoryBase>);
 static_assert(std::is_same_v<decltype(&KoShapeUserData::qt_metacall),
                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KoToolBase::qt_metacall),
-                            decltype(&QObject::qt_metacall)>);
+static_assert(!std::is_base_of_v<QObject, KoToolBase>);
+static_assert(!std::is_base_of_v<QObject, KoToolFactoryBase>);
+static_assert(!std::is_base_of_v<QObject, KoSelectedShapesProxy>);
+static_assert(std::is_base_of_v<PkObject, KoSelectedShapesProxy>);
 static_assert(std::is_same_v<decltype(&KoToolSelection::qt_metacall),
                             decltype(&QObject::qt_metacall)>);
 static_assert(std::is_same_v<decltype(&KoToolProxy::qt_metacall),
@@ -489,6 +558,36 @@ private Q_SLOTS:
 
         QCOMPARE(toolId, tool.toolId());
         QCOMPARE(notifications, 1);
+    }
+
+    void selectedShapesProxyDeliveryHonorsToolLifetime()
+    {
+        MinimalShapeController controller;
+        MinimalCanvas canvas(&controller);
+        KoSelectedShapesProxy *proxy = canvas.selectedShapesProxy();
+        auto *tool = new PkOnlyTool(&canvas);
+        int deliveries = 0;
+        tool->watchSelectedShapes([&] { ++deliveries; });
+
+        proxy->selectionChanged();
+        QCOMPARE(deliveries, 1);
+
+        delete tool;
+        proxy->selectionChanged();
+        QCOMPARE(deliveries, 1);
+    }
+
+    void canvasUpdateFacadeForwardsDocumentRect()
+    {
+        MinimalShapeController controller;
+        MinimalCanvas canvas(&controller);
+        PkOnlyTool tool(&canvas);
+        const PkRectF rect(1.0, 2.0, 30.0, 40.0);
+
+        tool.requestUpdate(rect);
+
+        QCOMPARE(canvas.updateCanvasCalls, 1);
+        QCOMPARE(canvas.lastUpdatedRect, rect);
     }
 
     void activeToolConnectionsEndAtSwitchBoundary()
@@ -838,6 +937,55 @@ private Q_SLOTS:
         QVERIFY(std::holds_alternative<PkDrawPointCommand>(backend.lastCommand));
         const PkPointF point = std::get<PkDrawPointCommand>(backend.lastCommand).point;
         QCOMPARE(point, PkPointF(3.0, 4.0));
+    }
+
+    void hostEventsCrossThePkToolBoundary()
+    {
+        MinimalShapeController shapeController;
+        MinimalCanvas canvas(&shapeController);
+        TestToolProxy proxy(&canvas);
+        PkOnlyTool tool(&canvas);
+        proxy.priv()->activeTool = &tool;
+
+        QInputMethodEvent input(QStringLiteral("preedit"), {});
+        input.setCommitString(QStringLiteral("commit"), -2, 1);
+        input.ignore();
+        proxy.inputMethodEvent(&input);
+        QCOMPARE(tool.inputMethodCalls, 1);
+        QCOMPARE(tool.lastCommitString, PkString("commit"));
+        QCOMPARE(tool.lastPreeditString, PkString("preedit"));
+        QCOMPARE(tool.lastReplacementStart, -2);
+        QCOMPARE(tool.lastReplacementLength, 1);
+        QVERIFY(input.isAccepted());
+
+        QFocusEvent focusIn(QEvent::FocusIn);
+        focusIn.ignore();
+        proxy.focusInEvent(&focusIn);
+        QCOMPARE(tool.focusInCalls, 1);
+        QVERIFY(focusIn.isAccepted());
+
+        QFocusEvent focusOut(QEvent::FocusOut);
+        focusOut.accept();
+        proxy.focusOutEvent(&focusOut);
+        QCOMPARE(tool.focusOutCalls, 1);
+        QVERIFY(!focusOut.isAccepted());
+
+        QMimeData mimeData;
+        QDragMoveEvent drag(QPoint(4, 5), Qt::CopyAction, &mimeData,
+                            Qt::LeftButton, Qt::NoModifier);
+        drag.ignore();
+        proxy.dragMoveEvent(&drag, PkPointF(40, 50));
+        QCOMPARE(tool.dragMoveCalls, 1);
+        QCOMPARE(tool.lastDragPoint, PkPointF(40, 50));
+        QVERIFY(drag.isAccepted());
+
+        QDropEvent drop(QPointF(6, 7), Qt::CopyAction, &mimeData,
+                        Qt::LeftButton, Qt::NoModifier);
+        drop.ignore();
+        proxy.dropEvent(&drop, PkPointF(60, 70));
+        QCOMPARE(tool.dropCalls, 1);
+        QCOMPARE(tool.lastDropPoint, PkPointF(60, 70));
+        QVERIFY(drop.isAccepted());
     }
 };
 

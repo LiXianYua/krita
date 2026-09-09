@@ -286,14 +286,14 @@ bool SvgUtil::parseViewBox(const PkXmlElement &e,
 
 void SvgUtil::parseAspectRatio(const PreserveAspectRatioParser &p, const PkRectF &elementBounds, const PkRectF &viewBoxRect, PkTransform *_viewTransform)
 {
-    if (p.mode != Qt::IgnoreAspectRatio) {
+    if (p.mode != Pk::IgnoreAspectRatio) {
         PkTransform viewBoxTransform = *_viewTransform;
 
         const qreal tan1 = viewBoxRect.height() / viewBoxRect.width();
         const qreal tan2 = elementBounds.height() / elementBounds.width();
 
         const qreal uniformScale =
-            (p.mode == Qt::KeepAspectRatioByExpanding) ^ (tan1 > tan2) ?
+            (p.mode == Pk::KeepAspectRatioByExpanding) ^ (tan1 > tan2) ?
                 elementBounds.height() / viewBoxRect.height() :
                 elementBounds.width() / viewBoxRect.width();
 
@@ -568,7 +568,7 @@ SvgUtil::PreserveAspectRatioParser::PreserveAspectRatioParser(const PkString &st
             xAlignment = alignmentFromString(PkString(match[4].str().c_str()));
             yAlignment = alignmentFromString(PkString(match[5].str().c_str()));
             mode = match[6].str() == "slice" ?
-                Qt::KeepAspectRatioByExpanding : Qt::KeepAspectRatio;
+                Pk::KeepAspectRatioByExpanding : Pk::KeepAspectRatio;
         }
     }
 }
@@ -586,7 +586,7 @@ PkString SvgUtil::PreserveAspectRatioParser::toString() const
     if (!defer &&
         xAlignment == Middle &&
         yAlignment == Middle &&
-        mode == Qt::KeepAspectRatio) {
+        mode == Pk::KeepAspectRatio) {
 
         return result;
     }
@@ -595,14 +595,14 @@ PkString SvgUtil::PreserveAspectRatioParser::toString() const
         result += "defer ";
     }
 
-    if (mode == Qt::IgnoreAspectRatio) {
+    if (mode == Pk::IgnoreAspectRatio) {
         result += "none";
     } else {
         result += PkString("x%1Y%2")
             .arg(alignmentToString(xAlignment))
             .arg(alignmentToString(yAlignment));
 
-        if (mode == Qt::KeepAspectRatioByExpanding) {
+        if (mode == Pk::KeepAspectRatioByExpanding) {
             result += " slice";
         }
     }

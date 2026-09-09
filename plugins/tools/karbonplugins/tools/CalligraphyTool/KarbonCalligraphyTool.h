@@ -8,7 +8,6 @@
 #define KARBONCALLIGRAPHYTOOL_H
 
 #include <KoToolBase.h>
-#include <KoPathShape.h>
 #include <PkPainter.h>
 #include <PkPainterPath.h>
 

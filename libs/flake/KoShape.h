@@ -18,7 +18,6 @@
 #include <PkSharedPointer.h>
 #include <PkSet.h>
 #include <PkMap.h>
-#include <QMetaType>
 #include <PkSharedDataPointer.h>
 
 #include <PkXmlDocument.h>
@@ -992,8 +991,5 @@ private:
     void removeShapeManager(KoShapeManager *manager);
     friend class KoShapeManager;
 };
-
-Q_DECLARE_METATYPE(KoShape*)
-Q_DECLARE_METATYPE(PkVector<KoShape::PaintOrder>)
 
 #endif

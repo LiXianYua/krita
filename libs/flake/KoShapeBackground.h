@@ -9,8 +9,6 @@
 
 #include "kritaflake_export.h"
 
-#include <QtGlobal>
-
 class PkSizeF;
 class PkPainter;
 class PkPainterPath;

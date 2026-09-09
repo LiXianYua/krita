@@ -7,7 +7,7 @@
 #ifndef KOSELECTEDSHAPESPROXY_H
 #define KOSELECTEDSHAPESPROXY_H
 
-#include <QObject>
+#include <PkObject.h>
 #include "kritaflake_export.h"
 
 class KoSelection;
@@ -19,11 +19,10 @@ class KoShapeLayer;
  * active shape manager can switch (e.g. when shape layers are switched in Krita)
  */
 
-class KRITAFLAKE_EXPORT KoSelectedShapesProxy : public QObject
+class KRITAFLAKE_EXPORT KoSelectedShapesProxy : public PkObject
 {
-    Q_OBJECT
 public:
-    explicit KoSelectedShapesProxy(QObject *parent = 0);
+    explicit KoSelectedShapesProxy(PkObject *parent = nullptr);
 
     /**
      * Returns a pointer to a currently active shape selection. Don't connect to the
@@ -41,8 +40,6 @@ public:
       */
     bool isRequestingToBeEdited();
     void setRequestingToBeEdited(bool value);
-
-Q_SIGNALS:
 
     // forwards a corresponding signal of KoShapeManager
     void selectionChanged();

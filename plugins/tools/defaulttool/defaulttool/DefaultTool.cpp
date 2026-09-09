@@ -387,7 +387,7 @@ class SelectionHandler : public KoToolSelection
 {
 public:
     SelectionHandler(DefaultTool *parent)
-        : KoToolSelection(parent)
+        : KoToolSelection(nullptr)
         , m_selection(parent->koSelection())
     {
     }
@@ -431,13 +431,13 @@ DefaultTool::DefaultTool(KoCanvasBase *canvas, bool connectToSelectedShapesProxy
     }
 
     if (connectToSelectedShapesProxy) {
-        QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+        PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
                           this, &DefaultTool::updateActions);
-        QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+        PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
                           this, &DefaultTool::repaintDecorations);
-        QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+        PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
                           m_textPropertyInterface, &DefaultToolTextPropertiesInterface::slotSelectionChanged);
-        QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionContentChanged,
+        PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionContentChanged,
                           this, &DefaultTool::repaintDecorations);
     }
 
@@ -447,6 +447,8 @@ DefaultTool::DefaultTool(KoCanvasBase *canvas, bool connectToSelectedShapesProxy
 
 DefaultTool::~DefaultTool()
 {
+    delete m_selectionHandler;
+    delete m_textPropertyInterface;
     for (DefaultToolAction *toolAction : m_actions.values()) {
         delete toolAction;
     }
@@ -2376,7 +2378,7 @@ struct DefaultToolTextPropertiesInterface::Private {
 };
 
 DefaultToolTextPropertiesInterface::DefaultToolTextPropertiesInterface(DefaultTool *parent)
-    : KoSvgTextPropertiesInterface(parent)
+    : KoSvgTextPropertiesInterface(nullptr)
     , d(new Private(parent))
 {
     d->compressorConnection =

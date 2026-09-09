@@ -7,6 +7,7 @@
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include <PkSharedConfig.h>
+#include <PkPointer.h>
 #include "KoPencilTool.h"
 #include "KoCurveFit.h"
 
@@ -61,11 +62,13 @@ KoPencilTool::KoPencilTool(KoCanvasBase *canvas)
         m_strokeTemplate.setLineWidth(canvas->unit().fromUserValue(size.toReal()));
     }
 
-    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const PkVariant &value) {
-        if (key == KoCanvasResource::Size) {
-            m_strokeTemplate.setLineWidth(this->canvas()->unit().fromUserValue(value.toReal()));
-            slotUpdatePencilCursor();
+    KoCanvasResourceProvider *resourceManager = canvas->resourceManager();
+    const PkPointer<KoPencilTool> toolGuard(this);
+    QObject::connect(resourceManager, &KoCanvasResourceProvider::canvasResourceChanged,
+            resourceManager, [toolGuard](int key, const PkVariant &value) {
+        if (toolGuard && key == KoCanvasResource::Size) {
+            toolGuard->m_strokeTemplate.setLineWidth(toolGuard->canvas()->unit().fromUserValue(value.toReal()));
+            toolGuard->slotUpdatePencilCursor();
         }
     });
 }
@@ -360,11 +363,17 @@ PkList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
     layout->addStretch(1);
 
     QObject::connect(modeBox, QOverload<int>::of(&QComboBox::activated), stackedWidget, &QStackedWidget::setCurrentIndex);
-    QObject::connect(modeBox, QOverload<int>::of(&QComboBox::activated), this, &KoPencilTool::selectMode);
-    QObject::connect(optimizeRaw, &QCheckBox::stateChanged, this, &KoPencilTool::setOptimize);
-    QObject::connect(optimizeCurve, &QCheckBox::stateChanged, this, &KoPencilTool::setOptimize);
-    QObject::connect(fittingError, &QDoubleSpinBox::valueChanged, this, &KoPencilTool::setDelta);
-    QObject::connect(combineAngle, &QDoubleSpinBox::valueChanged, this, &KoPencilTool::setDelta);
+    const PkPointer<KoPencilTool> toolGuard(this);
+    QObject::connect(modeBox, QOverload<int>::of(&QComboBox::activated), modeBox,
+                     [toolGuard](int mode) { if (toolGuard) toolGuard->selectMode(mode); });
+    QObject::connect(optimizeRaw, &QCheckBox::stateChanged, optimizeRaw,
+                     [toolGuard](int state) { if (toolGuard) toolGuard->setOptimize(state); });
+    QObject::connect(optimizeCurve, &QCheckBox::stateChanged, optimizeCurve,
+                     [toolGuard](int state) { if (toolGuard) toolGuard->setOptimize(state); });
+    QObject::connect(fittingError, &QDoubleSpinBox::valueChanged, fittingError,
+                     [toolGuard](double delta) { if (toolGuard) toolGuard->setDelta(delta); });
+    QObject::connect(combineAngle, &QDoubleSpinBox::valueChanged, combineAngle,
+                     [toolGuard](double delta) { if (toolGuard) toolGuard->setDelta(delta); });
 
     modeBox->setCurrentIndex(m_mode);
     stackedWidget->setCurrentIndex(m_mode);

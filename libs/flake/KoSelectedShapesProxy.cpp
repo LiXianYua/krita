@@ -6,9 +6,25 @@
 
 #include "KoSelectedShapesProxy.h"
 
-KoSelectedShapesProxy::KoSelectedShapesProxy(QObject *parent)
-    : QObject(parent)
+KoSelectedShapesProxy::KoSelectedShapesProxy(PkObject *parent)
+    : PkObject(parent)
 {
+}
+
+void KoSelectedShapesProxy::selectionChanged()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KoSelectedShapesProxy::selectionChanged));
+}
+
+void KoSelectedShapesProxy::selectionContentChanged()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KoSelectedShapesProxy::selectionContentChanged));
+}
+
+void KoSelectedShapesProxy::currentLayerChanged(const KoShapeLayer *layer)
+{
+    activateSignal<const KoShapeLayer *>(
+        this, PkMemberFnKey::from(&KoSelectedShapesProxy::currentLayerChanged), layer);
 }
 
 bool KoSelectedShapesProxy::isRequestingToBeEdited()

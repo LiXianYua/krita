@@ -8,18 +8,17 @@
 #define KOTOOLBASE_H
 
 #include <pk/signal/PkObject.h>
-#include <QObject>
-#include <QPointer>
 #include <pk/render/PkPainter.h>
+#include <PkSharedPointer.h>
 #include <PkSet.h>
 #include <PkList.h>
 #include <PkHash.h>
+#include <PkVariant.h>
 #include <PkNamespace.h>
 
-#include <KisQStringListFwd.h>
+#include <PkStringList.h>
 #include "kritaflake_export.h"
-#include "KoDerivedResourceConverter.h"
-#include "KoAbstractCanvasResourceInterface.h"
+#include <functional>
 
 class KoShape;
 class KoCanvasBase;
@@ -30,6 +29,13 @@ class KoToolSelection;
 class KoToolBasePrivate;
 class KoShapeControllerBase;
 class KisPopupWidgetInterface;
+class KoDerivedResourceConverter;
+class KoAbstractCanvasResourceInterface;
+
+template <typename T> class QPointer;
+
+typedef PkSharedPointer<KoDerivedResourceConverter> KoDerivedResourceConverterSP;
+typedef PkSharedPointer<KoAbstractCanvasResourceInterface> KoAbstractCanvasResourceInterfaceSP;
 
 class QAction;
 class QKeyEvent;
@@ -38,13 +44,24 @@ class QCursor;
 class PkString;
 class PkRectF;
 class PkPointF;
-class QInputMethodEvent;
-class QDragMoveEvent;
-class QDragLeaveEvent;
-class QDropEvent;
 class QTouchEvent;
-class QFocusEvent;
 class QMenu;
+
+struct KRITAFLAKE_EXPORT PkToolPointerEventData
+{
+    PkPointF point;
+    qreal pressure = 1.0;
+    qreal rotation = 0.0;
+    qreal xTilt = 0.0;
+    qreal yTilt = 0.0;
+    int widgetX = 0;
+};
+
+struct KRITAFLAKE_EXPORT PkToolSelectedShapes
+{
+    KoShape *first = nullptr;
+    int count = 0;
+};
 
 /** Toolkit-neutral key payload dispatched by the host-facing key adapter. */
 class KRITAFLAKE_EXPORT PkToolKeyEvent
@@ -76,6 +93,46 @@ private:
     PkString m_text;
 };
 
+class KRITAFLAKE_EXPORT PkToolEvent
+{
+public:
+    explicit PkToolEvent(bool accepted = false) : m_accepted(accepted) {}
+    void accept() { m_accepted = true; }
+    void ignore() { m_accepted = false; }
+    bool isAccepted() const { return m_accepted; }
+
+private:
+    bool m_accepted;
+};
+
+enum class PkToolInputMethodAttributeType { Selection, Cursor, TextFormat };
+enum class PkToolInputMethodLineStyle { Solid, Dotted, Dashed, Wavy };
+
+struct KRITAFLAKE_EXPORT PkToolInputMethodTextFormat {
+    bool underline = false;
+    bool overline = false;
+    bool strikeOut = false;
+    bool thick = false;
+    PkToolInputMethodLineStyle style = PkToolInputMethodLineStyle::Solid;
+};
+
+struct KRITAFLAKE_EXPORT PkToolInputMethodAttribute {
+    PkToolInputMethodAttributeType type = PkToolInputMethodAttributeType::Cursor;
+    int start = 0;
+    int length = 0;
+    PkToolInputMethodTextFormat format;
+};
+
+class KRITAFLAKE_EXPORT PkToolInputMethodEvent : public PkToolEvent
+{
+public:
+    PkString commitString;
+    PkString preeditString;
+    int replacementStart = 0;
+    int replacementLength = 0;
+    PkList<PkToolInputMethodAttribute> attributes;
+};
+
 /**
  * Abstract base class for all tools. Tools can create or manipulate
  * flake shapes, canvas state or any other thing that a user may wish
@@ -85,7 +142,7 @@ private:
  * There exists an instance of every tool for every pointer device.
  * These instances are managed by the toolmanager..
  */
-class KRITAFLAKE_EXPORT KoToolBase : public QObject, public PkObject
+class KRITAFLAKE_EXPORT KoToolBase : public PkObject
 {
 public:
     /**
@@ -219,19 +276,19 @@ public:
      * default implementation forwards the typed text as key pressed events.
      * @param event the input method event.
      */
-    virtual void inputMethodEvent(QInputMethodEvent *event);
+    virtual void inputMethodEvent(PkToolInputMethodEvent *event);
 
     /**
      * This passes on the focusInEven from the canvas widget, which can be used to activate
      * animating decorations (like a cursor blink effect in the text tool).
      */
-    virtual void focusInEvent(QFocusEvent *event);
+    virtual void focusInEvent(PkToolEvent *event);
 
     /**
      * This passes on the focusInEven from the canvas widget, which can be used to deactivate
      * animating decorations (like a cursor blink effect in the text tool).
      */
-    virtual void focusOutEvent(QFocusEvent *event);
+    virtual void focusOutEvent(PkToolEvent *event);
 
     /**
      * Called when (one of) a custom device buttons is pressed.
@@ -341,14 +398,14 @@ public:
      * dropping text in a text tool.
      * The tool should Accept the event if it is meaningful; Default implementation does not.
      */
-    virtual void dragMoveEvent(QDragMoveEvent *event, const PkPointF &point);
+    virtual void dragMoveEvent(PkToolEvent *event, const PkPointF &point);
 
     /**
      * Handle the dragLeaveEvent
      * Basically just a notification that the drag is no long relevant
      * The tool should Accept the event if it is meaningful; Default implementation does not.
      */
-    virtual void dragLeaveEvent(QDragLeaveEvent *event);
+    virtual void dragLeaveEvent(PkToolEvent *event);
 
     /**
      * Handle the dropEvent
@@ -357,7 +414,7 @@ public:
      * dropping text in a text tool.
      * The tool should Accept the event if it is meaningful; Default implementation does not.
      */
-    virtual void dropEvent(QDropEvent *event, const PkPointF &point);
+    virtual void dropEvent(PkToolEvent *event, const PkPointF &point);
 
     /**
      * @return a menu with context-aware actions for the current selection. If
@@ -512,6 +569,16 @@ public:
     void textModeChanged(bool inTextMode);
 
 protected:
+    void watchSelectedShapesChanged(std::function<void()> callback);
+    PkToolPointerEventData pointerEventData(const KoPointerEvent *event) const;
+    PkRectF documentRectToView(const KoViewConverter &converter, const PkRectF &rect) const;
+    PkTransform documentToViewTransform(const KoViewConverter &converter) const;
+    PkColor canvasForegroundColor() const;
+    void requestCanvasUpdate(const PkRectF &rect);
+    bool selectShapeAt(const PkPointF &point);
+    bool addShapeToCanvas(KoShape *shape);
+    PkToolSelectedShapes selectedShapes() const;
+
     /**
      * Classes inheriting from this one can call this method to signify which cursor
      * the tool wants to display at this time.  Logical place to call it is after an
@@ -519,6 +586,7 @@ protected:
      * @param cursor the new cursor.
      */
     void useCursor(const QCursor &cursor);
+    void useCursor(Pk::CursorShape cursorShape);
 
     /**
      * Reimplement this if your tool actually has an option widget.
@@ -614,7 +682,7 @@ private:
     KoToolBase(const KoToolBase&);
     KoToolBase& operator=(const KoToolBase&);
 
-    Q_DECLARE_PRIVATE(KoToolBase)
+    PK_DECLARE_PRIVATE(KoToolBase)
 };
 
 #endif /* KOTOOLBASE_H */

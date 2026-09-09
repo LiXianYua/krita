@@ -26,7 +26,7 @@ ToolReferenceImages::ToolReferenceImages(KoCanvasBase * canvas)
     : DefaultTool(canvas, false)
     , m_services(dynamic_cast<KisReferenceImagePlatformServices *>(canvas))
 {
-    QObject::setObjectName("ToolReferenceImages");
+    PkObject::setObjectName("ToolReferenceImages");
 }
 
 ToolReferenceImages::~ToolReferenceImages()
@@ -82,10 +82,12 @@ void ToolReferenceImages::setReferenceImageLayer(KisSharedPtr<KisReferenceImages
     m_layer = layer;
     PkObject::connect(layer.data(), &KisReferenceImagesLayer::selectionChanged,
                       this, &ToolReferenceImages::slotSelectionChanged);
-    QObject::connect(layer->shapeManager(), &KoShapeManager::selectionChanged,
-                      this, &ToolReferenceImages::repaintDecorations);
-    QObject::connect(layer->shapeManager(), &KoShapeManager::selectionContentChanged,
-                      this, &ToolReferenceImages::repaintDecorations);
+    KoShapeManager *manager = layer->shapeManager();
+    const PkPointer<ToolReferenceImages> guard(this);
+    QObject::connect(manager, &KoShapeManager::selectionChanged, manager,
+                     [guard] { if (guard) guard->repaintDecorations(); });
+    QObject::connect(manager, &KoShapeManager::selectionContentChanged, manager,
+                     [guard] { if (guard) guard->repaintDecorations(); });
 }
 
 bool ToolReferenceImages::hasSelection()

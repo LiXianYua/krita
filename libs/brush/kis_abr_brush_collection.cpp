@@ -5,8 +5,6 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtEndian>
-
 #include "kis_abr_brush_collection.h"
 #include "kis_abr_brush.h"
 
@@ -586,7 +584,7 @@ qint32 KisAbrBrushCollection::abr_brush_load(AbrDataStream & abr, AbrInfo *abr_h
     qint32 layer_ID = -1;
     switch (abr_hdr->version) {
     case 1:
-        Q_FALLTHROUGH();
+        [[fallthrough]];
         // fall through, version 1 and 2 are compatible
     case 2:
         layer_ID = abr_brush_load_v12(abr, abr_hdr, filename, image_ID, id);

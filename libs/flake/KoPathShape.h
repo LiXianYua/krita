@@ -12,7 +12,6 @@
 
 #include "kritaflake_export.h"
 
-#include <QMetaType>
 #include <PkTransform.h>
 
 #include "KoShape.h"
@@ -529,7 +528,5 @@ private:
     class Private;
     PkScopedPointer<Private> d;
 };
-
-Q_DECLARE_METATYPE(KoPathShape*)
 
 #endif /* KOPATHSHAPE_H */

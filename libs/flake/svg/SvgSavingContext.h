@@ -7,8 +7,6 @@
 #ifndef SVGSAVINGCONTEXT_H
 #define SVGSAVINGCONTEXT_H
 
-#include <QtGlobal>
-
 class KoXmlWriter;
 class KoShape;
 class PkStream;
@@ -57,7 +55,8 @@ public:
     bool strippedTextMode() const;
 
 private:
-    Q_DISABLE_COPY(SvgSavingContext)
+    SvgSavingContext(const SvgSavingContext &) = delete;
+    SvgSavingContext &operator=(const SvgSavingContext &) = delete;
 
 private:
     class Private;

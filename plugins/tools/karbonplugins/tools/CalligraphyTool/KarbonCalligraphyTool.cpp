@@ -8,20 +8,7 @@
 #include "KarbonCalligraphicShape.h"
 
 #include <KoPathShape.h>
-#include <KoShapeGroup.h>
-#include <KoPointerEvent.h>
-#include <KoPathPoint.h>
-#include <KoCanvasBase.h>
-#include <KoShapeController.h>
-#include <KoShapeManager.h>
-#include <KoSelectedShapesProxy.h>
-#include <KoSelection.h>
-#include <KoCurveFit.h>
 #include <KoColorBackground.h>
-#include <KoCanvasResourceProvider.h>
-#include <KoColor.h>
-#include <KoViewConverter.h>
-#include <KisPopupWidgetInterface.h>
 
 #include <PkPainter.h>
 
@@ -52,8 +39,7 @@ KarbonCalligraphyTool::KarbonCalligraphyTool(KoCanvasBase *canvas)
     , m_isDrawing(false)
     , m_speed(0, 0)
 {
-    QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
-                     this, &KarbonCalligraphyTool::updateSelectedPath);
+    watchSelectedShapesChanged([this] { updateSelectedPath(); });
 
     updateSelectedPath();
 }
@@ -68,10 +54,7 @@ void KarbonCalligraphyTool::paint(PkPainter &painter, const KoViewConverter &con
         painter.save();
         painter.setRenderHints(PkPainter::Antialiasing, false);
         painter.setPen(PkColor(Pk::red));   // TODO make configurable
-        PkRectF rect = m_selectedPath->boundingRect();
-        PkPointF p1 = converter.documentToView(rect.topLeft());
-        PkPointF p2 = converter.documentToView(rect.bottomRight());
-        painter.drawRect(PkRectF(p1, p2));
+        painter.drawRect(documentRectToView(converter, m_selectedPath->boundingRect()));
         painter.restore();
     }
 
@@ -82,7 +65,7 @@ void KarbonCalligraphyTool::paint(PkPainter &painter, const KoViewConverter &con
     painter.save();
 
     painter.setTransform(m_shape->absoluteTransformation() *
-                         converter.documentToView() *
+                         documentToViewTransform(converter) *
                          painter.transform());
 
     const auto *background = dynamic_cast<const KoColorBackground *>(m_shape->background().data());
@@ -99,13 +82,14 @@ void KarbonCalligraphyTool::mousePressEvent(KoPointerEvent *event)
         return;
     }
 
-    m_lastPoint = event->point;
+    const PkToolPointerEventData input = pointerEventData(event);
+    m_lastPoint = input.point;
     m_speed = PkPointF(0, 0);
 
     m_isDrawing = true;
     m_pointCount = 0;
     m_shape = new KarbonCalligraphicShape(m_caps);
-    m_shape->setBackground(PkSharedPointer<KoShapeBackground>(new KoColorBackground(canvas()->resourceManager()->foregroundColor().toQColor())));
+    m_shape->setBackground(PkSharedPointer<KoShapeBackground>(new KoColorBackground(canvasForegroundColor())));
     //addPoint( event );
 }
 
@@ -126,13 +110,8 @@ void KarbonCalligraphyTool::mouseReleaseEvent(KoPointerEvent *event)
 
     if (m_pointCount == 0) {
         // handle click: select shape (if any)
-        if (event->point == m_lastPoint) {
-            KoShapeManager *shapeManager = canvas()->shapeManager();
-            KoShape *selectedShape = shapeManager->shapeAt(event->point);
-            if (selectedShape != 0) {
-                shapeManager->selection()->deselectAll();
-                shapeManager->selection()->select(selectedShape);
-            }
+        if (pointerEventData(event).point == m_lastPoint) {
+            selectShapeAt(m_lastPoint);
         }
 
         delete m_shape;
@@ -147,11 +126,7 @@ void KarbonCalligraphyTool::mouseReleaseEvent(KoPointerEvent *event)
 
     m_shape->simplifyGuidePath();
 
-    KUndo2Command *cmd = canvas()->shapeController()->addShape(m_shape, 0);
-    if (cmd) {
-        canvas()->addCommand(cmd);
-        canvas()->updateCanvas(m_shape->boundingRect());
-    } else {
+    if (!addShapeToCanvas(m_shape)) {
         // don't leak shape when command could not be created
         delete m_shape;
     }
@@ -161,6 +136,7 @@ void KarbonCalligraphyTool::mouseReleaseEvent(KoPointerEvent *event)
 
 void KarbonCalligraphyTool::addPoint(KoPointerEvent *event)
 {
+    const PkToolPointerEventData input = pointerEventData(event);
     if (m_pointCount == 0) {
         if (m_usePath && m_selectedPath) {
             m_selectedPathOutline = m_selectedPath->absoluteTransformation().map(m_selectedPath->outline());
@@ -168,9 +144,9 @@ void KarbonCalligraphyTool::addPoint(KoPointerEvent *event)
         m_pointCount = 1;
         m_endOfPath = false;
         m_followPathPosition = 0;
-        m_lastMousePos = event->point;
-        m_lastPoint = calculateNewPoint(event->point, &m_speed);
-        m_deviceSupportsTilt = (event->xTilt() != 0 || event->yTilt() != 0);
+        m_lastMousePos = input.point;
+        m_lastPoint = calculateNewPoint(input.point, &m_speed);
+        m_deviceSupportsTilt = (input.xTilt != 0 || input.yTilt != 0);
         return;
     }
 
@@ -183,8 +159,8 @@ void KarbonCalligraphyTool::addPoint(KoPointerEvent *event)
     setAngle(event);
 
     PkPointF newSpeed;
-    PkPointF newPoint = calculateNewPoint(event->point, &newSpeed);
-    double width = calculateWidth(event->pressure());
+    PkPointF newPoint = calculateNewPoint(input.point, &newSpeed);
+    double width = calculateWidth(input.pressure);
     double angle = calculateAngle(m_speed, newSpeed);
 
     // add the previous point
@@ -192,7 +168,7 @@ void KarbonCalligraphyTool::addPoint(KoPointerEvent *event)
 
     m_speed = newSpeed;
     m_lastPoint = newPoint;
-    canvas()->updateCanvas(m_shape->lastPieceBoundingRect());
+    requestCanvasUpdate(m_shape->lastPieceBoundingRect());
 
     if (m_usePath && m_selectedPath) {
         m_speed = PkPointF(0, 0);    // following path
@@ -201,29 +177,30 @@ void KarbonCalligraphyTool::addPoint(KoPointerEvent *event)
 
 void KarbonCalligraphyTool::setAngle(KoPointerEvent *event)
 {
+    const PkToolPointerEventData input = pointerEventData(event);
     if (!m_useAngle) {
         m_angle = (360.0 - m_customAngle + 90.0) / 180.0 * M_PI;
         return;
     }
 
     // setting m_angle to the angle of the device
-    if (event->xTilt() != 0 || event->yTilt() != 0) {
+    if (input.xTilt != 0 || input.yTilt != 0) {
         m_deviceSupportsTilt = true;
     }
 
     if (m_deviceSupportsTilt) {
-        if (event->xTilt() == 0 && event->yTilt() == 0) {
+        if (input.xTilt == 0 && input.yTilt == 0) {
             return;    // leave as is
         }
-        if (event->x() == 0) {
+        if (input.widgetX == 0) {
             m_angle = M_PI / 2.0;
             return;
         }
 
         // y is inverted in qt painting
-        m_angle = std::atan(static_cast<double>(-event->yTilt()) / static_cast<double>(event->xTilt())) + M_PI / 2.0;
+        m_angle = std::atan(static_cast<double>(-input.yTilt) / static_cast<double>(input.xTilt)) + M_PI / 2.0;
     } else {
-        m_angle = event->rotation() + M_PI / 2.0;
+        m_angle = input.rotation + M_PI / 2.0;
     }
 }
 
@@ -342,7 +319,7 @@ void KarbonCalligraphyTool::activate(const PkSet<KoShape*> &shapes)
 {
     KoToolBase::activate(shapes);
 
-    useCursor(Qt::CrossCursor);
+    useCursor(Pk::CrossCursor);
 }
 
 void KarbonCalligraphyTool::deactivate()
@@ -357,12 +334,12 @@ KisPopupWidgetInterface *KarbonCalligraphyTool::popupWidget()
 
 void KarbonCalligraphyTool::updateSelectedPath()
 {
-    KoSelection *selection = canvas()->shapeManager()->selection();
-    if (selection) {
+    const PkToolSelectedShapes selection = selectedShapes();
+    if (selection.first) {
         // null pointer if it the selection isn't a KoPathShape
         // or if the selection is empty
         m_selectedPath =
-                dynamic_cast<KoPathShape *>(selection->firstSelectedShape());
+                dynamic_cast<KoPathShape *>(selection.first);
 
         // or if it's a KoPathShape but with no or more than one subpaths
         if (m_selectedPath && m_selectedPath->subpathCount() != 1) {
@@ -370,8 +347,10 @@ void KarbonCalligraphyTool::updateSelectedPath()
         }
 
         // or if there ora none or more than 1 shapes selected
-        if (selection->count() != 1) {
+        if (selection.count != 1) {
             m_selectedPath = 0;
         }
+    } else {
+        m_selectedPath = nullptr;
     }
 }

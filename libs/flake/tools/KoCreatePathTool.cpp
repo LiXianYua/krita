@@ -29,6 +29,7 @@
 #include <QPointer>
 #include <QSpinBox>
 #include <QVBoxLayout>
+#include <PkPointer.h>
 
 KoCreatePathTool::KoCreatePathTool(KoCanvasBase *canvas)
     : KoToolBase(*(new KoCreatePathToolPrivate(this, canvas)))
@@ -593,8 +594,13 @@ PkList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
 
     list.append(widget);
 
-    QObject::connect(smoothCurves, &QAbstractButton::toggled, this,
-            [this, d](bool value) { d->autoSmoothCurvesChanged(value); });
+    const PkPointer<KoCreatePathTool> toolGuard(this);
+    QObject::connect(smoothCurves, &QAbstractButton::toggled, smoothCurves,
+            [toolGuard, d](bool value) {
+                if (toolGuard) {
+                    d->autoSmoothCurvesChanged(value);
+                }
+            });
     const QPointer<QCheckBox> smoothCurvesGuard(smoothCurves);
     PkObject::connect(this, &KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI, this,
             [smoothCurvesGuard](bool value) {
@@ -602,8 +608,12 @@ PkList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
                     smoothCurvesGuard->setChecked(value);
                 }
             }, PkConnectionType::Direct);
-    QObject::connect(angleSnap, &QCheckBox::stateChanged, this,
-            [this, d](int state) { d->angleSnapChanged(state); });
+    QObject::connect(angleSnap, &QCheckBox::stateChanged, angleSnap,
+            [toolGuard, d](int state) {
+                if (toolGuard) {
+                    d->angleSnapChanged(state);
+                }
+            });
 
     return list;
 }

@@ -402,7 +402,7 @@ void TestSvgParser::testParsePreserveAspectRatio()
     {
         SvgUtil::PreserveAspectRatioParser p(" defer  xMinYMax meet");
         QCOMPARE(p.defer, true);
-        QCOMPARE(p.mode, Qt::KeepAspectRatio);
+        QCOMPARE(p.mode, Pk::KeepAspectRatio);
         QCOMPARE(p.xAlignment, SvgUtil::PreserveAspectRatioParser::Min);
         QCOMPARE(p.yAlignment, SvgUtil::PreserveAspectRatioParser::Max);
     }
@@ -410,7 +410,7 @@ void TestSvgParser::testParsePreserveAspectRatio()
     {
         SvgUtil::PreserveAspectRatioParser p(" xMinYMid slice");
         QCOMPARE(p.defer, false);
-        QCOMPARE(p.mode, Qt::KeepAspectRatioByExpanding);
+        QCOMPARE(p.mode, Pk::KeepAspectRatioByExpanding);
         QCOMPARE(p.xAlignment, SvgUtil::PreserveAspectRatioParser::Min);
         QCOMPARE(p.yAlignment, SvgUtil::PreserveAspectRatioParser::Middle);
     }
@@ -418,7 +418,7 @@ void TestSvgParser::testParsePreserveAspectRatio()
     {
         SvgUtil::PreserveAspectRatioParser p(" xmidYMid ");
         QCOMPARE(p.defer, false);
-        QCOMPARE(p.mode, Qt::KeepAspectRatio);
+        QCOMPARE(p.mode, Pk::KeepAspectRatio);
         QCOMPARE(p.xAlignment, SvgUtil::PreserveAspectRatioParser::Middle);
         QCOMPARE(p.yAlignment, SvgUtil::PreserveAspectRatioParser::Middle);
     }
@@ -426,7 +426,7 @@ void TestSvgParser::testParsePreserveAspectRatio()
     {
         SvgUtil::PreserveAspectRatioParser p(" NoNe ");
         QCOMPARE(p.defer, false);
-        QCOMPARE(p.mode, Qt::IgnoreAspectRatio);
+        QCOMPARE(p.mode, Pk::IgnoreAspectRatio);
         QCOMPARE(p.xAlignment, SvgUtil::PreserveAspectRatioParser::Min);
         QCOMPARE(p.yAlignment, SvgUtil::PreserveAspectRatioParser::Min);
     }
@@ -434,7 +434,7 @@ void TestSvgParser::testParsePreserveAspectRatio()
     {
         SvgUtil::PreserveAspectRatioParser p("defer NoNe ");
         QCOMPARE(p.defer, true);
-        QCOMPARE(p.mode, Qt::IgnoreAspectRatio);
+        QCOMPARE(p.mode, Pk::IgnoreAspectRatio);
         QCOMPARE(p.xAlignment, SvgUtil::PreserveAspectRatioParser::Min);
         QCOMPARE(p.yAlignment, SvgUtil::PreserveAspectRatioParser::Min);
     }
@@ -442,7 +442,7 @@ void TestSvgParser::testParsePreserveAspectRatio()
     {
         SvgUtil::PreserveAspectRatioParser p("sweet brown fox jumps over a nice svg file");
         QCOMPARE(p.defer, false);
-        QCOMPARE(p.mode, Qt::IgnoreAspectRatio);
+        QCOMPARE(p.mode, Pk::IgnoreAspectRatio);
         QCOMPARE(p.xAlignment, SvgUtil::PreserveAspectRatioParser::Min);
         QCOMPARE(p.yAlignment, SvgUtil::PreserveAspectRatioParser::Min);
     }
