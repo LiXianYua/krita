@@ -767,8 +767,9 @@ bool SvgTextCursor::pasteRichText()
             }
         }
 
-        if (!success) {
-            success = pastePlainText();
+        if (!success && data.hasText) {
+            insertText(data.text);
+            success = true;
         }
     }
     return success;

@@ -90,7 +90,11 @@ public:
 class ClipboardApplicationServices final : public KisDocumentApplicationServices
 {
 public:
-    ClipboardData clipboardData() const override { return data; }
+    ClipboardData clipboardData() const override
+    {
+        ++readCount;
+        return useSecondRead && readCount > 1 ? secondReadData : data;
+    }
     void setClipboardData(const ClipboardData &value) override
     {
         data = value;
@@ -98,7 +102,10 @@ public:
     }
 
     ClipboardData data;
+    ClipboardData secondReadData;
+    mutable int readCount = 0;
     int writeCount = 0;
+    bool useSecondRead = false;
 
     void updateInputMethod(Pk::InputMethodQueries queries) override
     {
@@ -203,6 +210,31 @@ void SvgTextCursorTest::clipboardPreservesEmptyTextPresence()
     cursor.setPasteRichTextByDefault(false);
     QVERIFY(cursor.paste());
     QCOMPARE(toQString(target.plainText()), QStringLiteral("Unchanged"));
+}
+
+void SvgTextCursorTest::clipboardRichFallbackUsesSingleSnapshot()
+{
+    ClipboardApplicationServices services;
+    ApplicationServicesGuard guard(&services);
+    services.data.hasSvg = true;
+    services.data.svg = "not svg";
+    services.data.hasText = true;
+    services.data.text = "FIRST";
+    services.secondReadData.hasText = true;
+    services.secondReadData.text = "SECOND";
+    services.useSecondRead = true;
+
+    KoSvgTextShape target;
+    KoSvgTextShapeMarkupConverter converter(&target);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">Before</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    ApplyingCanvas canvas;
+    SvgTextCursor cursor(&canvas);
+    cursor.setShape(&target);
+    const int end = target.posForIndex(target.plainText().size());
+    cursor.setPos(end, end);
+    QVERIFY(cursor.paste());
+    QCOMPARE(services.readCount, 1);
+    QCOMPARE(toQString(target.plainText()), QStringLiteral("BeforeFIRST"));
 }
 
 void SvgTextCursorTest::nativeInputMethodEventPreservesEditingLifecycle()

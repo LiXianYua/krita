@@ -16,6 +16,7 @@ private Q_SLOTS:
     void controllerChangesUpdateImeTransform();
     void clipboardCopyAndPasteShareInjectedApplicationService();
     void clipboardPreservesEmptyTextPresence();
+    void clipboardRichFallbackUsesSingleSnapshot();
     void nativeInputMethodEventPreservesEditingLifecycle();
     void qtInputMethodAdapterMatchesQt515Payload();
     void shortcutValuesMatchQt515Oracle();
