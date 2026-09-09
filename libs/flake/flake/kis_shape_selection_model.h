@@ -7,7 +7,7 @@
 #ifndef KIS_SHAPE_SELECTION_MODEL_H
 #define KIS_SHAPE_SELECTION_MODEL_H
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkRect.h>
 #include "KoShapeContainerModel.h"
 #include "kis_types.h"
@@ -19,7 +19,7 @@ class KisShapeSelection;
 /**
  *
  */
-class KisShapeSelectionModel: public QObject, public KoShapeContainerModel
+class KisShapeSelectionModel: public PkObject, public KoShapeContainerModel
 {
 public:
     KisShapeSelectionModel(KisImageResolutionProxySP resolutionProxy, KisSelectionWSP selection, KisShapeSelection* shapeSelection);

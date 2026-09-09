@@ -8,7 +8,6 @@
 #define __KIS_DUMMIES_FACADE_BASE_H
 
 #include <QtMath>
-#include <QObject>
 #include <PkObject.h>
 
 #include "kis_types.h"
@@ -25,10 +24,10 @@ class KisNodeDummy;
  * when a node is removed/deleted.
  */
 
-class KRITASHAPEMODEL_EXPORT KisDummiesFacadeBase : public QObject, public PkObject
+class KRITASHAPEMODEL_EXPORT KisDummiesFacadeBase : public PkObject
 {
 public:
-    KisDummiesFacadeBase(QObject *parent = 0);
+    KisDummiesFacadeBase(PkObject *parent = nullptr);
     ~KisDummiesFacadeBase() override;
 
     void setImage(KisImageWSP image);

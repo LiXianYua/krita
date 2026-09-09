@@ -4,15 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <QtGui/QtGui>
-#include <QtWidgets/QtWidgets>
-#include <QtXml/QtXml>
-#include <PkFlakeBridge.h>
 #include "kis_shape_controller.h"
 
-
-#include <klocalizedstring.h>
 
 #include <KoShape.h>
 #include <KoShapeContainer.h>
@@ -52,7 +45,7 @@ public:
     KisNodeShapesGraph shapesGraph;
 };
 
-KisShapeController::KisShapeController(KisNameServer *nameServer, KUndo2Stack *undoStack, QObject *parent)
+KisShapeController::KisShapeController(KisNameServer *nameServer, KUndo2Stack *undoStack, PkObject *parent)
     : KisDummiesFacadeBase(parent)
     , m_d(new Private())
 {
@@ -121,11 +114,9 @@ void KisShapeController::addNodeImpl(KisNodeSP node, KisNodeSP parent, KisNodeSP
 
     KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(node.data());
     if (shapeLayer) {
-        // Forward QObject-backed manager/proxy notifications through the
-        // stable controller; the node itself is PkObject-backed.
-        QObject::connect(shapeLayer->shapeManager(), &KoShapeManager::selectionChanged,
+        PkObject::connect(shapeLayer->shapeManager(), &KoShapeManager::selectionChanged,
                 this, &KisShapeController::selectionChanged);
-        QObject::connect(shapeLayer->shapeManager(), &KoShapeManager::selectionContentChanged,
+        PkObject::connect(shapeLayer->shapeManager(), &KoShapeManager::selectionContentChanged,
                 this, &KisShapeController::selectionContentChanged);
         PkObject::connect(shapeLayer->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
                 this, &KisShapeController::currentLayerChanged);
@@ -136,7 +127,7 @@ void KisShapeController::removeNodeImpl(KisNodeSP node)
 {
     KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(node.data());
     if (shapeLayer) {
-        QObject::disconnect(shapeLayer->shapeManager(), nullptr, this, nullptr);
+        PkObject::disconnect(shapeLayer->shapeManager(), nullptr, this, nullptr);
         PkObject::disconnect(shapeLayer->selectedShapesProxy(), nullptr, this, nullptr);
     }
 
@@ -208,7 +199,7 @@ KoShapeContainer *KisShapeController::createParentForShapes(const PkList<KoShape
 
         if (!shapeLayer || forceNewLayer) {
             shapeLayer = new KisShapeLayer(this, image(),
-                                           toPkString(i18n("Vector Layer %1", m_d->nameServer->number())),
+                                           PkString("Vector Layer %1").arg(m_d->nameServer->number()),
                                            OPACITY_OPAQUE_U8);
 
             resultCommand->addCommand(

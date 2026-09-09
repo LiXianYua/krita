@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
-
 #include "kis_node_shapes_graph.h"
 
 #include "kis_node_shape.h"

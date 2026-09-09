@@ -18,8 +18,6 @@
 #include <PkStream.h>
 
 class PkRect;
-class QIcon;
-class PkRect;
 class PkString;
 class KoShapeManager;
 class KoStore;
@@ -97,7 +95,6 @@ public:
     void setParent(KoShapeContainer *parent);
 
     // KisExternalLayer implementation
-    QIcon icon() const;
     void resetCache(const KoColorSpace *colorSpace) override;
 
     KisPaintDeviceSP original() const override;

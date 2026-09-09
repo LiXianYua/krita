@@ -40,6 +40,12 @@ kis_add_tests(
     NAME_PREFIX libs-ui-
     LINK_LIBRARIES kritashapemodel kritaimpex kritatestsdk
 )
+target_sources(KisShapeModelTest PRIVATE KisReferenceImageHeaderContract.cpp)
+
+kis_add_test(PkReferenceImageNativeTest.cpp
+    NAME_PREFIX libs-ui-
+    LINK_LIBRARIES kritashapemodel kritatestsdk
+)
 
 kis_add_test(
     PkImageRasterBackendTest.cpp

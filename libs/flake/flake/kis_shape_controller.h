@@ -27,7 +27,7 @@ class KRITASHAPEMODEL_EXPORT KisShapeController : public KisDummiesFacadeBase, p
 {
 public:
 
-    KisShapeController(KisNameServer *nameServer, KUndo2Stack *undoStack, QObject *parent = 0);
+    KisShapeController(KisNameServer *nameServer, KUndo2Stack *undoStack, PkObject *parent = nullptr);
     ~KisShapeController() override;
 
     bool hasDummyForNode(KisNodeSP node) const override;

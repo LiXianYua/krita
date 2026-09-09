@@ -7,12 +7,12 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
 #include <PkStream.h>
 #include "kis_shape_layer.h"
 #include <PkConnection.h>
+#include <PkMessageLogger.h>
+#include <PkThread.h>
 
-#include <QPainter>
 #include <PkPainterPath.h>
 #include <PkRect.h>
 #include <PkXmlElement.h>
@@ -23,10 +23,6 @@
 #include <kis_debug.h>
 #include <kundo2command.h>
 #include <commands_new/kis_node_move_command2.h>
-#include <QMimeData>
-#include <QCoreApplication>
-#include <QIcon>
-
 #include <KoColorSpace.h>
 #include <KoCompositeOp.h>
 #include <KoUnit.h>
@@ -239,7 +235,7 @@ KisShapeLayer::KisShapeLayer(KoShapeControllerBase* controller,
                              const PkString &name,
                              quint8 opacity,
                              std::function<KisShapeLayerCanvasBase *()> canvasFactory)
-        : KisExternalLayer(image, toPkString(name), opacity)
+        : KisExternalLayer(image, name, opacity)
         , KoShapeLayer(new ShapeLayerContainerModel(this))
         , m_d(new Private())
 {
@@ -275,7 +271,7 @@ void KisShapeLayer::initShapeLayerImpl(KoShapeControllerBase* controller,
     m_d->paintDevice = canvas->projection();
 
     m_d->canvas = canvas;
-    m_d->canvas->moveToThread(QThread::currentThread());
+    m_d->canvas->moveToThread(PkThread::currentThreadId());
     m_d->controller = controller;
 
     PkObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
@@ -428,11 +424,6 @@ void KisShapeLayer::setParent(KoShapeContainer *parent)
     KIS_ASSERT_RECOVER_RETURN(0);
 }
 
-QIcon KisShapeLayer::icon() const
-{
-    return QIcon();
-}
-
 KisPaintDeviceSP KisShapeLayer::original() const
 {
     return m_d->paintDevice;
@@ -463,7 +454,7 @@ void KisShapeLayer::setX(qint32 x)
 {
     qint32 delta = x - this->x();
     PkPointF diff = PkPointF(m_d->canvas->viewConverter()->viewToDocumentX(delta), 0);
-    Q_EMIT sigMoveShapes(diff);
+    sigMoveShapes(diff);
 
     // Save new value to satisfy LSP
     m_d->x = x;
@@ -473,7 +464,7 @@ void KisShapeLayer::setY(qint32 y)
 {
     qint32 delta = y - this->y();
     PkPointF diff = PkPointF(0, m_d->canvas->viewConverter()->viewToDocumentY(delta));
-    Q_EMIT sigMoveShapes(diff);
+    sigMoveShapes(diff);
 
     // Save new value to satisfy LSP
     m_d->y = y;
@@ -520,15 +511,15 @@ void KisShapeLayer::slotMoveShapes(const PkPointF &diff)
     PkList<KoShape*> shapes = shapesToBeTransformed();
     if (shapes.isEmpty()) return;
 
-    KoShapeMoveCommand cmd(toPkList(shapes), toPkPointF(diff));
+    KoShapeMoveCommand cmd(shapes, diff);
     cmd.redo();
 }
 
 void KisShapeLayer::slotTransformShapes(const PkTransform &newTransform)
 {
     KoShapeTransformCommand cmd(PkList<KoShape*>{this},
-                                PkList<PkTransform>{toPkTransform(transformation())},
-                                PkList<PkTransform>{toPkTransform(newTransform)});
+                                PkList<PkTransform>{transformation()},
+                                PkList<PkTransform>{newTransform});
     cmd.redo();
 }
 
@@ -636,7 +627,8 @@ PkList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const PkS
     const PkByteArray data = device->readAll();
     PkXmlDocument doc = SvgParser::createDocumentFromSvg(data, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
-        errKrita << "Parsing error in contents.svg! Aborting!" << '\n'
+        PkMessageLogger(__FILE__, __LINE__, __func__).critical()
+        << "Parsing error in contents.svg! Aborting!" << '\n'
         << " In line: " << errorLine << ", column: " << errorColumn << '\n'
         << " Error message: " << errorMsg << '\n';
 
@@ -711,7 +703,8 @@ bool KisShapeLayer::loadSvg(PkStream *device, const PkString &baseXmlDir, PkStri
 bool KisShapeLayer::loadLayer(KoStore* store, PkStringList *warnings)
 {
     if (!store) {
-        warnKrita << "No store backend";
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+            << "No store backend";
         return false;
     }
 
@@ -755,7 +748,7 @@ public:
 
     void undo() override
     {
-        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != QCoreApplication::instance()->thread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(PkThread::currentThreadId() != PkThread::mainThreadId());
         m_blockingConnection.start(m_savedTransform);
     }
 
@@ -766,7 +759,7 @@ public:
         const PkTransform globalTransform = m_shapeLayer->absoluteTransformation();
         const PkTransform localTransform = globalTransform * m_globalDocTransform * globalTransform.inverted();
 
-        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != QCoreApplication::instance()->thread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(PkThread::currentThreadId() != PkThread::mainThreadId());
         m_blockingConnection.start(localTransform * m_savedTransform);
     }
 
@@ -785,7 +778,7 @@ KUndo2Command* KisShapeLayer::transform(const PkTransform &transform)
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(shapes.size() == 1 && shapes.first() == this, 0);
 
     /**
-     * We cannot transform shapes in the worker thread. Therefor we Q_EMIT blocking-queued
+     * We cannot transform shapes in the worker thread. Therefore we send a blocking-queued
      * signal to transform them in the GUI thread and then return.
      */
     const KisImageViewConverter *converter = dynamic_cast<const KisImageViewConverter*>(this->converter());

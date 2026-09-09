@@ -59,7 +59,7 @@ KisNodeDummy* KisNodeDummy::prevSibling() const
 
 KisNodeDummy* KisNodeDummy::parent() const
 {
-    return static_cast<KisNodeDummy*>(QObject::parent());
+    return m_parent;
 }
 
 KisNodeShape* KisNodeDummy::nodeShape() const
@@ -117,7 +117,7 @@ void KisNodeDummiesGraph::addNode(KisNodeDummy *node, KisNodeDummy *parent, KisN
 {
     Q_ASSERT(!containsNode(node->node()));
 
-    node->setParent(parent);
+    node->m_parent = parent;
 
     Q_ASSERT_X(parent || !m_rootDummy, "KisNodeDummiesGraph::addNode", "Trying to add second root dummy");
     Q_ASSERT_X(!parent || m_rootDummy, "KisNodeDummiesGraph::addNode", "Trying to add non-orphan child with no root dummy set");
@@ -153,6 +153,7 @@ void KisNodeDummiesGraph::removeNode(KisNodeDummy *node)
     else {
         parent->m_children.removeOne(node);
     }
+    node->m_parent = nullptr;
 }
 
 void KisNodeDummiesGraph::unmapDummyRecursively(KisNodeDummy *dummy)

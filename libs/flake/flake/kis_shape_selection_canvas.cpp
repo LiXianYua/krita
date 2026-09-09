@@ -7,9 +7,6 @@
 
 #include "kis_shape_selection_canvas.h"
 
-
-#include <QPainter>
-
 #include <KoShapeManager.h>
 #include <KoSelectedShapesProxySimple.h>
 #include <KoUnit.h>

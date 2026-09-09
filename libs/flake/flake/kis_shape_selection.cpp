@@ -5,7 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
 #include <PkImage.h>
 #include <PkPainter.h>
 #include <PkImageRasterBackend.h>
@@ -14,8 +13,7 @@
 
 
 #include <kundo2command.h>
-#include <QMimeData>
-#include <QCoreApplication>
+#include <PkThread.h>
 
 #include <KoShapeStroke.h>
 #include <KoPathShape.h>
@@ -100,9 +98,9 @@ void KisShapeSelection::init(KisImageResolutionProxySP resolutionProxy, KoShapeC
     m_canvas->shapeManager()->addShape(this);
 
     m_model->setObjectName("KisShapeSelectionModel");
-    m_model->moveToThread(QCoreApplication::instance()->thread());
+    m_model->moveToThread(PkThread::mainThreadId());
     m_canvas->setObjectName("KisShapeSelectionCanvas");
-    m_canvas->moveToThread(QCoreApplication::instance()->thread());
+    m_canvas->moveToThread(PkThread::mainThreadId());
 
     PkObject::connect(this, &KisShapeSelection::sigMoveShapes,
                       this, &KisShapeSelection::slotMoveShapes);
@@ -293,13 +291,13 @@ KisShapeSelectionFactory::KisShapeSelectionFactory()
 void KisShapeSelection::moveX(qint32 x)
 {
     const PkPointF diff(x / m_resolutionProxy->xRes(), 0);
-    Q_EMIT sigMoveShapes(diff);
+    sigMoveShapes(diff);
 }
 
 void KisShapeSelection::moveY(qint32 y)
 {
     const PkPointF diff(0, y / m_resolutionProxy->yRes());
-    Q_EMIT sigMoveShapes(diff);
+    sigMoveShapes(diff);
 }
 
 void KisShapeSelection::slotMoveShapes(const PkPointF &diff)
@@ -327,19 +325,19 @@ KUndo2Command* KisShapeSelection::transform(const PkTransform &transform) {
     // the chart and tree shapes are examples for that, but they aren't used in krita and there are no other shapes like that.
     Q_FOREACH (const KoShape* shape, shapes) {
         PkTransform oldTransform = shape->transformation();
-        oldTransformations.append(toPkTransform(oldTransform));
+        oldTransformations.append(oldTransform);
 
         // don't transform the container
         if (dynamic_cast<const KoShapeGroup *>(shape) || !shape->parent()) {
-            newTransformations.append(toPkTransform(oldTransform));
+            newTransformations.append(oldTransform);
         } else {
             PkTransform globalTransform = shape->absoluteTransformation();
             PkTransform localTransform = globalTransform * realTransform * globalTransform.inverted();
-            newTransformations.append(toPkTransform(localTransform*oldTransform));
+            newTransformations.append(localTransform * oldTransform);
         }
     }
 
-    return new KoShapeTransformCommand(toPkList(shapes), oldTransformations, newTransformations);
+    return new KoShapeTransformCommand(shapes, oldTransformations, newTransformations);
 }
 
 void KisShapeSelection::setResolutionProxy(KisImageResolutionProxySP resolutionProxy)

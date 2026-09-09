@@ -29,7 +29,7 @@ class KisShapeSelectionModel;
 class KisImageViewConverter;
 class KUndo2Command;
 
-class KRITASHAPEMODEL_EXPORT KisShapeSelection : public QObject, public PkObject, public KoShapeLayer, public KisSelectionComponent
+class KRITASHAPEMODEL_EXPORT KisShapeSelection : public PkObject, public KoShapeLayer, public KisSelectionComponent
 {
     KisShapeSelection(const KisShapeSelection& rhs);
 public:

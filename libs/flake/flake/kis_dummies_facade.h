@@ -21,7 +21,7 @@
 class KRITASHAPEMODEL_EXPORT KisDummiesFacade : public KisDummiesFacadeBase
 {
 public:
-    KisDummiesFacade(QObject *parent = 0);
+    KisDummiesFacade(PkObject *parent = nullptr);
     ~KisDummiesFacade() override;
 
     bool hasDummyForNode(KisNodeSP node) const override;

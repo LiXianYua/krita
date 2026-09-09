@@ -9,8 +9,6 @@
 #include <PkColor.h>
 #include <PkImage.h>
 #include <PkXmlElement.h>
-#include <klocalizedstring.h>
-#include <PkFlakeBridge.h>
 #include <kis_node_visitor.h>
 #include <kis_processing_visitor.h>
 #include <kis_shape_layer_canvas.h>
@@ -91,7 +89,7 @@ private:
 };
 
 KisReferenceImagesLayer::KisReferenceImagesLayer(KoShapeControllerBase* shapeController, KisImageWSP image)
-    : KisShapeLayer(shapeController, image, toPkString(i18n("Reference images")), OPACITY_OPAQUE_U8,
+    : KisShapeLayer(shapeController, image, PkString("Reference images"), OPACITY_OPAQUE_U8,
                     [&] () { return new ReferenceImagesCanvas(image->colorSpace(), new KisDefaultBounds(image), this); })
 {}
 
@@ -159,7 +157,7 @@ KUndo2Command *KisReferenceImagesLayer::convertTo(const KoColorSpace *dstColorSp
 
 void KisReferenceImagesLayer::signalUpdate(const PkRectF &rect)
 {
-    Q_EMIT sigUpdateCanvas(rect);
+    sigUpdateCanvas(rect);
 }
 
 void KisReferenceImagesLayer::sigUpdateCanvas(const PkRectF &rect)

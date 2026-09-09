@@ -9,8 +9,6 @@
 #include <PkSize.h>
 #include <PkRect.h>
 #include <PkPainter.h>
-#include <PkFlakeBridge.h>
-
 #include <kis_types.h>
 #include <kis_layer.h>
 #include <kis_node.h>
@@ -25,7 +23,8 @@ public:
 };
 
 KisNodeShape::KisNodeShape(KisNodeSP node)
-        : KoShapeLayer()
+        : PkObject()
+        , KoShapeLayer()
         , m_d(new Private())
 {
 

@@ -10,7 +10,7 @@
 #include <QtMath>
 #include <PkList.h>
 #include <PkMap.h>
-#include <QObject>
+#include <PkObject.h>
 
 #include "kritashapemodel_export.h"
 #include "kis_types.h"
@@ -34,7 +34,7 @@ class KisNodeShape;
  * The ownership on the children of the dummy is taken as well.
  */
 
-class KRITASHAPEMODEL_EXPORT KisNodeDummy : public QObject
+class KRITASHAPEMODEL_EXPORT KisNodeDummy : public PkObject
 {
 public:
     /**
@@ -73,6 +73,7 @@ private:
 
     KisNodeShape *m_nodeShape;
     KisNodeSP m_node;
+    KisNodeDummy *m_parent {nullptr};
 };
 
 /**

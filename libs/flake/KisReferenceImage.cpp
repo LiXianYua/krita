@@ -4,11 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <QtGui/QtGui>
-#include <QtWidgets/QtWidgets>
-#include <QtXml/QtXml>
-#include <PkFlakeBridge.h>
 #include "KisReferenceImage.h"
 #include "KoColorSpaceRegistry.h"
 #include <PkImage.h>
@@ -28,6 +23,56 @@
 #include <KisResourceThumbnailCodec.h>
 #include <PkImageRasterBackend.h>
 
+#include <vector>
+
+namespace {
+
+PkImage toGrayscale(const PkImage &image)
+{
+    PkImage result(image.size(), PkImage::Format_ARGB32);
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            const PkRgb pixel = image.pixel(x, y);
+            const int gray =
+                (pkRed(pixel) * 11 + pkGreen(pixel) * 16 + pkBlue(pixel) * 5) >> 5;
+            result.setPixel(x, y, pkRgba(gray, gray, gray, pkAlpha(pixel)));
+        }
+    }
+    return result;
+}
+
+PkImage paintDeviceImage(KisPaintDeviceSP source)
+{
+    const PkRect bounds = source->exactBounds();
+    const int width = bounds.width();
+    const int height = bounds.height();
+    if (width < 0 || height < 0) {
+        return PkImage();
+    }
+
+    try {
+        std::vector<quint8> pixels(
+            static_cast<std::size_t>(width) * static_cast<std::size_t>(height) *
+            source->pixelSize());
+        source->readBytes(pixels.data(), bounds);
+
+        PkImage image(width, height, PkImage::Format_ARGB32);
+        const KoColorProfile *profile =
+            KoColorSpaceRegistry::instance()->p709SRGBProfile();
+        const KoColorSpace *destination =
+            KoColorSpaceRegistry::instance()->rgb8(profile);
+        source->colorSpace()->convertPixelsTo(
+            pixels.data(), image.bits(), destination, width * height,
+            KoColorConversionTransformation::internalRenderingIntent(),
+            KoColorConversionTransformation::internalConversionFlags());
+        return image;
+    } catch (const std::bad_alloc &) {
+        return PkImage();
+    }
+}
+
+} // namespace
+
 struct KisReferenceImage::Private
 {
     // Filename within .kra (for embedding)
@@ -38,7 +83,7 @@ struct KisReferenceImage::Private
 
     PkImage image;
     PkImage cachedImage;
-    KisQImagePyramid mipmap;
+    KisImagePyramid mipmap;
 
     qreal saturation{1.0};
     int id{-1};
@@ -62,7 +107,7 @@ struct KisReferenceImage::Private
 
     void updateCache() {
         if (saturation < 1.0) {
-            cachedImage = KritaUtils::convertQImageToGrayA(image);
+            cachedImage = toGrayscale(image);
 
             if (saturation > 0.0) {
                 PkImageRasterBackend backend(cachedImage);
@@ -75,7 +120,7 @@ struct KisReferenceImage::Private
             cachedImage = image;
         }
 
-        mipmap = KisQImagePyramid(cachedImage, false);
+        mipmap = KisImagePyramid(cachedImage, false);
     }
 };
 
@@ -130,14 +175,14 @@ KisReferenceImage::~KisReferenceImage()
 {}
 
 KisReferenceImage *
-KisReferenceImage::fromPaintDevice(KisPaintDeviceSP src, const KisCoordinatesConverter &converter, QWidget *)
+KisReferenceImage::fromPaintDevice(KisPaintDeviceSP src, const KisCoordinatesConverter &converter)
 {
     if (!src) {
         return nullptr;
     }
 
     auto *reference = new KisReferenceImage();
-    reference->d->image = src->convertToQImage(KoColorSpaceRegistry::instance()->p709SRGBProfile());
+    reference->d->image = paintDeviceImage(src);
 
     const PkSize imageSize = reference->d->image.size();
     PkRect r(0, 0, imageSize.width(), imageSize.height());
@@ -293,7 +338,7 @@ KisReferenceImage * KisReferenceImage::fromXml(const PkXmlElement &elem)
 {
     auto *reference = new KisReferenceImage();
 
-    const PkString src = toPkString(elem.attribute("src"));
+    const PkString src = elem.attribute("src");
 
     if (src.startsWith("file://")) {
         reference->d->externalFilename = src.mid(7);
@@ -303,18 +348,18 @@ KisReferenceImage * KisReferenceImage::fromXml(const PkXmlElement &elem)
         reference->d->embed = true;
     }
 
-    qreal width = KisDomUtils::toDouble(toPkString(elem.attribute("width", "100")));
-    qreal height = KisDomUtils::toDouble(toPkString(elem.attribute("height", "100")));
+    qreal width = KisDomUtils::toDouble(elem.attribute("width", "100"));
+    qreal height = KisDomUtils::toDouble(elem.attribute("height", "100"));
     reference->setSize(PkSizeF(width, height));
-    reference->setKeepAspectRatio(toPkString(elem.attribute("keepAspectRatio", "true")).toLower() == "true");
+    reference->setKeepAspectRatio(elem.attribute("keepAspectRatio", "true").toLower() == "true");
 
-    auto transform = SvgTransformParser(toPkString(elem.attribute("transform"))).transform();
+    auto transform = SvgTransformParser(elem.attribute("transform")).transform();
     reference->setTransformation(transform);
 
-    qreal opacity = KisDomUtils::toDouble(toPkString(elem.attribute("opacity", "1")));
+    qreal opacity = KisDomUtils::toDouble(elem.attribute("opacity", "1"));
     reference->setTransparency(1.0 - opacity);
 
-    qreal saturation = KisDomUtils::toDouble(toPkString(elem.attribute("saturation", "1")));
+    qreal saturation = KisDomUtils::toDouble(elem.attribute("saturation", "1"));
     reference->setSaturation(saturation);
 
     return reference;

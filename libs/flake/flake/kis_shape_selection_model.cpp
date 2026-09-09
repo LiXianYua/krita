@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
-
 #include "kis_shape_selection_model.h"
 #include "kis_debug.h"
 

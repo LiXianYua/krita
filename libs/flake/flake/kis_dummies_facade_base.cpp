@@ -8,7 +8,6 @@
 #include "kis_dummies_facade_base.h"
 
 #include "kis_image.h"
-#include <PkFlakeBridge.h>
 #include "kis_node_dummies_graph.h"
 #include "kis_layer_utils.h"
 #include <KisSynchronizedConnection.h>
@@ -47,9 +46,9 @@ public:
 };
 
 
-KisDummiesFacadeBase::KisDummiesFacadeBase(QObject *parent)
-    : QObject(parent),
-      m_d(new Private())
+KisDummiesFacadeBase::KisDummiesFacadeBase(PkObject *parent)
+    : PkObject(parent)
+    , m_d(new Private())
 {
     m_d->activateNodeConnection.connectOutputSlot(this, &KisDummiesFacadeBase::slotNodeActivationRequested);
     m_d->nodeChangedConnection.connectOutputSlot(this, &KisDummiesFacadeBase::slotNodeChanged);
@@ -129,7 +128,7 @@ void KisDummiesFacadeBase::setImage(KisImageWSP image, KisNodeSP activeNode)
                                  &m_d->activateNodeConnection, nullptr);
         }
 
-        Q_EMIT sigActivateNode(0);
+        sigActivateNode(0);
         m_d->lastActivatedNode = 0;
 
         KisNodeList nodesToRemove;
@@ -217,7 +216,7 @@ void KisDummiesFacadeBase::slotNodeChanged(KisNodeSP node)
      */
     KIS_SAFE_ASSERT_RECOVER_RETURN(dummy);
 
-    Q_EMIT sigDummyChanged(dummy);
+    sigDummyChanged(dummy);
 }
 
 void KisDummiesFacadeBase::slotLayersChanged()
@@ -235,7 +234,7 @@ void KisDummiesFacadeBase::slotNodeActivationRequested(KisNodeSP node, KisNodeAd
         !node->inherits("KisReferenceImagesLayer") &&
         !node->inherits("KisDecorationsWrapperLayer")) {
 
-        Q_EMIT sigActivateNode(node);
+        sigActivateNode(node);
         m_d->lastActivatedNode = node;
     }
 }
@@ -285,19 +284,19 @@ void KisDummiesFacadeBase::slotContinueAddNode(KisNodeSP node, KisNodeSP parent,
     // Add one because this node does not exist yet
     int index = parentDummy && aboveThisDummy ?
         parentDummy->indexOf(aboveThisDummy) + 1 : 0;
-    Q_EMIT sigBeginInsertDummy(parentDummy, index, node->name());
+    sigBeginInsertDummy(parentDummy, index, node->name());
 
     addNodeImpl(node, parent, aboveThis);
 
-    Q_EMIT sigEndInsertDummy(dummyForNode(node));
+    sigEndInsertDummy(dummyForNode(node));
 }
 
 void KisDummiesFacadeBase::slotContinueRemoveNode(KisNodeSP node)
 {
     KisNodeDummy *dummy = dummyForNode(node);
-    Q_EMIT sigBeginRemoveDummy(dummy);
+    sigBeginRemoveDummy(dummy);
 
     removeNodeImpl(node);
 
-    Q_EMIT sigEndRemoveDummy();
+    sigEndRemoveDummy();
 }

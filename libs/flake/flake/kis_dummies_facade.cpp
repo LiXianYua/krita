@@ -16,7 +16,7 @@ public:
     KisNodeDummiesGraph dummiesGraph;
 };
 
-KisDummiesFacade::KisDummiesFacade(QObject *parent)
+KisDummiesFacade::KisDummiesFacade(PkObject *parent)
     : KisDummiesFacadeBase(parent),
       m_d(new Private())
 {

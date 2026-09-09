@@ -29,26 +29,16 @@
 
 namespace {
 
-static_assert(std::is_same_v<decltype(&KisDummiesFacade::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisDummiesFacadeBase::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisNodeDummy::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisNodeShape::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisShapeController::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisShapeLayerCanvasBase::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisShapeLayerCanvas::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisShapeSelection::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisShapeSelectionCanvas::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KisShapeSelectionModel::qt_metacall),
-                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_base_of_v<PkObject, KisDummiesFacade>);
+static_assert(std::is_base_of_v<PkObject, KisDummiesFacadeBase>);
+static_assert(std::is_base_of_v<PkObject, KisNodeDummy>);
+static_assert(std::is_base_of_v<PkObject, KisNodeShape>);
+static_assert(std::is_base_of_v<PkObject, KisShapeController>);
+static_assert(std::is_base_of_v<PkObject, KisShapeLayerCanvasBase>);
+static_assert(std::is_base_of_v<PkObject, KisShapeLayerCanvas>);
+static_assert(std::is_base_of_v<PkObject, KisShapeSelection>);
+static_assert(std::is_base_of_v<PkObject, KisShapeSelectionCanvas>);
+static_assert(std::is_base_of_v<PkObject, KisShapeSelectionModel>);
 
 PkString localToPkString(const QString &value)
 {

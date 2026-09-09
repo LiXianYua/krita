@@ -8,7 +8,7 @@
 #define KIS_NODE_SHAPE_H_
 
 #include <QtMath>
-#include <QObject>
+#include <PkObject.h>
 #include <PkConnection.h>
 
 #include <KoShapeLayer.h>
@@ -23,7 +23,7 @@
  * A KisNodeShape is a flake wrapper around Krita nodes. It is used
  * for dealing with currently active node for tools.
  */
-class KRITASHAPEMODEL_EXPORT KisNodeShape : public QObject, public KoShapeLayer
+class KRITASHAPEMODEL_EXPORT KisNodeShape : public PkObject, public KoShapeLayer
 {
 public:
     KisNodeShape(KisNodeSP node);

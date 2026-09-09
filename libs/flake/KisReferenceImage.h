@@ -49,13 +49,6 @@ public:
 
     KoShape *cloneShape() const override;
 
-    /**
-     * Load a reference image from specified file.
-     * If parent is provided and the image cannot be loaded, a warning message will be displayed to user.
-     * @return reference image or null if one could not be loaded
-     */
-    static KisReferenceImage * fromFile(const PkString &filename, const KisCoordinatesConverter &converter, QWidget *parent /*= nullptr*/);
-    static KisReferenceImage * fromClipboard(const KisCoordinatesConverter &converter);
     static KisReferenceImage * fromQImage(const KisCoordinatesConverter &converter, const PkImage &img);
 
     /**
@@ -63,7 +56,7 @@ public:
      * @return reference image or null if one could not be loaded
      */
     static KisReferenceImage *
-    fromPaintDevice(KisPaintDeviceSP src, const KisCoordinatesConverter &converter, QWidget *parent);
+    fromPaintDevice(KisPaintDeviceSP src, const KisCoordinatesConverter &converter);
 
     void setSaturation(qreal saturation);
     qreal saturation() const;
