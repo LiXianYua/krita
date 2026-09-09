@@ -31,6 +31,12 @@ const std::int32_t KisTileData::HEIGHT = __TILE_DATA_HEIGHT;
 
 SimpleCache KisTileData::m_cache;
 
+PkMutex &KisTileData::poolReleaseMutex()
+{
+    static PkMutex *mutex = new PkMutex;
+    return *mutex;
+}
+
 SimpleCache::~SimpleCache()
 {
     clear();
@@ -183,6 +189,12 @@ void KisTileData::freeData(std::uint8_t* ptr, const std::int32_t pixelSize)
 
 void KisTileData::releaseInternalPools()
 {
+    // A clone may have been removed from a pre-clone stack but not registered
+    // in KisTileDataStore yet.  Keep pool purge mutually exclusive with that
+    // allocation-to-registration window; otherwise purge_memory() can
+    // invalidate the clone's data before the store can see and migrate it.
+    PkMutexLocker poolReleaseLock(&poolReleaseMutex());
+
     const int maxMigratedTiles = 100;
 
     if (KisTileDataStore::instance()->numTilesInMemory() < maxMigratedTiles) {

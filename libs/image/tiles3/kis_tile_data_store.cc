@@ -171,6 +171,7 @@ void KisTileDataStore::unregisterTileData(KisTileData *td)
 
 KisTileData *KisTileDataStore::allocTileData(std::int32_t pixelSize, const std::uint8_t *defPixel)
 {
+    PkMutexLocker poolReleaseLock(&KisTileData::poolReleaseMutex());
     KisTileData *td = new KisTileData(pixelSize, defPixel, this);
     registerTileData(td);
     return td;
@@ -178,6 +179,10 @@ KisTileData *KisTileDataStore::allocTileData(std::int32_t pixelSize, const std::
 
 KisTileData *KisTileDataStore::duplicateTileData(KisTileData *rhs)
 {
+    // Keep a popped pre-clone (or a newly allocated clone) visible to pool
+    // release as one atomic transition: unregistered allocations are not part
+    // of the store iteration that releaseInternalPools() migrates.
+    PkMutexLocker poolReleaseLock(&KisTileData::poolReleaseMutex());
     KisTileData *td = 0;
 
     if (rhs->m_clonesStack.pop(td)) {

@@ -12,6 +12,7 @@
 
 #include <PkReadWriteLock.h>
 #include <PkAtomic.h>
+#include <PkMutex.h>
 
 #include "kis_lockless_stack.h"
 #include "swap/kis_chunk_allocator.h"
@@ -211,6 +212,7 @@ private:
 
     static std::uint8_t* allocateData(const std::int32_t pixelSize);
     static void freeData(std::uint8_t *ptr, const std::int32_t pixelSize);
+    static PkMutex &poolReleaseMutex();
 private:
     friend class KisTileDataPooler;
     friend class KisTileDataPoolerTest;
