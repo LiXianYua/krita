@@ -421,10 +421,13 @@ list(REMOVE_ITEM kritaflake_core_SRCS ${__per_arch_alpha_applicator_factory_objs
 # 归属以 S线-spec「已裁决的岔路」为准（2026-09-05、2026-09-09 两次裁决）：
 #  - 本任务内真剥 Qt；`QPainter→PkPainter` 属 S-09-g（实测这层 QPainter 已修干净）。
 #    旧文「不建 PkPainter/PkPen/PkBrush（S-02-b 裁决）」被 2026-09-05 后裁推翻，不再适用。
-#  - 三分法：Qt UI 面直接删除（上层是 Flutter），Qt 非 UI 面实现 Pk 替代品。
-#    宿主 GUI 面（QWidget/QApplication/事件族/QAction/QCursor/QClipboard 等）归「删」；
-#    其中 UI 部分（工具选项面板、工具坞）已在 S-09-g 删除，删后本对象库不再残留这些头，
-#    不存在需要为其调整 include 路径的问题。测量与机制见 plan §7.6.9 / §7.6.10。
+#  - 三分法：Qt UI 面直接删除（上层是 Flutter），Qt 非 UI 面实现 Pk 替代品，
+#    暂无 Pk 等价物的走 flake/noqt-compat 垫片过渡。
+#    宿主 GUI 面的 **UI 部分**（工具选项面板、工具坞）已在 S-09-g 步 8b 删除，因此不需要
+#    为本对象库补 Qt include 路径。**但其余部分仍在本对象库里引用 Qt 头**——按三分法分派：
+#    `QApplication::clipboard()` 归 PR-CLIPBOARD（Step 9）、平台查询与事件族归
+#    PR-EVENT/PR-OBJECT（Step 5/6）、`QAction`/`QCursor` 走 flake/noqt-compat 垫片。
+#    测量与机制见 plan §7.6.9 / §7.6.10，当前前沿见 root map §6/§7。
 set(kritaflake_painting_SRCS
     kis_painting_tweaks.cpp
     KisHandlePainterHelper.cpp
