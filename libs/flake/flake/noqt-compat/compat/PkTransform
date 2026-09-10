@@ -1,0 +1,16 @@
+#pragma once
+
+// 别名遮蔽空垫片（PR-DEBUG）：本目录在 flake 原生 include 路径上排在任何 pk/<dir> 之前。
+//
+// 机制：PkXmlCompat.h 的激活清单写成 `#include PK_INC_(compat/PK_<N>_)`。当被激活的
+// 别名宏（pk/<dir>/compat/<裸名> 里定义的映射）已经生效时，include 源文本里的裸名
+// 会被再扫描成 Pk 名，解析路径随之变成 `compat/Pk<N>`——pk 侧没有这个文件，于是
+// 「No such file or directory」。本文件就是这个被改写后的路径的落点。
+//
+// 为什么 no-op 与真垫片等价：只有当裸名宏已定义时才能走到本路径，而该宏只在
+// pk/<dir>/compat/<裸名> 被处理过之后才存在，也就是说真垫片已经进过（且带 #pragma
+// once 与 #ifndef 守卫）。所以这里的空实现与「再 include 一次真垫片」完全等价，
+// 同时让激活对 include 顺序免疫、可重复。
+//
+// 本目录属 libs/flake —— 源码层不得出现裸类型名字面 token（S线-spec 只豁免
+// pk/*/compat/），故本文件不带任何映射，文件名与内容都用 Pk 名。

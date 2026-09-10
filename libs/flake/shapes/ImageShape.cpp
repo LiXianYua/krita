@@ -4,7 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 
 #include "ImageShape.h"
@@ -20,7 +19,6 @@
 #include <KisMimeDatabase.h>
 #include <KoXmlWriter.h>
 #include "kis_dom_utils.h"
-#include <QRegularExpression>
 #include "KisQPainterStateSaver.h"
 
 

@@ -7,7 +7,6 @@
    SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoPathShape.h"
 #include <PkStrokeOutline.h>
@@ -35,7 +34,6 @@
 #include "kis_global.h"
 #include <kis_algebra_2d.h>
 
-#include <qnumeric.h> // for qIsNaN
 static bool qIsNaNPoint(const PkPointF &p) {
     return pkIsNaN(p.x()) || pkIsNaN(p.y());
 }

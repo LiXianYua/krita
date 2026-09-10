@@ -8,7 +8,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 // flake
-#include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoToolManager.h"
 #include "KoToolManager_p.h"

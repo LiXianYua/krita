@@ -2,7 +2,6 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoMeshGradientBackground.h"
 #include <KoColorSpaceRegistry.h>

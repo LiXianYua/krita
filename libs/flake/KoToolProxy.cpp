@@ -7,11 +7,8 @@
 #include "KoToolProxy.h"
 #include "KoToolProxy_p.h"
 
-#include <QMimeData>
-#include <QUrl>
 #include <QApplication>
 #include <QTouchEvent>
-#include <QClipboard>
 #include <QEvent>
 #include <QKeyEvent>
 #include <QInputMethodEvent>
