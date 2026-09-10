@@ -757,31 +757,6 @@ private Q_SLOTS:
         QCOMPARE(notifications, 1);
     }
 
-    void toolOptionWidgetQueuedDeliveryTracksWidgetLifetime()
-    {
-        KoToolManager manager;
-        PkObject receiver;
-        bool delivered = false;
-        bool deliveredNull = false;
-        PkObject::connect(&manager, &KoToolManager::toolOptionWidgetsChanged,
-                          &receiver,
-                          [&](KoCanvasController *, const PkList<QPointer<QWidget>> &widgets) {
-            delivered = true;
-            deliveredNull = widgets.size() == 1 && widgets.first().isNull();
-        }, PkConnectionType::Queued);
-
-        QWidget *widget = new QWidget;
-        PkList<QPointer<QWidget>> widgets;
-        widgets.append(QPointer<QWidget>(widget));
-        manager.toolOptionWidgetsChanged(nullptr, widgets);
-        delete widget;
-
-        QVERIFY(!delivered);
-        PkThreadCallQueue::processPendingCalls();
-        QVERIFY(delivered);
-        QVERIFY(deliveredNull);
-    }
-
     void initTestCase()
     {
         PkThreadCallQueue::warmUpCurrentThread();

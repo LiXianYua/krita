@@ -32,21 +32,11 @@
 #include <krita_container_utils.h>
 
 // Qt + kde
-#include <QWidget>
-#include <QEvent>
-#include <QWheelEvent>
-#include <QMouseEvent>
-#include <QPaintEvent>
-#include <QVBoxLayout>
 #include <PkStringList.h>
-#include <QApplication>
 #include <FlakeDebug.h>
 
 #include <QAction>
-#include <klocalizedstring.h>
 #include <stack>
-#include <QLabel>
-#include <QGlobalStatic>
 
 Q_GLOBAL_STATIC(KoToolManager, s_instance)
 
@@ -57,16 +47,8 @@ public:
     CanvasData(KoCanvasController *cc, const KoInputDevice &id)
         : activeTool(0),
           canvas(cc),
-          inputDevice(id),
-          dummyToolWidget(0),
-          dummyToolLabel(0)
+          inputDevice(id)
     {
-    }
-
-    ~CanvasData()
-    {
-        // the dummy tool widget does not necessarily have a parent and we create it, so we delete it.
-        delete dummyToolWidget;
     }
 
     void activateToolActions()
@@ -173,8 +155,6 @@ public:
     PkList<KoToolBase*> mostRecentTools; // ordered unique list of tools starting from the most recently used, except for the active tool.
     KoCanvasController *const canvas;
     const KoInputDevice inputDevice;
-    QWidget *dummyToolWidget;  // the widget shown in the toolDocker.
-    QLabel *dummyToolLabel;
     PkStringList toolActions;
     PkStringList disabledGlobalActions;
 };
@@ -191,8 +171,6 @@ KoToolManager::KoToolManager()
 #endif
       d(new Private(this))
 {
-    QObject::connect(static_cast<QApplication *>(QApplication::instance()), &QApplication::focusChanged, this,
-            [this](QWidget *from, QWidget *to) { d->movedFocus(from, to); });
 }
 
 KoToolManager::~KoToolManager()
@@ -401,13 +379,6 @@ void KoToolManager::addedTool(KoToolAction *toolAction, KoCanvasController *canv
 {
     activateSignal<KoToolAction *, KoCanvasController *>(
         this, PkMemberFnKey::from(&KoToolManager::addedTool), toolAction, canvas);
-}
-
-void KoToolManager::toolOptionWidgetsChanged(KoCanvasController *controller,
-                                             const PkList<QPointer<QWidget>> &widgets)
-{
-    activateSignal<KoCanvasController *, const PkList<QPointer<QWidget>> &>(
-        this, PkMemberFnKey::from(&KoToolManager::toolOptionWidgetsChanged), controller, widgets);
 }
 
 void KoToolManager::textModeChanged(bool text)
@@ -638,29 +609,7 @@ void KoToolManager::Private::postSwitchTool()
         canvasData->activeTool->activate(shapesToOperateOn);
     }
 
-    PkList<QPointer<QWidget>> optionWidgetList = canvasData->activeTool->optionWidgets();
-    if (optionWidgetList.isEmpty()) { // no option widget.
-        QWidget *toolWidget;
-        PkString title = canvasData->activeTool->factory()->toolTip();
-        toolWidget = canvasData->dummyToolWidget;
-        if (toolWidget == 0) {
-            toolWidget = new QWidget();
-            toolWidget->setObjectName("DummyToolWidget");
-            QVBoxLayout *layout = new QVBoxLayout(toolWidget);
-            layout->setContentsMargins(3, 3, 3, 3);
-            canvasData->dummyToolLabel = new QLabel(toolWidget);
-            layout->addWidget(canvasData->dummyToolLabel);
-            layout->addItem(new QSpacerItem(1, 1, QSizePolicy::Minimum, QSizePolicy::Expanding));
-            canvasData->dummyToolWidget = toolWidget;
-        }
-        canvasData->dummyToolLabel->setText(i18n("Active tool: %1", toQString(title)));
-        optionWidgetList.append(toolWidget);
-    }
-
-
     q->changedTool(canvasData->canvas);
-
-    q->toolOptionWidgetsChanged(canvasData->canvas, optionWidgetList);
 }
 
 
@@ -719,7 +668,6 @@ void KoToolManager::Private::detachCanvas(KoCanvasController *controller)
             switchCanvasData(canvasses.value(newCanvas).first());
         } else {
             disconnectActiveTool();
-            q->toolOptionWidgetsChanged(controller, {});
             // as a last resort just set a blank one
             canvasData = 0;
         }
@@ -785,48 +733,6 @@ void KoToolManager::Private::attachCanvas(KoCanvasController *controller)
             [this](const KoShapeLayer *layer) { this->currentLayerChanged(layer); });
 
     q->changedCanvas(canvasData ? canvasData->canvas->canvas() : 0);
-}
-
-void KoToolManager::Private::movedFocus(QWidget *from, QWidget *to)
-{
-    Q_UNUSED(from);
-    // no canvas anyway or no focus set anyway?
-    if (!canvasData || to == 0) {
-        return;
-    }
-
-    // focus returned to current canvas?
-    if (to == canvasData->canvas->canvas()->canvasWidget()) {
-        // nothing to do
-        return;
-    }
-
-    // if the 'to' is one of our canvasWidgets, then switch.
-
-    // for code simplicity the current canvas will be checked again,
-    // but would have been caught already in the lines above, so no issue
-    KoCanvasController *newCanvas = 0;
-    Q_FOREACH (KoCanvasController* canvas, canvasses.keys()) {
-        if (canvas->canvas()->canvasWidget() == to) {
-            newCanvas = canvas;
-            break;
-        }
-    }
-
-    // none of our canvasWidgets got focus?
-    if (newCanvas == 0) {
-        return;
-    }
-
-    // switch to canvasdata matching inputdevice used last with this app instance
-    Q_FOREACH (CanvasData *data, canvasses.value(newCanvas)) {
-        if (data->inputDevice == inputDevice) {
-            switchCanvasData(data);
-            return;
-        }
-    }
-    // if no such inputDevice for this canvas, then simply fallback to first one
-    switchCanvasData(canvasses.value(newCanvas).first());
 }
 
 void KoToolManager::Private::updateCursor(const QCursor &cursor)

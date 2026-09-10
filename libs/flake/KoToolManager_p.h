@@ -25,12 +25,6 @@ class KoCanvasController;
 class KoShapeLayer;
 class CanvasData;
 class KoToolProxy;
-// Upstream relied on the real `<QObject>` to declare QEvent transitively. The
-// compat routing (pk/signal/compat/QObject) does not, and `eventFilter()` only
-// ever takes a pointer, so a forward declaration is all the native compile
-// interface needs. Same form as `libs/flake/KoToolProxy.h` and
-// `libs/flake/KoPointerEvent.h`.
-class QEvent;
 
 class Q_DECL_HIDDEN KoToolManager::Private
 {
@@ -47,11 +41,8 @@ public:
     void postSwitchTool();
     void switchCanvasData(CanvasData *cd);
 
-    bool eventFilter(QObject *object, QEvent *event);
-
     void detachCanvas(KoCanvasController *controller);
     void attachCanvas(KoCanvasController *controller);
-    void movedFocus(QWidget *from, QWidget *to);
     void updateCursor(const QCursor &cursor);
     void switchBackRequested();
     void selectionChanged(const PkList<KoShape*> &shapes);
