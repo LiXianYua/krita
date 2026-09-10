@@ -117,17 +117,6 @@ public:
         m_localTool->paint(painter, converter);
     }
 
-    PkList<QPointer<QWidget>> createOptionWidgets() override
-    {
-        PkList<QPointer<QWidget>> baseWidgetList =
-            BaseClass::createOptionWidgets();
-        PkList<QPointer<QWidget>> localWidgetList =
-            m_localTool->createOptionWidgets();
-
-        baseWidgetList.append(localWidgetList);
-        return baseWidgetList;
-    }
-
 protected:
     PkScopedPointer<DelegateTool> m_localTool;
 };

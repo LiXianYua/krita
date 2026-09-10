@@ -35,17 +35,6 @@
 #include <KoPathPointData.h>
 #include <KoPathPointMergeCommand.h>
 #include <KisHandlePainterHelper.h>
-
-#include <klocalizedstring.h>
-
-#include <QDoubleSpinBox>
-#include <QComboBox>
-#include <QStackedWidget>
-#include <QGroupBox>
-#include <QCheckBox>
-#include <QVBoxLayout>
-#include <QLabel>
-
 #include <math.h>
 
 #include "KoCreatePathTool_p.h"
@@ -189,6 +178,15 @@ void KoPencilTool::activate(const PkSet<KoShape*> &shapes)
     slotUpdatePencilCursor();
 
     m_configGroup = PkSharedConfig::openConfig()->group(toolId());
+
+    // Was read in createOptionWidgets() (now deleted) when the options panel
+    // was created; that ran on every tool activation, so these are the
+    // effective defaults with no panel too -- same keys, same fallbacks.
+    m_mode = static_cast<PencilMode>(m_configGroup.readEntry<int>("pencilMode", m_mode));
+    m_optimizeRaw = m_configGroup.readEntry<bool>("optimizeRaw", m_optimizeRaw);
+    m_optimizeCurve = m_configGroup.readEntry<bool>("optimizeCurve", m_optimizeCurve);
+    m_combineAngle = m_configGroup.readEntry<qreal>("combineAngle", m_combineAngle);
+    m_fittingError = m_configGroup.readEntry<qreal>("fittingError", m_fittingError);
 }
 
 void KoPencilTool::deactivate()
@@ -295,93 +293,6 @@ void KoPencilTool::finish(bool closePath)
     path->setShapeId(KoPathShapeId);
     path->setStroke(createStroke());
     addPathShape(path, closePath);
-}
-
-PkList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
-{
-    m_mode = static_cast<PencilMode>(m_configGroup.readEntry<int>("pencilMode", m_mode));
-    m_optimizeRaw = m_configGroup.readEntry<bool>("optimizeRaw", m_optimizeRaw);
-    m_optimizeCurve = m_configGroup.readEntry<bool>("optimizeCurve", m_optimizeCurve);
-    m_combineAngle = m_configGroup.readEntry<qreal>("combineAngle", m_combineAngle);
-    m_fittingError = m_configGroup.readEntry<qreal>("fittingError", m_fittingError);
-
-    PkList<QPointer<QWidget> > widgets;
-    QWidget *optionWidget = new QWidget();
-    QVBoxLayout * layout = new QVBoxLayout(optionWidget);
-
-    QHBoxLayout *modeLayout = new QHBoxLayout;
-    modeLayout->setSpacing(3);
-    QLabel *modeLabel = new QLabel(i18n("Precision:"), optionWidget);
-    QComboBox * modeBox = new QComboBox(optionWidget);
-    modeBox->addItem(i18nc("The raw line data", "Raw"));
-    modeBox->addItem(i18n("Curve"));
-    modeBox->addItem(i18n("Straight"));
-    modeLayout->addWidget(modeLabel);
-    modeLayout->addWidget(modeBox, 1);
-    layout->addLayout(modeLayout);
-
-    QStackedWidget * stackedWidget = new QStackedWidget(optionWidget);
-
-    QWidget * rawBox = new QWidget(stackedWidget);
-    QVBoxLayout * rawLayout = new QVBoxLayout(rawBox);
-    QCheckBox * optimizeRaw = new QCheckBox(i18n("Optimize"), rawBox);
-    optimizeRaw->setChecked(m_optimizeRaw);
-    rawLayout->addWidget(optimizeRaw);
-    rawLayout->setContentsMargins(0, 0, 0, 0);
-
-    QWidget * curveBox = new QWidget(stackedWidget);
-    QHBoxLayout * curveLayout = new QHBoxLayout(curveBox);
-    QCheckBox * optimizeCurve = new QCheckBox(i18n("Optimize"), curveBox);
-    optimizeCurve->setChecked(m_optimizeCurve);
-    QDoubleSpinBox * fittingError = new QDoubleSpinBox(curveBox);
-    fittingError->setSingleStep(0.50);
-    fittingError->setMaximum(400.0);
-    fittingError->setMinimum(0.0);
-    fittingError->setValue(m_fittingError);
-    fittingError->setToolTip(i18n("Exactness:"));
-    curveLayout->addWidget(optimizeCurve);
-    curveLayout->addWidget(fittingError);
-    curveLayout->setContentsMargins(0, 0, 0, 0);
-
-    QWidget *straightBox = new QWidget(stackedWidget);
-    QVBoxLayout *straightLayout = new QVBoxLayout(straightBox);
-    QDoubleSpinBox *combineAngle = new QDoubleSpinBox(straightBox);
-    combineAngle->setSingleStep(0.50);
-    combineAngle->setMaximum(360.0);
-    combineAngle->setMinimum(0.0);
-    combineAngle->setValue(m_combineAngle);
-    combineAngle->setSuffix(" deg");
-    // QT5TODO
-    //combineAngle->setLabel(i18n("Combine angle:"), Qt::AlignLeft | Qt::AlignVCenter);
-    straightLayout->addWidget(combineAngle);
-    straightLayout->setContentsMargins(0, 0, 0, 0);
-
-    stackedWidget->addWidget(rawBox);
-    stackedWidget->addWidget(curveBox);
-    stackedWidget->addWidget(straightBox);
-    layout->addWidget(stackedWidget);
-    layout->addStretch(1);
-
-    QObject::connect(modeBox, QOverload<int>::of(&QComboBox::activated), stackedWidget, &QStackedWidget::setCurrentIndex);
-    const PkPointer<KoPencilTool> toolGuard(this);
-    QObject::connect(modeBox, QOverload<int>::of(&QComboBox::activated), modeBox,
-                     [toolGuard](int mode) { if (toolGuard) toolGuard->selectMode(mode); });
-    QObject::connect(optimizeRaw, &QCheckBox::stateChanged, optimizeRaw,
-                     [toolGuard](int state) { if (toolGuard) toolGuard->setOptimize(state); });
-    QObject::connect(optimizeCurve, &QCheckBox::stateChanged, optimizeCurve,
-                     [toolGuard](int state) { if (toolGuard) toolGuard->setOptimize(state); });
-    QObject::connect(fittingError, &QDoubleSpinBox::valueChanged, fittingError,
-                     [toolGuard](double delta) { if (toolGuard) toolGuard->setDelta(delta); });
-    QObject::connect(combineAngle, &QDoubleSpinBox::valueChanged, combineAngle,
-                     [toolGuard](double delta) { if (toolGuard) toolGuard->setDelta(delta); });
-
-    modeBox->setCurrentIndex(m_mode);
-    stackedWidget->setCurrentIndex(m_mode);
-    optionWidget->setObjectName(i18n("Pencil"));
-    optionWidget->setWindowTitle(i18n("Pencil"));
-    widgets.append(optionWidget);
-
-    return widgets;
 }
 
 void KoPencilTool::addPathShape(KoPathShape* path, bool closePath)

@@ -33,14 +33,11 @@ class KisPopupWidgetInterface;
 class KoDerivedResourceConverter;
 class KoAbstractCanvasResourceInterface;
 
-template <typename T> class QPointer;
-
 typedef PkSharedPointer<KoDerivedResourceConverter> KoDerivedResourceConverterSP;
 typedef PkSharedPointer<KoAbstractCanvasResourceInterface> KoAbstractCanvasResourceInterfaceSP;
 
 class QAction;
 class QKeyEvent;
-class QWidget;
 class QCursor;
 class PkString;
 class PkRectF;
@@ -183,16 +180,6 @@ public:
      */
     // The host supplies a Pk backend through KoToolProxy; this is the only decoration API.
     virtual void paint(PkPainter &painter, const KoViewConverter &converter) { Q_UNUSED(painter); Q_UNUSED(converter); }
-
-    /**
-     * Return the option widgets for this tool. Create them if they
-     * do not exist yet. If the tool does not have an option widget,
-     * this method return an empty list. (After discussion with Thomas, who prefers
-     * the toolmanager to handle that case.)
-     *
-     * @see m_optionWidgets
-     */
-    PkList<QPointer<QWidget> > optionWidgets();
 
     /**
      * Retrieve an action by name.
@@ -601,13 +588,6 @@ protected:
      */
     bool useCursor(KisCanvasCursorToken cursor);
     void useCursor(Pk::CursorShape cursorShape);
-
-    /**
-     * Reimplement this if your tool actually has an option widget.
-     * Sets the option widget to 0 by default.
-     */
-    virtual QWidget *createOptionWidget();
-    virtual PkList<QPointer<QWidget> > createOptionWidgets();
 
     /// Convenience function to get the current handle radius
     int handleRadius() const;

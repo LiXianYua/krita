@@ -29,7 +29,6 @@ public:
     void beginShape() override;
     void endShape() override;
 
-    using KoCreatePathTool::createOptionWidgets;
     using KoCreatePathTool::endPathWithoutLastPoint;
     using KoCreatePathTool::endPath;
     using KoCreatePathTool::cancelPath;
@@ -88,13 +87,6 @@ public:
     void paint(PkPainter &painter, const KoViewConverter &converter) override
     {
         m_localTool->paint(painter, converter);
-    }
-
-    PkList<QPointer<QWidget>> createOptionWidgets() override
-    {
-        PkList<QPointer<QWidget>> widgets = KisToolShape::createOptionWidgets();
-        widgets.append(m_localTool->createOptionWidgets());
-        return widgets;
     }
 
 protected:

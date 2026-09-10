@@ -21,14 +21,6 @@
 #include <KoColor.h>
 #include <KisHandlePainterHelper.h>
 #include "KoPathPointTypeCommand.h"
-
-#include <klocalizedstring.h>
-
-#include <QCheckBox>
-#include <QHBoxLayout>
-#include <QPointer>
-#include <QSpinBox>
-#include <QVBoxLayout>
 #include <PkPointer.h>
 
 KoCreatePathTool::KoCreatePathTool(KoCanvasBase *canvas)
@@ -562,58 +554,4 @@ bool KoCreatePathTool::addPathShapeImpl(KoPathShape *pathShape, bool tryMergeOnl
 void KoCreatePathTool::addPathShape(KoPathShape *pathShape)
 {
     addPathShapeImpl(pathShape, false);
-}
-
-PkList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
-{
-    Q_D(KoCreatePathTool);
-
-    PkList<QPointer<QWidget> > list;
-
-    QWidget *widget = new QWidget();
-    widget->setObjectName("bezier-curve-tool-widget");
-    widget->setWindowTitle(i18n("Path options"));
-
-    QCheckBox *smoothCurves = new QCheckBox(i18n("Autosmooth curve"), widget);
-    smoothCurves->setObjectName("smooth-curves-widget");
-    smoothCurves->setChecked(d->autoSmoothCurves);
-
-    QCheckBox *angleSnap = new QCheckBox(i18n("Activate angle snap"), widget);
-    angleSnap->setObjectName("angle-snap-widget");
-    angleSnap->setChecked(false);
-    angleSnap->setCheckable(true);
-
-    QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->setSpacing(5);
-
-    mainLayout->addWidget(smoothCurves);
-    mainLayout->addWidget(angleSnap);
-
-    widget->setLayout(mainLayout);
-
-    list.append(widget);
-
-    const PkPointer<KoCreatePathTool> toolGuard(this);
-    QObject::connect(smoothCurves, &QAbstractButton::toggled, smoothCurves,
-            [toolGuard, d](bool value) {
-                if (toolGuard) {
-                    d->autoSmoothCurvesChanged(value);
-                }
-            });
-    const QPointer<QCheckBox> smoothCurvesGuard(smoothCurves);
-    PkObject::connect(this, &KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI, this,
-            [smoothCurvesGuard](bool value) {
-                if (smoothCurvesGuard) {
-                    smoothCurvesGuard->setChecked(value);
-                }
-            }, PkConnectionType::Direct);
-    QObject::connect(angleSnap, &QCheckBox::stateChanged, angleSnap,
-            [toolGuard, d](int state) {
-                if (toolGuard) {
-                    d->angleSnapChanged(state);
-                }
-            });
-
-    return list;
 }

@@ -27,7 +27,6 @@ public:
     void paintPath(KoPathShape &path, PkPainter &painter, const KoViewConverter &converter) override;
     void addPathShape(KoPathShape* pathShape) override;
 
-    using KoCreatePathTool::createOptionWidgets;
     using KoCreatePathTool::endPathWithoutLastPoint;
     using KoCreatePathTool::endPath;
     using KoCreatePathTool::cancelPath;

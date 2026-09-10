@@ -4,7 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QPointer>
 #include <QWidget>
 #include <type_traits>
 
@@ -12,57 +11,6 @@
 #include <simpletest.h>
 
 #include "kis_selection_options.h"
-#include "tool/kis_delegated_tool.h"
-#include "KoToolManagerOptionWidgets_p.h"
-
-namespace
-{
-class DelegatedOptionBase : public KisTool
-{
-public:
-    DelegatedOptionBase(KoCanvasBase *canvas, const QCursor &cursor)
-        : KisTool(canvas, cursor)
-    {
-    }
-
-    void mousePressEvent(KoPointerEvent *) override {}
-    void mouseMoveEvent(KoPointerEvent *) override {}
-    void mouseReleaseEvent(KoPointerEvent *) override {}
-    PkList<QPointer<QWidget>> createOptionWidgets() override { return {}; }
-};
-
-class DelegatedOptionLocalTool
-{
-public:
-    DelegatedOptionLocalTool()
-        : m_widget(new QWidget)
-    {
-        m_widget->setObjectName("DelegatedOptionWidget");
-    }
-
-    ~DelegatedOptionLocalTool() { delete m_widget; }
-
-    void activate(const PkSet<KoShape *> &) {}
-    void deactivate() {}
-    void mousePressEvent(KoPointerEvent *) {}
-    void mouseDoubleClickEvent(KoPointerEvent *) {}
-    void mouseMoveEvent(KoPointerEvent *) {}
-    void mouseReleaseEvent(KoPointerEvent *) {}
-    void paint(PkPainter &, const KoViewConverter &) {}
-    PkList<QPointer<QWidget>> createOptionWidgets() { return {m_widget}; }
-
-    QWidget *widget() const { return m_widget; }
-    void destroyWidget()
-    {
-        delete m_widget;
-        m_widget = nullptr;
-    }
-
-private:
-    QWidget *m_widget;
-};
-
-}
 
 class KisSelectionOptionsTest : public QObject
 {
@@ -72,7 +20,6 @@ private Q_SLOTS:
     void testDomainStateIsNotAWidget();
     void testAllValuesAreObservableState();
     void testSelectedColorLabelsAreObservableState();
-    void testDelegatedOptionWidgetReachesHostBoundaryAndTearsDownSafely();
 };
 
 void KisSelectionOptionsTest::testDomainStateIsNotAWidget()
@@ -177,34 +124,6 @@ void KisSelectionOptionsTest::testSelectedColorLabelsAreObservableState()
     options.setSelectedColorLabels({8, 2});
     QCOMPARE(options.selectedColorLabels(), PkList<int>({8, 2}));
     QCOMPARE(changedCount, 2);
-}
-
-void KisSelectionOptionsTest::testDelegatedOptionWidgetReachesHostBoundaryAndTearsDownSafely()
-{
-    QList<QPointer<QWidget>> deliveredWidgets;
-    QWidget *expectedWidget = nullptr;
-
-    {
-        auto *localTool = new DelegatedOptionLocalTool;
-        expectedWidget = localTool->widget();
-        KisDelegatedTool<DelegatedOptionBase, DelegatedOptionLocalTool> tool(
-            nullptr, QCursor(), localTool);
-
-        const auto cachedWidgets = tool.optionWidgets();
-        deliveredWidgets =
-            KoToolManagerOptionWidgets::toHostPointers(cachedWidgets);
-        QCOMPARE(deliveredWidgets.size(), 1);
-        QCOMPARE(deliveredWidgets.first().data(), expectedWidget);
-
-        localTool->destroyWidget();
-        QVERIFY(deliveredWidgets.first().isNull());
-
-        const auto cachedAfterTeardown = tool.optionWidgets();
-        QCOMPARE(cachedAfterTeardown.size(), 1);
-        QVERIFY(cachedAfterTeardown.first().isNull());
-    }
-
-    QVERIFY(deliveredWidgets.first().isNull());
 }
 
 SIMPLE_TEST_MAIN(KisSelectionOptionsTest)

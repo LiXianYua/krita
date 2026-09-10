@@ -98,7 +98,6 @@ protected:
     bool addPathShapeImpl(KoPathShape* pathShape, bool tryMergeOnly);
 
     /// reimplemented
-    PkList<QPointer<QWidget> > createOptionWidgets() override;
 
 private:
     PK_DECLARE_PRIVATE(KoCreatePathTool)

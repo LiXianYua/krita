@@ -30,11 +30,9 @@
 #include "KoAbstractCanvasResourceInterface.h"
 
 #include <klocalizedstring.h>
-#include <QWidget>
 #include <PkFileStream.h>
 #include <PkXmlDocument.h>
 #include <PkXmlElement.h>
-#include <QApplication>
 #include <KoColor.h>
 
 KoToolBase::KoToolBase(KoCanvasBase *canvas)
@@ -317,16 +315,6 @@ void KoToolBase::useCursor(Pk::CursorShape cursorShape)
     useCursor(QCursor(static_cast<Qt::CursorShape>(cursorShape)));
 }
 
-PkList<QPointer<QWidget> > KoToolBase::optionWidgets()
-{
-    Q_D(KoToolBase);
-    if (!d->optionWidgetsCreated) {
-        d->optionWidgets = createOptionWidgets();
-        d->optionWidgetsCreated = true;
-    }
-    return d->optionWidgets;
-}
-
 QAction *KoToolBase::action(const PkString &name) const
 {
     Q_D(const KoToolBase);
@@ -335,23 +323,6 @@ QAction *KoToolBase::action(const PkString &name) const
         return collection ? collection->findChild<QAction *>(toQString(name)) : 0;
     }
     return 0;
-}
-
-QWidget * KoToolBase::createOptionWidget()
-{
-    return 0;
-}
-
-PkList<QPointer<QWidget> > KoToolBase::createOptionWidgets()
-{
-    PkList<QPointer<QWidget> > ow;
-    if (QWidget *widget = createOptionWidget()) {
-        if (widget->objectName().isEmpty()) {
-            widget->setObjectName(toQString(toolId()));
-        }
-        ow.append(widget);
-    }
-    return ow;
 }
 
 void KoToolBase::setFactory(KoToolFactoryBase *factory)

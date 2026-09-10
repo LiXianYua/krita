@@ -64,7 +64,6 @@ public:
     KisDynamicDelegateTool& operator=(const KisDynamicDelegateTool&) = delete;
     ~KisDynamicDelegateTool() override {}
 
-    using BaseClass::createOptionWidget;
     using BaseClass::listeningToModifiers;
     using BaseClass::listenToModifiers;
     using BaseClass::cursor;

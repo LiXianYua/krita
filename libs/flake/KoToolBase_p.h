@@ -13,8 +13,7 @@
 #include "KoShapeController.h"
 #include <PkHash.h>
 #include <PkPointer.h>
-#include <QPointer>
-#include <QWidget>
+#include <QCursor>
 #include <string.h> // for the qt version check
 
 class QAction;
@@ -33,16 +32,7 @@ public:
     {
     }
 
-    virtual ~KoToolBasePrivate()
-    {
-        for (const QPointer<QWidget> &optionWidget : optionWidgets) {
-            if (optionWidget) {
-                optionWidget->setParent(0);
-                delete optionWidget;
-            }
-        }
-        optionWidgets.clear();
-    }
+    virtual ~KoToolBasePrivate() = default;
 
     void connectSignals()
     {
@@ -73,8 +63,6 @@ public:
         PkHash<int, KoDerivedResourceConverterSP> converters;
     };
 
-    PkList<QPointer<QWidget> > optionWidgets; ///< the optionwidgets associated with this tool
-    bool optionWidgetsCreated {false};
     QCursor currentCursor;
     KisCanvasCursorToken currentCursorToken;
     KoToolBase *q;

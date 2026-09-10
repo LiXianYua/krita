@@ -27,7 +27,6 @@ public:
     virtual void paintPath(KoPathShape * path, PkPainter &painter, const KoViewConverter &converter);
     void addPathShape(KoPathShape* pathShape, bool closePath) override;
 
-    using KoPencilTool::createOptionWidgets;
 
 protected:
     void slotUpdatePencilCursor() override;

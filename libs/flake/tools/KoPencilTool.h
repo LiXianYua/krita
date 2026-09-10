@@ -43,7 +43,6 @@ public:
     const KoShapeStroke &strokeTemplate() const;
 
 protected:
-    PkList<QPointer<QWidget> > createOptionWidgets() override;
 
     /**
      * Add path shape to document.
