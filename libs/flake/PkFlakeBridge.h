@@ -780,6 +780,15 @@ inline PkPen toPkPen(const PkPen &p) { return p; }
 inline PkString toPkString(const PkString &s) { return s; }
 inline PkString toQString(const PkString &s) { return s; }
 
+// StringList 族：宿主字符串列表 ↔ PkStringList 的进出双向桥。
+// `KoToolFactoryBase.cpp` 的 createActions() 有一对调用
+// （`action->property("tool_action").toStringList()` 进来、
+// `action->setProperty("tool_action", toQStringList(tools))` 出去），
+// `KoToolManager.cpp` 用同一对名字。native 桶里两者是同一个类型，
+// 两向都是恒等（与上面 String 族同款）。
+inline PkStringList toPkStringList(const PkStringList &sl) { return sl; }
+inline PkStringList toQStringList(const PkStringList &sl) { return sl; }
+
 // toPkList：KoFlakeUtils.h 模板体内以非依赖名调用，必须在模板定义点可见。
 template <typename T>
 inline PkList<T> toPkList(const PkList<T> &l) { return l; }

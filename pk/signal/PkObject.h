@@ -10,6 +10,7 @@
 #include "../concurrent/PkThread.h"
 #include "../concurrent/PkThreadCallQueue.h"
 #include "../string/PkString.h"
+#include "../container/PkList.h"
 
 // QObject 的替代：父子树 + 生命周期 + （Task 2 起）信号连接。
 // 无元对象、无字符串表、无属性系统——那三样在 Q-1 §6.1 的用量表里都是零或
@@ -25,6 +26,23 @@ public:
 
     PkObject* parent() const { return m_parent; }
     const std::vector<PkObject*>& children() const { return m_children; }
+
+    // ---- 对象树查询：setParent / findChild / findChildren ----
+    // QObject 对象树身份（任务行 2026-09-05 裁定不剥、交接 M5）里被真实调用点
+    // 用到的那三个成员。消费者是保留宿主身份 QAction 的原生面：action 必须
+    // 「parent 到 collection 上（setParent），并以 objectName 为键被
+    // findChild<QAction *>(name) / findChildren<QAction *>() 找回」——契约原文见
+    // libs/flake/KoToolFactoryBase.h 的 createActions() 与
+    // libs/flake/KoCanvasController.h 的 actionCollection()。
+    // findChild/findChildren 递归整棵子树，与 Qt 默认语义一致；name 为空表示
+    // 只按类型匹配。
+    void setParent(PkObject* parent);
+
+    template <typename T>
+    T findChild(const PkString& name = PkString()) const;
+
+    template <typename T>
+    PkList<T> findChildren() const;
 
     // 线程亲和性：QObject::thread()/moveToThread() 的替代。默认等于构造该
     // 对象的线程；moveToThread() 只改写这个标记（纯簿记，不触发任何唤醒/
@@ -163,6 +181,11 @@ private:
     // thread_local——每线程独立发射栈，嵌套 emit 时返回最内层 sender。
     static std::vector<PkObject*>& s_emitStack();
 
+    // findChild/findChildren 模板递归时用的加锁快照：持 m_childrenMutex 递归会
+    // 与子对象的析构（同样要拿子对象自己的锁再回来摘链）互相等，所以模板先把
+    // 本层 children 拷出来再放锁，逐个下钻。
+    std::vector<PkObject*> childSnapshot() const;
+
     // 对象树：parent 裸指针 + children 拥有。FIFO 析构顺序（探针 1：c1→c2→c3）。
     PkObject* m_parent = nullptr;
     std::vector<PkObject*> m_children;
@@ -190,6 +213,32 @@ private:
 // kis_base_node.h 等），尚未逐一迁移到 PkObject；别名让它们在主树（无壳）也能
 // 解析。objectName()/setObjectName()/无参 disconnect() 已在类内提供。
 using PkShellObject = PkObject;
+
+// ---- 对象树查询的模板定义（T 是对象指针类型，dynamic_cast 要求 T 派生自
+// PkObject；与 Qt 一致，只支持指针形式的 T）----
+
+template <typename T>
+T PkObject::findChild(const PkString& name) const
+{
+    for (PkObject* child : childSnapshot()) {
+        if (T match = dynamic_cast<T>(child)) {
+            if (name.isEmpty() || match->objectName() == name) return match;
+        }
+        if (T nested = child->findChild<T>(name)) return nested;
+    }
+    return nullptr;
+}
+
+template <typename T>
+PkList<T> PkObject::findChildren() const
+{
+    PkList<T> result;
+    for (PkObject* child : childSnapshot()) {
+        if (T match = dynamic_cast<T>(child)) result.append(match);
+        result.append(child->findChildren<T>());
+    }
+    return result;
+}
 
 // ---- 模板定义（成员模板只能放头文件）----
 

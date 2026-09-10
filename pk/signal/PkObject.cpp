@@ -12,6 +12,42 @@ PkObject::PkObject(PkObject* parent)
     }
 }
 
+void PkObject::setParent(PkObject* parent)
+{
+    if (m_parent == parent) return;
+
+    // 先把自己从旧 parent 的 children 里摘除（与析构步骤 4 同一形态：裸指针与
+    // 生命周期句柄必须在同一索引上一起摘，否则两者错位）。摘除时**不删自己**，
+    // 只是改挂。
+    if (m_parent) {
+        std::lock_guard<std::mutex> childrenLock(m_parent->m_childrenMutex);
+        auto& siblings = m_parent->m_children;
+        for (auto it = siblings.begin(); it != siblings.end(); ++it) {
+            if (*it == this) {
+                const auto index = static_cast<std::size_t>(it - siblings.begin());
+                siblings.erase(it);
+                m_parent->m_childLifecycle.erase(m_parent->m_childLifecycle.begin() + index);
+                break;
+            }
+        }
+    }
+
+    m_parent = parent;
+
+    // 再挂到新 parent 尾部（FIFO 顺序：与新构造时 push_back 的位置语义一致）。
+    if (parent) {
+        std::lock_guard<std::mutex> childrenLock(parent->m_childrenMutex);
+        parent->m_children.push_back(this);
+        parent->m_childLifecycle.push_back(m_lifecycle);
+    }
+}
+
+std::vector<PkObject*> PkObject::childSnapshot() const
+{
+    std::lock_guard<std::mutex> childrenLock(m_childrenMutex);
+    return m_children;
+}
+
 void PkObject::deleteLater()
 {
     bool expected = false;

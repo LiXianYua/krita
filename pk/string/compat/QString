@@ -23,3 +23,29 @@
 #ifndef QT_VERSION
 #define QT_VERSION QT_VERSION_CHECK(0, 0, 0)
 #endif
+
+// qstrcmp / QLatin1String —— QtCore 字符串模块里与 QString 同族的两个名字，
+// 实测在 native 桶里各有真实调用点（`libs/flake/KoToolFactoryBase.cpp` 的
+// `translateHostActionText()` 用 qstrcmp 比对 6 个上下文消息 id、
+// `setIconName(const char*)` 用 QLatin1String 包一层；
+// `libs/flake/KoToolManager.cpp` 用 QLatin1String("/always")）。
+// 本目录没有 `<QByteArray>` 垫片（真 Qt 把 qstrcmp 声明在 qbytearray.h），
+// 而这两个 TU 都到得了本文件，故与 QStringLiteral/QT_VERSION 一样收在这里。
+//
+// `qstrcmp` 是真 Qt 的**导出符号**（`Q_CORE_EXPORT`，S 线 nm 判据把它列在
+// "真 Qt 符号"里）——native 侧必须自己给定义，不能引进来。语义同 Qt：
+// 两个 const char* 逐字节比较，null 参与时按 Qt 的约定排到"小于非 null"。
+inline int qstrcmp(const char *str1, const char *str2)
+{
+    if (str1 == str2) return 0;
+    if (!str1) return -1;
+    if (!str2) return 1;
+    return __builtin_strcmp(str1, str2);
+}
+
+// QLatin1String 是 Latin-1 视图；`PkString(const char*)` 收的是 UTF-8。
+// 实测两处调用点的实参都是 ASCII（工具图标名、"/always"），两者逐字节相同。
+// 宿主侧读的是同一份 ASCII，故按类型宏映射（与上面的 QString 同款），
+// 让 `QLatin1String(x)`、`toPkString(QLatin1String(x))` 两种写法都成立。
+// 若将来出现非 ASCII 实参，改用 `PkString::fromLatin1(x)`。
+#define QLatin1String PkString
