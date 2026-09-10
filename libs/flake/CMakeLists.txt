@@ -415,9 +415,18 @@ list(REMOVE_ITEM kritaflake_core_SRCS ${__per_arch_alpha_applicator_factory_objs
 # ===== S-08 Task 6：上层绘图过渡层（保留 Qt，不进薄壳）=====
 # 分类口径：文件自身（.cpp 去 include 行 或 配对 .h）出现无 Pk 替代的
 # 绘图/UI/排版硬类型（QPainter/QPen/QBrush/QWidget/QFont/QTextLayout/QTextDocument/
-# 事件族/QAction/QCursor/QClipboard 等，见 S-08 impact-map §compat 缺口 1+2 类）
-# → 归入上层绘图，保留过渡 Qt；不建 PkPainter/PkPen/PkBrush（S-02-b 裁决）。
+# 事件族/QAction/QCursor/QClipboard 等，见 S-08 impact-map §compat 缺口 1+2 类）。
 # 含 S-02-b 交接的 4 个 libs/global 闭包（本任务搬入 libs/flake）与 Qt 版 KisAlgebra2D。
+#
+# 归属以 S线-spec「已裁决的岔路」为准（2026-09-05、2026-09-09 两次裁决）：
+#  - 本任务内真剥 Qt；`QPainter→PkPainter` 属 S-09-g（实测这层 QPainter 已修干净）。
+#    旧文「不建 PkPainter/PkPen/PkBrush（S-02-b 裁决）」被 2026-09-05 后裁推翻，不再适用。
+#  - 宿主 GUI 面（QWidget/QApplication/事件族/QAction/QCursor/QClipboard 等）在 S-09-g
+#    内不剥，登记交接 M5；本对象库按其自身分类**应**补回 Qt include 路径。
+#    ⚠ 2026-09-09 实测：这条补回在当前 compat 架构下不是一处 CMake 改动就能落地的
+#    （真 Qt 头会被 pk/*/compat 的类型宏改写、pk 的 R-38 让位守卫在未定义
+#    QT_CORE_LIB 时不生效），三条候选机制全部实测失败，已报人裁决。测量与机制见
+#    .superpowers/sdd/S-09-g/wave3-root-map-ready.md §4 步 4b 与 plan §7.6.9。
 set(kritaflake_painting_SRCS
     kis_painting_tweaks.cpp
     KisHandlePainterHelper.cpp
