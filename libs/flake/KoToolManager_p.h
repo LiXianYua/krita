@@ -12,9 +12,6 @@
 #include <PkHash.h>
 #include <PkObject.h>
 
-#include <QKeySequence>
-#include <QAction>
-
 #include "KoInputDevice.h"
 #include "KoToolManager.h"
 
@@ -28,6 +25,12 @@ class KoCanvasController;
 class KoShapeLayer;
 class CanvasData;
 class KoToolProxy;
+// Upstream relied on the real `<QObject>` to declare QEvent transitively. The
+// compat routing (pk/signal/compat/QObject) does not, and `eventFilter()` only
+// ever takes a pointer, so a forward declaration is all the native compile
+// interface needs. Same form as `libs/flake/KoToolProxy.h` and
+// `libs/flake/KoPointerEvent.h`.
+class QEvent;
 
 class Q_DECL_HIDDEN KoToolManager::Private
 {
