@@ -37,7 +37,6 @@
 #include <QWheelEvent>
 #include <QMouseEvent>
 #include <QPaintEvent>
-#include <QTabletEvent>
 #include <QVBoxLayout>
 #include <PkStringList.h>
 #include <QApplication>

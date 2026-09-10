@@ -27,7 +27,6 @@
 #include "KoViewConverter.h"
 #include "KisQPainterStateSaver.h"
 #include "KoSvgTextShape.h"
-#include <QApplication>
 
 #include <PkPainter.h>
 #include <PkPainterPath.h>

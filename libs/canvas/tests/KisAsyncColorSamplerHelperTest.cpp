@@ -20,8 +20,8 @@
 #include <vector>
 
 #include <QKeyEvent>
-#include <QTabletEvent>
 
+#include <PkInputEvent.h>
 #include <PkThreadCallQueue.h>
 
 #include <PkConfigGroup.h>
@@ -1202,15 +1202,16 @@ void KisAsyncColorSamplerHelperTest::freehandAlternateActionRetainsDetachedEvent
     FreehandEventProbeTool tool(&canvas);
 
     {
-        QTabletEvent hostEvent(QEvent::TabletPress,
-                               QPointF(12, 13), QPointF(112, 113),
-                               QTabletEvent::Stylus, QTabletEvent::Pen,
-                               0.42, 17, -11, 0.25, 33.0, 7,
-                               Qt::ShiftModifier, 99,
-                               Qt::LeftButton, Qt::LeftButton);
-        hostEvent.setTimestamp(1234);
-        hostEvent.ignore();
-        KoPointerEvent beginEvent(&hostEvent, PkPointF(20, 30));
+        // The host classifies its own platform event; the native carrier has no
+        // device/pointer pair and no acceptance flag (see KoPointerEvent).
+        PkTabletEvent hostEvent(PkInputEvent::TabletPress,
+                                PkPointF(12, 13), PkPointF(112, 113),
+                                Pk::LeftButton, Pk::LeftButton,
+                                Pk::ShiftModifier,
+                                0.42, 17, -11, 0.25, 33.0, 7,
+                                99, std::uint64_t(1234));
+        KoPointerEvent beginEvent(hostEvent, PkPointF(20, 30));
+        beginEvent.ignore();
         tool.beginAlternateAction(&beginEvent, KisTool::ChangeSize);
     }
 
