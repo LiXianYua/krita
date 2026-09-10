@@ -25,6 +25,7 @@
 #include <PkString.h>
 #include <PkHash.h>
 
+#include <iterator>
 #include <map>
 
 #include <FlakeDebug.h>
@@ -134,9 +135,18 @@ PkList<KoShapeFactoryBase*> KoShapeRegistry::factoriesForElement(const PkString 
 
     const std::multimap<int, KoShapeFactoryBase*> priorityMap = d->factoryMap.value(p);
     PkList<KoShapeFactoryBase*> shapeFactories;
-    // sort list by priority
-    for (auto it = priorityMap.rbegin(); it != priorityMap.rend(); ++it) {
-        shapeFactories.append(it->second);
+    // 旧写法 `Q_FOREACH (f, priorityMap.values()) shapeFactories.prepend(f);` 的净效果 =
+    // 「优先级降序，**同优先级内插入序**」：QMultiMap 的相等键迭代是逆插入序、values()
+    // 按键升序，逐项 prepend 把两者都翻了回来。std::multimap 的 equal_range 本来就是
+    // 插入序，所以只需按**键组降序**走、组内保持正序。
+    auto groupEnd = priorityMap.end();
+    while (groupEnd != priorityMap.begin()) {
+        const int priority = std::prev(groupEnd)->first;
+        const auto range = priorityMap.equal_range(priority);
+        for (auto it = range.first; it != range.second; ++it) {
+            shapeFactories.append(it->second);
+        }
+        groupEnd = range.first;
     }
 
     return shapeFactories;

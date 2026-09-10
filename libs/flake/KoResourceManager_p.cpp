@@ -15,6 +15,24 @@
 #include "kis_assert.h"
 #include "kis_debug.h"
 
+namespace {
+
+// QMultiHash 的相等键迭代序是**插入序的逆序**（`constFind` 指向最近插入的那条），
+// 而 std::multimap 的 `equal_range` 给的是插入序（C++11 起等价键保持插入序）。
+// 故凡「按相等键遍历」都走这里，免得每处各自记住要倒着走。
+template <typename Map, typename Key, typename Fn>
+void forEachEqualKeyReverse(const Map &map, const Key &key, Fn fn)
+{
+    auto it = map.upper_bound(key);
+    const auto begin = map.lower_bound(key);
+    while (it != begin) {
+        --it;
+        fn(*it);
+    }
+}
+
+} // namespace
+
 void KoResourceManager::slotResourceInternalsChanged(int key)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_resources.contains(key) || m_abstractResources.contains(key));
@@ -92,14 +110,13 @@ void KoResourceManager::notifyResourceChanged(int key, const PkVariant &value)
 
 void KoResourceManager::notifyDerivedResourcesChanged(int key, const PkVariant &value)
 {
-    const auto range = m_derivedFromSource.equal_range(key);
-    for (auto it = range.first; it != range.second; ++it) {
-        KoDerivedResourceConverterSP converter = it->second;
+    forEachEqualKeyReverse(m_derivedFromSource, key, [&](const auto &entry) {
+        KoDerivedResourceConverterSP converter = entry.second;
 
         if (converter->notifySourceChanged(value)) {
             notifyResourceChanged(converter->key(), converter->readFromSource(value));
         }
-    }
+    });
 }
 
 void KoResourceManager::notifyResourceChangeAttempted(int key, const PkVariant &value)
@@ -110,28 +127,27 @@ void KoResourceManager::notifyResourceChangeAttempted(int key, const PkVariant &
 
 void KoResourceManager::notifyDerivedResourcesChangeAttempted(int key, const PkVariant &value)
 {
-    const auto range = m_derivedFromSource.equal_range(key);
-    for (auto it = range.first; it != range.second; ++it) {
-        KoDerivedResourceConverterSP converter = it->second;
+    forEachEqualKeyReverse(m_derivedFromSource, key, [&](const auto &entry) {
+        KoDerivedResourceConverterSP converter = entry.second;
         notifyResourceChangeAttempted(converter->key(), converter->readFromSource(value));
-    }
+    });
 }
 
 void KoResourceManager::notifyDependenciesAboutTargetChange(int targetKey, const PkVariant &targetValue)
 {
-    const auto range = m_dependencyFromTarget.equal_range(targetKey);
-    for (auto it = range.first; it != range.second; ++it) {
-        const int sourceKey = it->second->sourceKey();
+    forEachEqualKeyReverse(m_dependencyFromTarget, targetKey, [&](const auto &entry) {
+        KoActiveCanvasResourceDependencySP dep = entry.second;
+        const int sourceKey = dep->sourceKey();
 
         if (hasResource(sourceKey)) {
             PkVariant sourceValue = resource(sourceKey);
 
             notifyResourceChangeAttempted(sourceKey, sourceValue);
-            if (it->second->shouldUpdateSource(sourceValue, targetValue)) {
+            if (dep->shouldUpdateSource(sourceValue, targetValue)) {
                 notifyResourceChanged(sourceKey, sourceValue);
             }
         }
-    }
+    });
 }
 
 PkVariant KoResourceManager::resource(int key) const

@@ -121,15 +121,13 @@ private:
    the tool stuff.)
 
  */
-// Same dual identity as KoToolProxy: the host toolkit object surface plus the
-// native PkObject surface. Under the compat routing (pk/signal/compat/QObject)
-// the token `QObject` *is* `PkObject`, so the base list is spelled per
-// configuration to avoid duplicating the base class.
-#if defined(QT_CORE_LIB)
-class KRITAFLAKE_EXPORT KoToolManager : public QObject, public PkObject
-#else
+// 单一身份：宿主工具包对象面已收口，两个桶都只看得到 PkObject。
+// 拉齐为单一基类表，使「同名两定义、两套布局」不可能再出现：此前按 `QT_CORE_LIB`
+// 分叉基类表，qt 桶看到 `QObject, PkObject`、native 桶看到 `PkObject`，而 ctor/dtor
+// 只有一份 —— 两个桶各自按自己的布局算偏移，是静默的布局腐蚀。
+// 今后任何跨桶依赖 QObject 面的写法（传给 `QObject*` 形参、`QObject::connect`、对象树），
+// 都会在编译期报错（fail-closed）。
 class KRITAFLAKE_EXPORT KoToolManager : public PkObject
-#endif
 {
 public:
     KoToolManager();
