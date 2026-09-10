@@ -35,9 +35,9 @@ KoToolBase *SvgTextToolFactory::createTool(KoCanvasBase *canvas)
     return new SvgTextTool(canvas);
 }
 
-PkList<QAction *> SvgTextToolFactory::createActionsImpl()
+PkList<KisHostActionSpec> SvgTextToolFactory::createActionsImpl()
 {
-    PkList<QAction *> actions;
+    PkList<KisHostActionSpec> actions;
     for (const PkString &name : SvgTextShortCuts::possibleActions()) {
         actions << createHostAction("", name);
     }

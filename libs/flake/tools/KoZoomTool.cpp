@@ -14,6 +14,10 @@
 #include "KoPointerEvent.h"
 #include "KoCanvasBase.h"
 #include "KoCanvasController.h"
+#include "KoCanvasCursorHost.h"
+
+#include <PkPoint.h>
+#include <PkSize.h>
 
 #include <FlakeDebug.h>
 
@@ -22,11 +26,24 @@ KoZoomTool::KoZoomTool(KoCanvasBase *canvas)
         , m_controller(nullptr)
         , m_zoomInMode(true)
 {
+    // 游标不再由工具自己持有平台对象：把「资源名 + 尺寸 + 热点」交给宿主，换回
+    // 一个不可变快照的 token。尺寸仍取资源位图自身的尺寸、热点固定 (4, 4)——与
+    // 旧 QCursor(pixmap, 4, 4) 同义；这里读一次位图只是为了让宿主拿到同一份尺寸，
+    // 不再构造任何游标对象。
+    const auto *host = dynamic_cast<const KoCanvasCursorHost *>(canvas);
+    if (!host) {
+        return;
+    }
+
     QPixmap inPixmap, outPixmap;
     inPixmap.load(":/zoom_in_cursor.png");
     outPixmap.load(":/zoom_out_cursor.png");
-    m_inCursor = QCursor(inPixmap, 4, 4);
-    m_outCursor = QCursor(outPixmap, 4, 4);
+    m_inCursor = host->loadCursorResource(PkString(":/zoom_in_cursor.png"),
+                                          PkSize(inPixmap.width(), inPixmap.height()),
+                                          PkPoint(4, 4));
+    m_outCursor = host->loadCursorResource(PkString(":/zoom_out_cursor.png"),
+                                           PkSize(outPixmap.width(), outPixmap.height()),
+                                           PkPoint(4, 4));
 }
 
 void KoZoomTool::mouseReleaseEvent(KoPointerEvent *event)

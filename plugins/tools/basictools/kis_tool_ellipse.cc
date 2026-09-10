@@ -44,7 +44,7 @@ KisToolEllipse::~KisToolEllipse()
 void KisToolEllipse::resetCursorStyle()
 {
     if (isEraser() && (nodePaintAbility() == NodePaintAbility::PAINT)) {
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursor("tool_ellipse_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursorToken("tool_ellipse_eraser_cursor.png", 6, 6));
     } else {
         KisToolEllipseBase::resetCursorStyle();
     }

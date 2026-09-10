@@ -30,7 +30,7 @@ void KisToolPath::canvasResourceChanged(int key, const PkVariant &value)
 void KisToolPath::resetCursorStyle()
 {
     if (isEraser() && (nodePaintAbility() == PAINT)) {
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_ERASER));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_ERASER));
     } else {
         DelegatedPathTool::resetCursorStyle();
     }

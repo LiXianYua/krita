@@ -27,12 +27,14 @@ public:
         PkPoint hotspot;
     };
 
-    QCursor loadCursorResource(const PkString &resource,
-                               const PkSize &size,
-                               const PkPoint &hotspot) const override
+    KisCanvasCursorToken loadCursorResource(const PkString &resource,
+                                            const PkSize &size,
+                                            const PkPoint &hotspot) const override
     {
         requests.push_back({resource, size, hotspot});
-        return QCursor(requests.size() == 1 ? Qt::CrossCursor : Qt::SizeAllCursor);
+        // 每次请求发一个新 token：宿主各自的快照互不相同，正是「非零 token 只属
+        // 本宿主」这条契约的可观测面。
+        return KisCanvasCursorToken(requests.size());
     }
 
     mutable std::vector<Request> requests;
@@ -52,8 +54,8 @@ void TestPathTool::cursorResourcesAreResolvedByHost()
     QCOMPARE(canvas.requests[1].resource, PkString(":/cursor-needle-move.svg"));
     QCOMPARE(canvas.requests[1].size, PkSize(32, 32));
     QCOMPARE(canvas.requests[1].hotspot, PkPoint(0, 0));
-    QCOMPARE(tool.m_selectCursor.shape(), Qt::CrossCursor);
-    QCOMPARE(tool.m_moveCursor.shape(), Qt::SizeAllCursor);
+    QCOMPARE(tool.m_selectCursor, KisCanvasCursorToken(1));
+    QCOMPARE(tool.m_moveCursor, KisCanvasCursorToken(2));
 }
 
 void TestPathTool::koPathPointSelection_selectedSegmentsData()

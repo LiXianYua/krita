@@ -204,7 +204,7 @@ void KoPencilTool::deactivate()
 void KoPencilTool::slotUpdatePencilCursor()
 {
     KoShapeStrokeSP stroke = createStroke();
-    useCursor((stroke && stroke->isVisible()) ? Qt::ArrowCursor : Qt::ForbiddenCursor);
+    useCursor((stroke && stroke->isVisible()) ? Pk::ArrowCursor : Pk::ForbiddenCursor);
 }
 
 void KoPencilTool::addPoint(const PkPointF & point)

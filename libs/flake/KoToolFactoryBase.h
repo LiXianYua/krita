@@ -9,6 +9,7 @@
 #define KO_TOOL_FACTORY_H
 
 #include "kritaflake_export.h"
+#include "KoCanvasActionHost.h"
 
 #include <PkString.h>
 #include <PkList.h>
@@ -176,19 +177,19 @@ protected:
 
     /**
      * @brief createActionsImpl should be reimplemented if the tool needs any actions.
-     * The actions should have a valid objectName().
-     * Actions returned directly remain owned by this factory. createActions()
-     * transfers non-duplicate actions to its collection and deletes duplicate
-     * candidates after reusing the collection's existing action.
+     * Every spec must carry a valid objectName.
+     * Specs stay bucket-neutral; createActions() materializes them into real
+     * (or shim) actions, transfers non-duplicates to its collection and reuses
+     * the collection's existing action for duplicates.
      *
      * @return the list of actions this tool wishes to be available.
      */
-    virtual PkList<QAction *> createActionsImpl();
+    virtual PkList<KisHostActionSpec> createActionsImpl();
 
-    /** Host boundary for factories that keep only QAction identity. */
-    QAction *createHostAction(const char *text,
-                              const PkString &objectName,
-                              Pk::Key shortcut = static_cast<Pk::Key>(0));
+    /** 声明一个宿主动作，只留 identity（文本/objectName/默认快捷键），不建对象。 */
+    KisHostActionSpec createHostAction(const char *text,
+                                       const PkString &objectName,
+                                       Pk::Key shortcut = static_cast<Pk::Key>(0));
 
 private:
     class Private;

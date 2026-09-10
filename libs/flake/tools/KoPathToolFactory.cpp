@@ -10,8 +10,6 @@
 #include "KoPathShape.h"
 #include <klocalizedstring.h>
 
-#include <QAction>
-
 KoPathToolFactory::KoPathToolFactory()
         : KoToolFactoryBase("PathTool")
 {
@@ -31,54 +29,25 @@ KoToolBase * KoPathToolFactory::createTool(KoCanvasBase *canvas)
     return new KoPathTool(canvas);
 }
 
-PkList<QAction *> KoPathToolFactory::createActionsImpl()
+PkList<KisHostActionSpec> KoPathToolFactory::createActionsImpl()
 {
-    PkList<QAction *> actions;
+    PkList<KisHostActionSpec> actions;
 
-    QAction *action = createHostAction("", "pathpoint-corner");
-    actions << action;
-
-    action = createHostAction("", "pathpoint-smooth");
-    actions << action;
-
-    action = createHostAction("", "pathpoint-symmetric");
-    actions << action;
-
-    action = createHostAction("", "pathpoint-curve");
-    actions << action;
-
-    action = createHostAction("", "pathpoint-line");
-    actions << action;
-
-    action = createHostAction("", "pathsegment-line");
-    actions << action;
-
-    action = createHostAction("", "pathsegment-curve");
-    actions << action;
-
-    action = createHostAction("", "pathpoint-insert");
-    actions << action;
-
-    action = createHostAction("", "pathpoint-remove");
-    actions << action;
-
-    action = createHostAction("", "path-break-point");
-    actions << action;
-
-    action = createHostAction("", "path-break-segment");
-    actions << action;
-
-    action = createHostAction("", "path-break-selection");
-    actions << action;
-
-    action = createHostAction("", "pathpoint-join");
-    actions << action;
-
-    action = createHostAction("", "pathpoint-merge");
-    actions << action;
-
-    action = createHostAction("", "convert-to-path");
-    actions << action;
+    actions << createHostAction("", "pathpoint-corner");
+    actions << createHostAction("", "pathpoint-smooth");
+    actions << createHostAction("", "pathpoint-symmetric");
+    actions << createHostAction("", "pathpoint-curve");
+    actions << createHostAction("", "pathpoint-line");
+    actions << createHostAction("", "pathsegment-line");
+    actions << createHostAction("", "pathsegment-curve");
+    actions << createHostAction("", "pathpoint-insert");
+    actions << createHostAction("", "pathpoint-remove");
+    actions << createHostAction("", "path-break-point");
+    actions << createHostAction("", "path-break-segment");
+    actions << createHostAction("", "path-break-selection");
+    actions << createHostAction("", "pathpoint-join");
+    actions << createHostAction("", "pathpoint-merge");
+    actions << createHostAction("", "convert-to-path");
 
     return actions;
 }

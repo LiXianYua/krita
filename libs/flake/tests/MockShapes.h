@@ -150,7 +150,7 @@ public:
     KoUnit unit() const override {
         return KoUnit(KoUnit::Millimeter);
     }
-    void setCursor(const QCursor &) override {}
+    void setCursor(KisCanvasCursorToken) override {}
     private:
         PkScopedPointer<KoShapeManager> m_shapeManager;
         PkScopedPointer<KoSelectedShapesProxy> m_selectedShapesProxy;

@@ -13,7 +13,10 @@
 #include "KoShapeController.h"
 #include <PkHash.h>
 #include <PkPointer.h>
-#include <QCursor>
+// connectSignals() 直用 Q_ASSERT_X，故此头自己包 compat/QtGlobal（不再靠
+// 已删掉的 <QCursor> 间接带入）。两个桶都成立：native 桶解析到
+// pk/global/compat/QtGlobal，qt 桶解析到真 Qt 头。
+#include <QtGlobal>
 #include <string.h> // for the qt version check
 
 class QAction;
@@ -23,16 +26,8 @@ class KoToolFactoryBase;
 class KoToolBasePrivate
 {
 public:
-    // The retained cursor handle starts at the platform default. Written as
-    // `QCursor()` rather than a named shape because this header is compiled in
-    // BOTH buckets: real Qt's QCursor takes `Qt::CursorShape` and the native
-    // shim takes `Pk::CursorShape`, so no single named enumerator compiles in
-    // both. QCursor's default constructor is specified as the default arrow
-    // cursor (Qt: "Constructs a cursor with the default arrow shape"), which is
-    // exactly the `Qt::ArrowCursor` this used to name.
     KoToolBasePrivate(KoToolBase *qq, KoCanvasBase *canvas_)
-        : currentCursor(QCursor()),
-        q(qq),
+        : q(qq),
         canvas(canvas_),
         isInTextMode(false),
         isActivated(false)
@@ -70,7 +65,6 @@ public:
         PkHash<int, KoDerivedResourceConverterSP> converters;
     };
 
-    QCursor currentCursor;
     KisCanvasCursorToken currentCursorToken;
     KoToolBase *q;
     KoToolFactoryBase *factory {0};

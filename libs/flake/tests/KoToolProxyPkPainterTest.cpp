@@ -7,13 +7,13 @@
 #include <PkInputEvent.h>
 #include <QKeySequence>
 
+#include "KoCanvasActionHost.h"
 #include "KoCanvasBase.h"
 #include "KoCanvasController.h"
 #include "KoShapeControllerBase.h"
 #include "KoToolBase.h"
 #include "KoToolFactoryBase.h"
 #include "KoToolManager.h"
-#include "KoToolManagerShortcuts_p.h"
 #include "KoToolProxy.h"
 #include "KoToolProxy_p.h"
 #include "KoUnit.h"
@@ -91,7 +91,7 @@ public:
 
     void gridSize(PkPointF *, PkSizeF *) const override {}
     bool snapToGrid() const override { return false; }
-    void setCursor(const QCursor &) override {}
+    void setCursor(KisCanvasCursorToken) override {}
     void addCommand(KUndo2Command *) override {}
     KoShapeManager *shapeManager() const override { return const_cast<KoShapeManager *>(&manager); }
     KoSelectedShapesProxy *selectedShapesProxy() const override { return const_cast<KoSelectedShapesProxySimple *>(&selectedShapes); }
@@ -452,15 +452,26 @@ private Q_SLOTS:
         QCOMPARE(action.shortcut()[0], qt515Oracle[0]);
     }
 
-    void toolManagerConvertsHostShortcutsToNativeChordKeys()
+    // 快捷键的宿主载荷 → 桶无关 encoded chord 的编码，已从管理器侧移到实现者
+    // KoCanvasController::hostActions()（impact map §5 的 #19）。这里直接测宿主回报的
+    // 这一面：丢掉空 chord、逐和弦取 int，且管理器侧再不出现任何 Qt 快捷键类型。
+    void hostActionIdentitiesCarryNativeChordEncoding()
     {
-        QAction action;
+        QObject actionCollection;
+        QAction *hostAction = new QAction(&actionCollection);
+        hostAction->setObjectName(QStringLiteral("native-chord-probe"));
         const QKeySequence oneChord(QStringLiteral("Ctrl+R"));
         const QKeySequence twoChords(QStringLiteral("Ctrl+K, Ctrl+C"));
-        action.setShortcuts({oneChord, QKeySequence(), twoChords});
+        hostAction->setShortcuts({oneChord, QKeySequence(), twoChords});
 
-        const auto shortcuts = KoToolManagerShortcuts::fromHostAction(action);
+        MinimalController controller(&actionCollection);
+        const PkList<KisHostActionIdentity> identities = controller.hostActions();
 
+        QCOMPARE(identities.size(), 1);
+        QCOMPARE(identities.at(0).objectName, PkString("native-chord-probe"));
+        QVERIFY(!identities.at(0).carriesToolAction);
+
+        const PkList<std::vector<int>> &shortcuts = identities.at(0).shortcutChords;
         QCOMPARE(shortcuts.size(), 2);
         QCOMPARE(shortcuts.at(0).size(), std::size_t(1));
         QCOMPARE(shortcuts.at(0).at(0), oneChord[0]);

@@ -95,7 +95,7 @@ KisToolLine::~KisToolLine()
 void KisToolLine::resetCursorStyle()
 {
     if (isEraser() && (nodePaintAbility() == PAINT)) {
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursor("tool_line_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursorToken("tool_line_eraser_cursor.png", 6, 6));
     } else {
         KisToolPaint::resetCursorStyle();
     }

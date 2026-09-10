@@ -7,8 +7,6 @@
 
 #include <QDebug>
 
-#include <QAction>
-
 #include "KoToolBase.h"
 #include "KoToolBase_p.h"
 #include "KoToolFactoryBase.h"
@@ -283,32 +281,13 @@ void KoToolBase::customMoveEvent(KoPointerEvent * event)
     event->ignore();
 }
 
-void KoToolBase::useCursor(const QCursor &cursor)
-{
-    Q_D(KoToolBase);
-    if (auto *host = dynamic_cast<KoCanvasCursorHost *>(d->canvas)) {
-        const KisCanvasCursorToken token = host->toolImportCursor(cursor);
-        if (token) {
-            useCursor(token);
-            return;
-        }
-    }
-    d->currentCursor = cursor;
-    Q_EMIT cursorChanged(d->currentCursor);
-}
-
 bool KoToolBase::useCursor(KisCanvasCursorToken cursor)
 {
     Q_D(KoToolBase);
     auto *host = dynamic_cast<KoCanvasCursorHost *>(d->canvas);
-    if (!host) return false;
-
-    const QCursor *snapshot = host->toolCursorSnapshot(cursor);
-    if (!snapshot) return false;
+    if (!host || !host->toolOwnsCursor(cursor)) return false;
 
     d->currentCursorToken = cursor;
-    d->currentCursor = *snapshot;
-    Q_EMIT cursorChanged(d->currentCursor);
     host->toolApplyCursor(cursor);
     Q_EMIT cursorTokenChanged(cursor);
     return true;
@@ -316,17 +295,11 @@ bool KoToolBase::useCursor(KisCanvasCursorToken cursor)
 
 void KoToolBase::useCursor(Pk::CursorShape cursorShape)
 {
-    useCursor(QCursor(cursorShape));
-}
+    Q_D(KoToolBase);
+    auto *host = dynamic_cast<KoCanvasCursorHost *>(d->canvas);
+    if (!host) return;
 
-QAction *KoToolBase::action(const PkString &name) const
-{
-    Q_D(const KoToolBase);
-    if (d->canvas && d->canvas->canvasController() && d->canvas->canvasController()) {
-        QObject *collection = d->canvas->canvasController()->actionCollection();
-        return collection ? collection->findChild<QAction *>(toQString(name)) : 0;
-    }
-    return 0;
+    useCursor(host->toolShapeCursorToken(cursorShape));
 }
 
 void KoToolBase::setFactory(KoToolFactoryBase *factory)
@@ -345,12 +318,6 @@ PkString KoToolBase::toolId() const
 {
     Q_D(const KoToolBase);
     return d->factory ? d->factory->id() : PkString();
-}
-
-QCursor KoToolBase::cursor() const
-{
-    Q_D(const KoToolBase);
-    return d->currentCursor;
 }
 
 KisCanvasCursorToken KoToolBase::cursorToken() const
@@ -606,12 +573,6 @@ void KoToolBase::activateTool(const PkString &id)
 {
     activateSignal<const PkString &>(
         this, PkMemberFnKey::from(&KoToolBase::activateTool), id);
-}
-
-void KoToolBase::cursorChanged(const QCursor &cursor)
-{
-    activateSignal<const QCursor &>(
-        this, PkMemberFnKey::from(&KoToolBase::cursorChanged), cursor);
 }
 
 void KoToolBase::cursorTokenChanged(KisCanvasCursorToken cursor)

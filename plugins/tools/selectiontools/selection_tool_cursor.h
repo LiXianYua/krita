@@ -11,6 +11,7 @@
 
 class KisCanvasToolServices;
 class QCursor;
+class KisCanvasCursorToken;
 
 struct SelectionToolCursorDescriptor {
     std::string_view name;
@@ -27,5 +28,7 @@ const SelectionToolCursorDescriptor &selectionToolCursorDescriptor(std::string_v
 const SelectionToolCursorDescriptorList &selectionToolCursorDescriptors();
 QCursor selectionToolCursor(const KisCanvasToolServices *host,
                             const SelectionToolCursorDescriptor &descriptor);
+KisCanvasCursorToken selectionToolCursorToken(const KisCanvasToolServices *host,
+                                              const SelectionToolCursorDescriptor &descriptor);
 
 #endif

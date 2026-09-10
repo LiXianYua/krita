@@ -11,6 +11,7 @@
 #include <PkFlakeBridge.h>
 #include "KoPathTool.h"
 #include "KoCanvasBase.h"
+#include "KoCanvasController.h"
 #include "KoCanvasCursorHost.h"
 #include "KoDocumentResourceManager.h"
 #include "KoParameterChangeStrategy.h"
@@ -61,6 +62,19 @@
 
 #include <math.h>
 
+namespace {
+// 宿主 action 取回：KoToolBase::action() 删除后，本文件自己按 objectName 从宿主的
+// action collection 里取。文件内 static 而不是共享头——共享头会声明
+// `QAction *f(...)`（`same` 名占返回类型），只有在「没有任何 native TU 包含它」时
+// 才不算缝，那是靠纪律维持的脆弱不变量。
+QAction *hostToolAction(KoCanvasBase *canvas, const PkString &name)
+{
+    KoCanvasController *controller = canvas ? canvas->canvasController() : nullptr;
+    QObject *collection = controller ? controller->actionCollection() : nullptr;
+    return collection ? collection->findChild<QAction *>(toQString(name)) : nullptr;
+}
+}
+
 // helper function to calculate the squared distance between two points
 qreal squaredDistance(const PkPointF& p1, const PkPointF &p2)
 {
@@ -89,35 +103,35 @@ KoPathTool::KoPathTool(KoCanvasBase *canvas)
     , m_pointSelection(this)
     , m_textOutlineHelper(new KoSvgTextShapeOutlineHelper(canvas))
 {
-    m_actionPathPointCorner = action("pathpoint-corner");
-    m_actionPathPointSmooth = action("pathpoint-smooth");
-    m_actionPathPointSymmetric = action("pathpoint-symmetric");
-    m_actionCurvePoint = action("pathpoint-curve");
-    m_actionLinePoint = action("pathpoint-line");
-    m_actionLineSegment = action("pathsegment-line");
-    m_actionCurveSegment = action("pathsegment-curve");
-    m_actionAddPoint = action("pathpoint-insert");
-    m_actionRemovePoint = action("pathpoint-remove");
-    m_actionBreakPoint = action("path-break-point");
-    m_actionBreakSegment = action("path-break-segment");
-    m_actionBreakSelection = action("path-break-selection");
-    m_actionJoinSegment = action("pathpoint-join");
-    m_actionMergePoints = action("pathpoint-merge");
-    m_actionConvertToPath = action("convert-to-path");
+    m_actionPathPointCorner = hostToolAction(canvas, "pathpoint-corner");
+    m_actionPathPointSmooth = hostToolAction(canvas, "pathpoint-smooth");
+    m_actionPathPointSymmetric = hostToolAction(canvas, "pathpoint-symmetric");
+    m_actionCurvePoint = hostToolAction(canvas, "pathpoint-curve");
+    m_actionLinePoint = hostToolAction(canvas, "pathpoint-line");
+    m_actionLineSegment = hostToolAction(canvas, "pathsegment-line");
+    m_actionCurveSegment = hostToolAction(canvas, "pathsegment-curve");
+    m_actionAddPoint = hostToolAction(canvas, "pathpoint-insert");
+    m_actionRemovePoint = hostToolAction(canvas, "pathpoint-remove");
+    m_actionBreakPoint = hostToolAction(canvas, "path-break-point");
+    m_actionBreakSegment = hostToolAction(canvas, "path-break-segment");
+    m_actionBreakSelection = hostToolAction(canvas, "path-break-selection");
+    m_actionJoinSegment = hostToolAction(canvas, "pathpoint-join");
+    m_actionMergePoints = hostToolAction(canvas, "pathpoint-merge");
+    m_actionConvertToPath = hostToolAction(canvas, "convert-to-path");
 
     m_contextMenu.reset(new QMenu());
     m_textOutlineHelper->setDrawBoundingRect(true);
     m_textOutlineHelper->setDrawShapeOutlines(false);
 
+    // 游标只能由宿主导入：没有宿主时两个 token 保持零（= 平台默认游标）。旧实现在
+    // 这条分支上退回 QCursor(Qt::CrossCursor)/QCursor(Qt::SizeAllCursor)，那个形状
+    // 现在由宿主经 KoCanvasCursorHost::toolShapeCursorToken 表达（见 useCursor(Pk::CursorShape)）。
     const KoCanvasCursorHost *cursorHost = dynamic_cast<const KoCanvasCursorHost *>(canvas);
     if (cursorHost) {
         const PkSize cursorSize(32, 32);
         const PkPoint hotspot(0, 0);
-        m_selectCursor = cursorHost->loadCursorResource(":/cursor-needle.svg", cursorSize, hotspot);
-        m_moveCursor = cursorHost->loadCursorResource(":/cursor-needle-move.svg", cursorSize, hotspot);
-    } else {
-        m_selectCursor = QCursor(Qt::CrossCursor);
-        m_moveCursor = QCursor(Qt::SizeAllCursor);
+        m_selectCursor = cursorHost->loadCursorResource(PkString(":/cursor-needle.svg"), cursorSize, hotspot);
+        m_moveCursor = cursorHost->loadCursorResource(PkString(":/cursor-needle-move.svg"), cursorSize, hotspot);
     }
 
     PkObject::connect(&m_pointSelection, &KoPathToolSelection::selectionChanged,
@@ -701,7 +715,7 @@ void KoPathTool::mouseMoveEvent(KoPointerEvent *event)
 
     PathSegment *hoveredSegment = segmentAtPoint(event->point);
     if(hoveredSegment) {
-        useCursor(Qt::PointingHandCursor);
+        useCursor(Pk::PointingHandCursor);
         Q_EMIT statusTextChanged(toPkString(i18n("Drag to change curve directly. Double click to insert new path point.")));
         m_activeSegment.reset(hoveredSegment);
         repaintDecorations();

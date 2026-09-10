@@ -30,7 +30,7 @@ KisLassoEnclosingProducer::~KisLassoEnclosingProducer()
 void  KisLassoEnclosingProducer::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(Qt::ArrowCursor);
+        useCursor(Pk::ArrowCursor);
     } else {
         KisDynamicDelegateTool::resetCursorStyle();
     }

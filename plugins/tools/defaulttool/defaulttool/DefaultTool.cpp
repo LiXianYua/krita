@@ -207,7 +207,7 @@ public:
 
     bool tryUseCustomCursor() override {
         if (m_currentHandle.type != KoShapeGradientHandles::Handle::None) {
-            q->useCursor(Qt::OpenHandCursor);
+            q->useCursor(Pk::OpenHandCursor);
             return true;
         }
 
@@ -324,7 +324,7 @@ public:
     bool tryUseCustomCursor() override
     {
         if (m_currentHandle.type != KoShapeMeshGradientHandles::Handle::None) {
-            q->useCursor(Qt::OpenHandCursor);
+            q->useCursor(Pk::OpenHandCursor);
             return true;
         }
 
@@ -1573,7 +1573,7 @@ void DefaultTool::activate(const PkSet<KoShape *> &shapes)
 
     m_mouseWasInsideHandles = false;
     m_lastHandle = KoFlake::NoHandle;
-    useCursor(Qt::ArrowCursor);
+    useCursor(Pk::ArrowCursor);
     repaintDecorations();
     updateActions();
 

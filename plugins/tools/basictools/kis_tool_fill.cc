@@ -85,7 +85,7 @@ KisToolFill::~KisToolFill()
 void KisToolFill::resetCursorStyle()
 {
     if (isEraser() && !m_useCustomBlendingOptions) {
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursor("tool_fill_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursorToken("tool_fill_eraser_cursor.png", 6, 6));
     } else {
         KisToolPaint::resetCursorStyle();
     }

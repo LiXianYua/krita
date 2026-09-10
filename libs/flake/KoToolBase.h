@@ -36,9 +36,7 @@ class KoAbstractCanvasResourceInterface;
 typedef PkSharedPointer<KoDerivedResourceConverter> KoDerivedResourceConverterSP;
 typedef PkSharedPointer<KoAbstractCanvasResourceInterface> KoAbstractCanvasResourceInterfaceSP;
 
-class QAction;
 class QKeyEvent;
-class QCursor;
 class PkString;
 class PkRectF;
 class PkPointF;
@@ -182,11 +180,6 @@ public:
     virtual void paint(PkPainter &painter, const KoViewConverter &converter) { Q_UNUSED(painter); Q_UNUSED(converter); }
 
     /**
-     * Retrieve an action by name.
-     */
-    QAction *action(const PkString &name) const;
-
-    /**
      * Called when (one of) the mouse or stylus buttons is pressed.
      * Implementors should call event->ignore() if they do not actually use the event.
      * @param event state and reason of this mouse or stylus press
@@ -320,9 +313,6 @@ public:
      * @see KoToolFactoryBase::id()
      */
     PkString toolId() const;
-
-    /// return the last emitted cursor
-    QCursor cursor() const;
 
     /// Return the host-scoped native cursor token last emitted by this tool.
     KisCanvasCursorToken cursorToken() const;
@@ -539,9 +529,6 @@ public:
      * Emitted by useCursor() when the cursor to display on the canvas is changed.
      * The KoToolManager should connect to this signal to handle cursors further.
      */
-    void cursorChanged(const QCursor &cursor);
-
-    /** Native cursor notification paired with cursorChanged compatibility delivery. */
     void cursorTokenChanged(KisCanvasCursorToken cursor);
 
     /**
@@ -574,17 +561,10 @@ protected:
     PkToolSelectedShapes selectedShapes() const;
 
     /**
-     * Classes inheriting from this one can call this method to signify which cursor
-     * the tool wants to display at this time.  Logical place to call it is after an
-     * incoming event has been handled.
-     * @param cursor the new cursor.
-     */
-    void useCursor(const QCursor &cursor);
-    /**
      * Apply a host-scoped token and publish the resulting cursor state.
      * Returns false for a foreign, stale, hostless, or otherwise rejected
      * token. Rejection leaves retained state unchanged, does not call the host
-     * apply operation, and emits neither cursor notification.
+     * apply operation, and emits no cursor notification.
      */
     bool useCursor(KisCanvasCursorToken cursor);
     void useCursor(Pk::CursorShape cursorShape);

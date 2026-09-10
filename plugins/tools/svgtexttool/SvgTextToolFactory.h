@@ -9,6 +9,7 @@
 #define SVG_TEXT_TOOL_FACTORY
 
 #include <KoToolFactoryBase.h>
+#include <KoCanvasActionHost.h>
 
 class SvgTextToolFactory : public KoToolFactoryBase
 {
@@ -19,7 +20,7 @@ public:
     KoToolBase *createTool(KoCanvasBase *canvas) override;
     // KoToolFactoryBase interface
 protected:
-    PkList<QAction *> createActionsImpl() override;
+    PkList<KisHostActionSpec> createActionsImpl() override;
 };
 
 #endif

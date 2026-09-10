@@ -5,6 +5,8 @@
  */
 
 
+#include <QCursor>
+
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
@@ -132,7 +134,7 @@ void KisToolBasicBrushBase::activateAlternateAction(AlternateAction action)
         return;
     }
 
-    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_NO_CURSOR));
+    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_NO_CURSOR));
     setOutlineVisible(true);
 }
 
@@ -156,8 +158,7 @@ void KisToolBasicBrushBase::beginAlternateAction(KoPointerEvent *event, Alternat
 
     setMode(GESTURE_MODE);
     m_changeSizeInitialGestureDocPoint = event->point;
-    using CursorType = std::remove_reference_t<decltype(cursor())>;
-    m_changeSizeInitialGestureGlobalPoint = toPkPoint(CursorType::pos());
+    m_changeSizeInitialGestureGlobalPoint = toPkPoint(QCursor::pos());
 
     m_changeSizeLastDocumentPoint = event->point;
     m_changeSizeLastPaintOpSize = currentPaintOpPreset()->settings()->paintOpSize();
@@ -319,28 +320,28 @@ void KisToolBasicBrushBase::resetCursorStyle()
 
     switch (cfg.newCursorStyle()) {
     case CURSOR_STYLE_NO_CURSOR:
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_NO_CURSOR));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_NO_CURSOR));
         break;
     case CURSOR_STYLE_POINTER:
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_POINTER));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_POINTER));
         break;
     case CURSOR_STYLE_SMALL_ROUND:
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_SMALL_ROUND));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_SMALL_ROUND));
         break;
     case CURSOR_STYLE_CROSSHAIR:
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_CROSSHAIR));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_CROSSHAIR));
         break;
     case CURSOR_STYLE_TRIANGLE_RIGHTHANDED:
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_TRIANGLE_RIGHTHANDED));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_TRIANGLE_RIGHTHANDED));
         break;
     case CURSOR_STYLE_TRIANGLE_LEFTHANDED:
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_TRIANGLE_LEFTHANDED));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_TRIANGLE_LEFTHANDED));
         break;
     case CURSOR_STYLE_BLACK_PIXEL:
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_BLACK_PIXEL));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_BLACK_PIXEL));
         break;
     case CURSOR_STYLE_WHITE_PIXEL:
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_WHITE_PIXEL));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_WHITE_PIXEL));
         break;
     case CURSOR_STYLE_TOOLICON:
     default:

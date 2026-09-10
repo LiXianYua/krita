@@ -61,7 +61,7 @@ public:
     KoViewConverter *viewConverter() override { return &m_converter; }
     void gridSize(PkPointF *, PkSizeF *) const override {}
     bool snapToGrid() const override { return false; }
-    void setCursor(const QCursor &) override {}
+    void setCursor(KisCanvasCursorToken) override {}
     void addCommand(KUndo2Command *) override {}
     KoShapeManager *shapeManager() const override { return nullptr; }
     KoSelectedShapesProxy *selectedShapesProxy() const override { return nullptr; }
@@ -129,9 +129,13 @@ public:
     QCursor toolClosedHandCursor() const override { return {}; }
     QCursor toolForbiddenCursor() const override { return {}; }
     QCursor toolLoadCursor(const PkString &, int, int) const override { return {}; }
-    QCursor loadCursorResource(const PkString &, const PkSize &, const PkPoint &) const override
+    KisCanvasCursorToken loadCursorResource(const PkString &, const PkSize &, const PkPoint &) const override
     {
         return {};
+    }
+    KisCanvasCursorToken toolShapeCursorToken(Pk::CursorShape shape) const override
+    {
+        return toolImportCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
     }
     KisCanvasCursorToken toolImportCursor(const QCursor &) const override
     {

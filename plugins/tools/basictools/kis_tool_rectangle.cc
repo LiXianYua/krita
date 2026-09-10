@@ -50,7 +50,7 @@ KisToolRectangle::~KisToolRectangle()
 void KisToolRectangle::resetCursorStyle()
 {
     if (isEraser() && (nodePaintAbility() == NodePaintAbility::PAINT)) {
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursor("tool_rectangle_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursorToken("tool_rectangle_eraser_cursor.png", 6, 6));
     } else {
         KisToolRectangleBase::resetCursorStyle();
     }

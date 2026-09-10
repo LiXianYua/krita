@@ -98,7 +98,7 @@ public:
         return KoUnit(KoUnit::Point);
     }
 
-    void setCursor(const QCursor &) override {}
+    void setCursor(KisCanvasCursorToken) override {}
 
     void setUpdateFunction(std::function<void(const PkRectF&)> function) {
         m_updateFunc = function;

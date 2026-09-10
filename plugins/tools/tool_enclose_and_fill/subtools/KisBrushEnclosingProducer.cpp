@@ -28,7 +28,7 @@ KisBrushEnclosingProducer::~KisBrushEnclosingProducer()
 void  KisBrushEnclosingProducer::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(Qt::ArrowCursor);
+        useCursor(Pk::ArrowCursor);
     } else {
         KisDynamicDelegateTool::resetCursorStyle();
     }

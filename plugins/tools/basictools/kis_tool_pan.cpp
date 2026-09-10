@@ -23,7 +23,7 @@ KisToolPan::~KisToolPan()
 void KisToolPan::beginPrimaryAction(KoPointerEvent *event)
 {
     m_lastPosition = event->pos();
-    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolClosedHandCursor());
+    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolClosedHandCursorToken());
 }
 
 void KisToolPan::continuePrimaryAction(KoPointerEvent *event)
@@ -37,7 +37,7 @@ void KisToolPan::continuePrimaryAction(KoPointerEvent *event)
 void KisToolPan::endPrimaryAction(KoPointerEvent *event)
 {
     (void)event;
-    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolOpenHandCursor());
+    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolOpenHandCursorToken());
 }
 
 bool KisToolPan::panByKey(int key)

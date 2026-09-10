@@ -15,21 +15,14 @@ KisSelectionToolFactoryBase::~KisSelectionToolFactoryBase()
 {
 }
 
-PkList<QAction *> KisSelectionToolFactoryBase::createActionsImpl()
+PkList<KisHostActionSpec> KisSelectionToolFactoryBase::createActionsImpl()
 {
-    PkList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
+    PkList<KisHostActionSpec> actions = KisToolPaintFactoryBase::createActionsImpl();
 
-    QAction *actionAdd = createHostAction("", "selection_tool_mode_add");
-    actions << actionAdd;
-
-    QAction *actionReplace = createHostAction("", "selection_tool_mode_replace");
-    actions << actionReplace;
-
-    QAction *actionSubtract = createHostAction("", "selection_tool_mode_subtract");
-    actions << actionSubtract;
-
-    QAction *actionIntersect = createHostAction("", "selection_tool_mode_intersect");
-    actions << actionIntersect;
+    actions << createHostAction("", "selection_tool_mode_add");
+    actions << createHostAction("", "selection_tool_mode_replace");
+    actions << createHostAction("", "selection_tool_mode_subtract");
+    actions << createHostAction("", "selection_tool_mode_intersect");
 
     return actions;
 }
@@ -44,15 +37,12 @@ KisToolPolyLineFactoryBase::~KisToolPolyLineFactoryBase()
 
 }
 
-PkList<QAction *> KisToolPolyLineFactoryBase::createActionsImpl()
+PkList<KisHostActionSpec> KisToolPolyLineFactoryBase::createActionsImpl()
 {
-    PkList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
+    PkList<KisHostActionSpec> actions = KisToolPaintFactoryBase::createActionsImpl();
 
-    QAction *actionUndo = createHostAction("", "undo_polygon_selection");
-    actions << actionUndo;
-
-    QAction *actionAdd = createHostAction("", "selection_tool_mode_add");
-    actions << actionAdd;
+    actions << createHostAction("", "undo_polygon_selection");
+    actions << createHostAction("", "selection_tool_mode_add");
 
     return actions;
 }

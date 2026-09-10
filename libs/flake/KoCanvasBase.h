@@ -15,6 +15,7 @@
 #include <PkPoint.h>
 
 #include "kritaflake_export.h"
+#include "KoCanvasCursorHost.h"
 
 class KUndo2Command;
 
@@ -81,10 +82,9 @@ public:
     /**
      * set the specified cursor on this canvas
      *
-     * @param cursor the new cursor
-     * @return the old cursor
+     * @param cursor the host-scoped cursor token; zero restores the platform default
      */
-    virtual void setCursor(const QCursor &cursor) = 0;
+    virtual void setCursor(KisCanvasCursorToken cursor) = 0;
 
     /**
      * Adds a command to the history. Call this for each @p command you create.

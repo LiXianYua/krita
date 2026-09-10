@@ -221,13 +221,13 @@ void KisToolSelectSimilar::slotSetOpacitySpread(int opacitySpread)
 void KisToolSelectSimilar::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_similar_selection_cursor_add.png")));
+        useCursor(selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_similar_selection_cursor_add.png")));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_similar_selection_cursor_sub.png")));
+        useCursor(selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_similar_selection_cursor_sub.png")));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_similar_selection_cursor_inter.png")));
+        useCursor(selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_similar_selection_cursor_inter.png")));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_similar_selection_cursor_symdiff.png")));
+        useCursor(selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_similar_selection_cursor_symdiff.png")));
     } else {
         KisToolSelect::resetCursorStyle();
     }

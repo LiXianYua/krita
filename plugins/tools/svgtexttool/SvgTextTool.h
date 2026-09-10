@@ -11,7 +11,7 @@
 
 #include <KoToolBase.h>
 #include <PkMap.h>
-#include <QCursor>
+#include <KisCanvasCursorToken.h>
 
 #include <KoSvgTextShapeOutlineHelper.h>
 
@@ -200,14 +200,14 @@ private:
 
     PkPainterPath m_hoveredShapeHighlightRect;
 
-    QCursor m_base_cursor;
-    QCursor m_text_inline_horizontal;
-    QCursor m_text_inline_vertical;
-    QCursor m_text_on_path;
-    QCursor m_text_in_shape;
-    QCursor m_ibeam_vertical;
-    QCursor m_ibeam_horizontal;
-    QCursor m_ibeam_horizontal_done;
+    KisCanvasCursorToken m_base_cursor;
+    KisCanvasCursorToken m_text_inline_horizontal;
+    KisCanvasCursorToken m_text_inline_vertical;
+    KisCanvasCursorToken m_text_on_path;
+    KisCanvasCursorToken m_text_in_shape;
+    KisCanvasCursorToken m_ibeam_vertical;
+    KisCanvasCursorToken m_ibeam_horizontal;
+    KisCanvasCursorToken m_ibeam_horizontal_done;
 
 };
 

@@ -150,7 +150,7 @@ void KisToolBrush::resetCursorStyle()
             smoothingOptions()->useDelayDistance() &&
             cursorStyle == CURSOR_STYLE_NO_CURSOR) {
 
-        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_SMALL_ROUND));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursorToken(CURSOR_STYLE_SMALL_ROUND));
     } else {
         KisToolFreehand::resetCursorStyle();
     }

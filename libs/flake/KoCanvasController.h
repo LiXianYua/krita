@@ -14,6 +14,7 @@
 #include <PkRect.h>
 
 #include "kritaflake_export.h"
+#include "KoCanvasActionHost.h"
 #include <QObject>
 
 #include <PkSize.h>
@@ -58,7 +59,7 @@ class KoViewTransformStillPoint;
  * In your canvas widget code, you can find the right place in your
  * document in view coordinates (pixels) by adding the documentOffset
  */
-class KRITAFLAKE_EXPORT KoCanvasController
+class KRITAFLAKE_EXPORT KoCanvasController : public KoCanvasActionHost
 {
 public:
 
@@ -186,6 +187,18 @@ public:
      * @returns action collection for this window, can be 0
      */
     QObject *actionCollection() const;
+
+    /**
+     * 宿主动作集合的桶无关回报（KoCanvasActionHost）。
+     *
+     * 管理器（KoToolManager）不再认识 QAction：它拿到的是 identity + 已编码的
+     * shortcut chord，逐条决定启用/禁用后再经 setHostActionEnabled() 写回。
+     * 快捷键载荷的解码（丢空 chord、逐和弦取 int）就发生在这里，管理器只做等值比较。
+     */
+    PkList<KisHostActionIdentity> hostActions() const override;
+
+    /** 按 objectName 写回启用态。找不到该名字时是 no-op。 */
+    void setHostActionEnabled(const PkString &objectName, bool enabled) override;
 
     /**
      * @return the current position of the cursor fetched from QCursor::pos() and

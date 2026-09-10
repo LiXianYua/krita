@@ -102,7 +102,7 @@ void KisToolLazyBrush::resetCursorStyle()
 {
     // If there's no mask yet, we show the hand cursor
     if (!colorizeMaskActive() && canCreateColorizeMask()) {
-        useCursor(QCursor(static_cast<Qt::CursorShape>(PkToolPointingHandCursor)));
+        useCursor(Pk::PointingHandCursor);
         m_d->activateMaskMode = true;
         setOutlineVisible(false);
     }
@@ -192,7 +192,7 @@ void KisToolLazyBrush::activatePrimaryAction()
 {
     KisToolFreehand::activatePrimaryAction();
     if (!colorizeMaskActive() && canCreateColorizeMask()) {
-        useCursor(QCursor(static_cast<Qt::CursorShape>(PkToolPointingHandCursor)));
+        useCursor(Pk::PointingHandCursor);
         m_d->activateMaskMode = true;
         setOutlineVisible(false);
     }

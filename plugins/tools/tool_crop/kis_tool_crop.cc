@@ -826,37 +826,34 @@ qint32 KisToolCrop::mouseOnHandle(PkPointF currentViewPoint)
 
 void KisToolCrop::setMoveResizeCursor(qint32 handle)
 {
-    QCursor cursorType(Qt::ArrowCursor);
-
     switch (handle) {
     case(UpperLeft):
     case(LowerRight):
-        cursorType = QCursor(Qt::SizeFDiagCursor);
+        useCursor(Pk::SizeFDiagCursor);
         break;
     case(LowerLeft):
     case(UpperRight):
-        cursorType = QCursor(Qt::SizeBDiagCursor);
+        useCursor(Pk::SizeBDiagCursor);
         break;
     case(Upper):
     case(Lower):
-        cursorType = QCursor(Qt::SizeVerCursor);
+        useCursor(Pk::SizeVerCursor);
         break;
     case(Left):
     case(Right):
-        cursorType = QCursor(Qt::SizeHorCursor);
+        useCursor(Pk::SizeHorCursor);
         break;
     case(Inside):
-        cursorType = QCursor(Qt::SizeAllCursor);
+        useCursor(Pk::SizeAllCursor);
         break;
     default:
         if (m_haveCropSelection) {
-            cursorType = QCursor(Qt::ArrowCursor);
+            useCursor(Pk::ArrowCursor);
         } else {
-            cursorType = cursor();
+            useCursor(cursor());
         }
         break;
     }
-    useCursor(cursorType);
 }
 
 PkRectF KisToolCrop::boundingRect()

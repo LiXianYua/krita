@@ -41,7 +41,7 @@ public:
 
     void gridSize(PkPointF *, PkSizeF *) const override {}
     bool snapToGrid() const override { return false; }
-    void setCursor(const QCursor &) override {}
+    void setCursor(KisCanvasCursorToken) override {}
     void addCommand(KUndo2Command *) override {}
     KoShapeManager *shapeManager() const override { return nullptr; }
     KoSelectedShapesProxy *selectedShapesProxy() const override { return nullptr; }

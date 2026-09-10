@@ -79,22 +79,34 @@ PkList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
 {
     PkList<QAction *> toolActions;
 
-    PkList<QAction*> actions = createActionsImpl();
-    QAction *action = new QAction(actionCollection);
-    action->setObjectName(toQString(id()));
+    const PkList<KisHostActionSpec> actionSpecs = createActionsImpl();
+
+    QAction *toolActivationAction = new QAction(actionCollection);
+    toolActivationAction->setObjectName(toQString(id()));
     if (actionCollection) {
-        action->setParent(actionCollection);
+        toolActivationAction->setParent(actionCollection);
     }
-    QObject::connect(action, &QAction::triggered, action,
+    QObject::connect(toolActivationAction, &QAction::triggered, toolActivationAction,
                      [toolId = id()] { KoToolManager::instance()->switchToolRequested(toolId); });
     //qDebug() << action << action->shortcut();
 
 
-    Q_FOREACH(QAction *action, actions) {
-        if (action->objectName().isEmpty()) {
+    Q_FOREACH(const KisHostActionSpec &spec, actionSpecs) {
+        if (spec.objectName.isEmpty()) {
             qWarning() << "Tool" << id() << "tries to add an action without a name";
             continue;
         }
+
+        // 物化边界：把桶无关的 spec 变成真的 action 对象。native 桶里 QAction 是
+        // noqt-compat 垫片（PK_CAT_ 拼装出同名类），qt 桶里是真 QAction。候选先挂在
+        // d->actionOwner 上——它不在任何 action collection 里，重复项查找便不会顺着
+        // 父链找到候选、把它自己删掉。翻译（translateHostActionText）也只在这里发生。
+        QAction *action = new QAction(translateHostActionText(spec.text), &d->actionOwner);
+        action->setObjectName(toQString(spec.objectName));
+        if (spec.shortcut != static_cast<Pk::Key>(0)) {
+            action->setShortcut(static_cast<int>(spec.shortcut));
+        }
+
         QAction *existingAction = actionCollection ? actionCollection->findChild<QAction *>(action->objectName()) : 0;
         if (existingAction) {
             delete action;
@@ -234,22 +246,18 @@ void KoToolFactoryBase::setShortcut(const PkKeySequence &shortcut)
     d->shortcut = shortcut;
 }
 
-PkList<QAction *> KoToolFactoryBase::createActionsImpl()
+PkList<KisHostActionSpec> KoToolFactoryBase::createActionsImpl()
 {
-    return PkList<QAction *>();
+    return PkList<KisHostActionSpec>();
 }
 
-QAction *KoToolFactoryBase::createHostAction(const char *text,
-                                             const PkString &objectName,
-                                             Pk::Key shortcut)
+KisHostActionSpec KoToolFactoryBase::createHostAction(const char *text,
+                                                      const PkString &objectName,
+                                                      Pk::Key shortcut)
 {
-    // The private owner preserves factory lifetime without making the factory
-    // a QObject. It also stays outside any action collection, so duplicate
-    // lookup cannot find and delete the candidate through its own parent.
-    auto *action = new QAction(translateHostActionText(text), &d->actionOwner);
-    action->setObjectName(toQString(objectName));
-    if (shortcut != static_cast<Pk::Key>(0)) {
-        action->setShortcut(static_cast<int>(shortcut));
-    }
-    return action;
+    KisHostActionSpec spec;
+    spec.text = text;
+    spec.objectName = objectName;
+    spec.shortcut = shortcut;
+    return spec;
 }

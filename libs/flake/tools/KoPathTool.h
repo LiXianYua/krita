@@ -15,12 +15,13 @@
 #include "KoPathToolSelection.h"
 #include "kis_signal_auto_connection.h"
 #include <PkList.h>
-#include <QCursor>
+#include "KoCanvasCursorHost.h"
 #include <QMetaObject>
 #include <KoShapeFillResourceConnector.h>
 #include "KoPathPointTypeCommand.h"
 #include <KoSvgTextShapeOutlineHelper.h>
 
+class QAction;
 class QActionGroup;
 class QButtonGroup;
 class KoCanvasBase;
@@ -103,7 +104,7 @@ private:
 
 protected:
     KoPathToolSelection m_pointSelection; ///< the point selection
-    QCursor m_selectCursor;
+    KisCanvasCursorToken m_selectCursor;
 
 private:
     PkScopedPointer<KoPathToolHandle> m_activeHandle;       ///< the currently active handle
@@ -130,7 +131,7 @@ private:
     QAction *m_actionJoinSegment;
     QAction *m_actionMergePoints;
     QAction *m_actionConvertToPath;
-    QCursor m_moveCursor;
+    KisCanvasCursorToken m_moveCursor;
     PkScopedPointer<QMenu> m_contextMenu;
     PkScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
     KisSignalAutoConnectionsStore m_canvasConnections;

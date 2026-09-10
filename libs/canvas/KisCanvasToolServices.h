@@ -87,11 +87,44 @@ public:
     virtual QCursor toolClosedHandCursor() const = 0;
     virtual QCursor toolForbiddenCursor() const = 0;
     virtual QCursor toolLoadCursor(const PkString &name, int hotX, int hotY) const = 0;
-    virtual QCursor loadCursorResource(const PkString &resource,
-                                       const PkSize &size,
-                                       const PkPoint &hotspot) const override = 0;
+    virtual KisCanvasCursorToken loadCursorResource(const PkString &resource,
+                                                    const PkSize &size,
+                                                    const PkPoint &hotspot) const override = 0;
+    /**
+     * Import a platform cursor shape (no resource, no hotspot) as a snapshot.
+     *
+     * This interface is the only host surface the retained tools have, and
+     * KoToolBase::useCursor(Pk::CursorShape) is core API that the retained call
+     * sites use unconditionally, so "produce a token for this shape" is a
+     * question every host must be able to answer. Leaving it at the flake
+     * default (token zero = platform default cursor) silently degrades those
+     * call sites to the default arrow, which no test can distinguish from a
+     * host that genuinely serves the shape. Making it pure here turns that into
+     * a compile-time contract instead of a silent runtime downgrade.
+     *
+     * The implementation needs the platform cursor type, so only a Qt-bucket
+     * host translation unit can provide it.
+     */
+    virtual KisCanvasCursorToken toolShapeCursorToken(Pk::CursorShape shape) const override = 0;
+    /**
+     * Canvas-side cursor capability. This is not a member of the flake host
+     * contract any more: importing a platform cursor needs the platform cursor
+     * type, which the retained (native) tools must not name. Only libs/canvas,
+     * which is not part of the seam scan, keeps the operation.
+     */
     virtual KisCanvasCursorToken toolImportCursor(const QCursor &cursor) const = 0;
-    virtual const QCursor *toolCursorSnapshot(KisCanvasCursorToken cursor) const override = 0;
+    /** Snapshot oracle for the tokens this canvas produced. */
+    virtual const QCursor *toolCursorSnapshot(KisCanvasCursorToken cursor) const = 0;
+    /**
+     * Ownership truth for this canvas. Zero is the platform-default cursor and
+     * belongs to every host; a nonzero token belongs only to the host that can
+     * resolve it. Delegating to toolCursorSnapshot() keeps that a single fact,
+     * so a concrete canvas has to answer the snapshot question and nothing else.
+     */
+    virtual bool toolOwnsCursor(KisCanvasCursorToken cursor) const override
+    {
+        return cursor.value() == 0 || toolCursorSnapshot(cursor) != nullptr;
+    }
     virtual KisCanvasCursorToken toolCursorToken(CursorStyle style) const = 0;
     virtual KisCanvasCursorToken toolMoveCursorToken() const = 0;
     virtual KisCanvasCursorToken toolMoveSelectionCursorToken() const = 0;

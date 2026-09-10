@@ -71,7 +71,7 @@ KisToolKnife::KisToolKnife(KoCanvasBase * canvas)
       m_d(new Private)
 {
     PkObject::setObjectName("tool_knife");
-    useCursor(QCursor(Qt::ArrowCursor));
+    useCursor(Pk::ArrowCursor);
     repaintDecorations();
 }
 
@@ -89,7 +89,7 @@ void KisToolKnife::paint(PkPainter &painter, const KoViewConverter &converter)
 void KisToolKnife::activate(const PkSet<KoShape *> &shapes)
 {
     KoInteractionTool::activate(shapes);
-        useCursor(QCursor(Qt::ArrowCursor));
+        useCursor(Pk::ArrowCursor);
 
 }
 

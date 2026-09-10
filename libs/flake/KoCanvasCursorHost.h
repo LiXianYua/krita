@@ -9,12 +9,11 @@
 #include <PkPoint.h>
 #include <PkSize.h>
 #include <PkString.h>
+#include <PkNamespace.h>
 
 #include <cstdint>
 
 #include "kritaflake_export.h"
-
-class QCursor;
 
 /**
  * Opaque identity for an immutable snapshot owned by one cursor host.
@@ -62,26 +61,19 @@ class KRITAFLAKE_EXPORT KoCanvasCursorHost
 public:
     virtual ~KoCanvasCursorHost() = default;
 
-    virtual QCursor loadCursorResource(const PkString &resource,
-                                       const PkSize &size,
-                                       const PkPoint &hotspot) const = 0;
+    /** 载入具名游标资源并导入为不可变快照；返回标识它的 token，失败返回零。 */
+    virtual KisCanvasCursorToken loadCursorResource(const PkString &resource,
+                                                    const PkSize &size,
+                                                    const PkPoint &hotspot) const = 0;
 
-    /** Import a synchronous immutable cursor snapshot under the contract above. */
-    virtual KisCanvasCursorToken toolImportCursor(const QCursor &) const { return {}; }
+    /** 导入一个平台游标形状（无资源、无热点）。宿主不能服务该形状时返回零。 */
+    virtual KisCanvasCursorToken toolShapeCursorToken(Pk::CursorShape) const { return {}; }
 
-    /**
-     * Resolve a token for compatibility observers and validate host ownership.
-     * Zero resolves to the default platform cursor. A nonzero token resolves
-     * only while it belongs to this host; nullptr means foreign, stale, or
-     * otherwise rejected. The returned immutable snapshot remains valid for
-     * the lifetime of this host.
-     */
-    virtual const QCursor *toolCursorSnapshot(KisCanvasCursorToken) const { return nullptr; }
+    /** 宿主归属判定。token 零 = 平台默认游标，任何宿主都拥有；非零 token 只属本宿主。 */
+    virtual bool toolOwnsCursor(KisCanvasCursorToken token) const
+    { return token.value() == 0; }
 
-    /**
-     * Apply a token accepted by toolCursorSnapshot(). Zero restores the default
-     * platform cursor. A direct call with an invalid token must be a no-op.
-     */
+    /** 应用 token。零恢复平台默认游标。非本宿主 token 必须是 no-op。 */
     virtual void toolApplyCursor(KisCanvasCursorToken) {}
 };
 

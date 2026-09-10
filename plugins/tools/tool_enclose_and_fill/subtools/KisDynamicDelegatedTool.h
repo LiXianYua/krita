@@ -126,7 +126,7 @@ public:
         if (m_delegateTool) {
             PkObject::connect(m_delegateTool, &DelegateType::activateTool,
                               this, &BaseClass::activateTool);
-            PkObject::connect(m_delegateTool, &DelegateType::cursorChanged,
+            PkObject::connect(m_delegateTool, &DelegateType::cursorTokenChanged,
                               this, [this](const auto &cursor) { this->BaseClass::useCursor(cursor); });
             PkObject::connect(m_delegateTool, &DelegateType::selectionChanged,
                               this, &BaseClass::selectionChanged);
@@ -353,13 +353,13 @@ protected:
         if (m_delegateTool) m_delegateTool->listenToModifiers(listen);
     }
 
-    CursorType cursor() const
+    KisCanvasCursorToken cursor() const
     {
         if (m_delegateTool) return m_delegateTool->cursor();
         return BaseClass::cursor();
     }
 
-    void setCursor(const CursorType &cursor)
+    void setCursor(KisCanvasCursorToken cursor)
     {
         if (m_delegateTool) m_delegateTool->setCursor(cursor);
         BaseClass::setCursor(cursor);

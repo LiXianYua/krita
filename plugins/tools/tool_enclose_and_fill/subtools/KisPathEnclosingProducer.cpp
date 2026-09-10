@@ -104,7 +104,7 @@ KisPathEnclosingProducer::~KisPathEnclosingProducer()
 void  KisPathEnclosingProducer::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(Qt::ArrowCursor);
+        useCursor(Pk::ArrowCursor);
     } else {
         KisDynamicDelegateTool::resetCursorStyle();
     }

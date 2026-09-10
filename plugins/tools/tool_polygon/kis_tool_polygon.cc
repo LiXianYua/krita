@@ -38,7 +38,7 @@ KisToolPolygon::~KisToolPolygon()
 void KisToolPolygon::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_polygon_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursorToken("tool_polygon_eraser_cursor.png", 6, 6));
     } else {
         KisToolPolylineBase::resetCursorStyle();
     }

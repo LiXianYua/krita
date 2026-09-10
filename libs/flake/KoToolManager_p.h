@@ -14,6 +14,7 @@
 
 #include "KoInputDevice.h"
 #include "KoToolManager.h"
+#include "KoCanvasCursorHost.h"
 
 class KoToolFactoryBase;
 class KoShapeManager;
@@ -43,7 +44,7 @@ public:
 
     void detachCanvas(KoCanvasController *controller);
     void attachCanvas(KoCanvasController *controller);
-    void updateCursor(const QCursor &cursor);
+    void updateCursor(KisCanvasCursorToken cursor);
     void switchBackRequested();
     void selectionChanged(const PkList<KoShape*> &shapes);
     void currentLayerChanged(const KoShapeLayer *layer);

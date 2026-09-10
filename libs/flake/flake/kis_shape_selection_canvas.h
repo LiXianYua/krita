@@ -42,7 +42,7 @@ public:
     QWidget* canvasWidget() override;
     const QWidget* canvasWidget() const override;
     KoUnit unit() const override;
-    void setCursor(const QCursor &) override {}
+    void setCursor(KisCanvasCursorToken) override {}
 private:
     PkScopedPointer<KoShapeManager> m_shapeManager;
     PkScopedPointer<KoSelectedShapesProxy> m_selectedShapesProxy;

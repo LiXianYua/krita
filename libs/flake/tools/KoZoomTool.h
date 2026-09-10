@@ -11,7 +11,7 @@
 
 #include "KoInteractionTool.h"
 
-#include <QCursor>
+#include "KoCanvasCursorHost.h"
 
 class KoCanvasBase;
 class KoCanvasController;
@@ -44,8 +44,8 @@ private:
     void updateCursor(bool swap);
 
     KoCanvasController *m_controller;
-    QCursor m_inCursor;
-    QCursor m_outCursor;
+    KisCanvasCursorToken m_inCursor;
+    KisCanvasCursorToken m_outCursor;
     bool m_zoomInMode;
 };
 

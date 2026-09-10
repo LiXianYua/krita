@@ -140,7 +140,7 @@ public:
 
     void gridSize(PkPointF *, PkSizeF *) const override {}
     bool snapToGrid() const override { return false; }
-    void setCursor(const QCursor &) override {}
+    void setCursor(KisCanvasCursorToken) override {}
     void addCommand(KUndo2Command *) override {}
     KoShapeManager *shapeManager() const override { return nullptr; }
     KoSelectedShapesProxy *selectedShapesProxy() const override { return nullptr; }
@@ -267,8 +267,12 @@ public:
     QCursor toolClosedHandCursor() const override { return {}; }
     QCursor toolForbiddenCursor() const override { return {}; }
     QCursor toolLoadCursor(const PkString &, int, int) const override { return {}; }
-    QCursor loadCursorResource(const PkString &, const PkSize &,
-                               const PkPoint &) const override { return {}; }
+    KisCanvasCursorToken loadCursorResource(const PkString &, const PkSize &,
+                                            const PkPoint &) const override { return {}; }
+    KisCanvasCursorToken toolShapeCursorToken(Pk::CursorShape shape) const override
+    {
+        return toolImportCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
+    }
     KisCanvasCursorToken toolImportCursor(const QCursor &cursor) const override
     {
         ++cursorImportCount;
@@ -324,6 +328,11 @@ public:
         lastAppliedCursor = cursor;
         lastAppliedCursorShape = cursor ? it->second.shape() : defaultCursor.shape();
         ++cursorApplyCount;
+    }
+    bool toolOwnsCursor(KisCanvasCursorToken cursor) const override
+    {
+        ++cursorOwnershipQueryCount;
+        return KisCanvasToolServices::toolOwnsCursor(cursor);
     }
     void toolSetCursorPosition(const PkPoint &position) override
     {
@@ -422,6 +431,7 @@ public:
     bool priorityEventFilterAttached {false};
     mutable int cursorImportCount {0};
     mutable int cursorThreadFailureCount {0};
+    mutable int cursorOwnershipQueryCount {0};
     int cursorApplyCount {0};
     int cursorRejectCount {0};
     KisCanvasCursorToken lastAppliedCursor;
@@ -449,8 +459,8 @@ public:
     void setPreviewAngle(qreal angle) { m_angle = angle; }
     void applyStoredCursor() { resetCursorStyle(); }
     bool applyCursorToken(KisCanvasCursorToken token) { return KoToolBase::useCursor(token); }
+    void applyShapeCursor(Pk::CursorShape shape) { KoToolBase::useCursor(shape); }
     KisCanvasCursorToken storedCursorToken() const { return cursor(); }
-    QCursor compatibilityCursor() const { return KoToolBase::cursor(); }
 
 private:
     void finishRect(const PkRectF &, qreal, qreal) override {}
@@ -1096,32 +1106,70 @@ void KisAsyncColorSamplerHelperTest::toolCursorTokenPersistsAndApplies()
     EllipsePreviewCanvas canvas;
     EllipsePreviewTool tool(&canvas);
     KisCanvasCursorToken notifiedToken;
-    QCursor notifiedCursor;
     int tokenNotificationCount = 0;
-    int compatibilityNotificationCount = 0;
     PkObject::connect(&tool, &KoToolBase::cursorTokenChanged, &tool,
                       [&](KisCanvasCursorToken token) {
                           notifiedToken = token;
                           ++tokenNotificationCount;
                       });
-    PkObject::connect(&tool, &KoToolBase::cursorChanged, &tool,
-                      [&](const QCursor &cursor) {
-                          notifiedCursor = cursor;
-                          ++compatibilityNotificationCount;
-                      });
 
     QCOMPARE(canvas.cursorImportCount, 1);
     QCOMPARE(canvas.cursorApplyCount, 0);
+    QCOMPARE(canvas.cursorOwnershipQueryCount, 0);
     QVERIFY(tool.storedCursorToken());
 
     tool.applyStoredCursor();
 
+    // One successful change publishes exactly one token notification and makes
+    // exactly one host ownership decision followed by exactly one host apply.
+    // The applied shape is observed on the host: the cursor value no longer
+    // exists on the tool side.
     QCOMPARE(canvas.cursorApplyCount, 1);
+    QCOMPARE(canvas.cursorOwnershipQueryCount, 1);
     QCOMPARE(canvas.lastAppliedCursor, tool.storedCursorToken());
+    QCOMPARE(canvas.lastAppliedCursorShape, QCursor().shape());
     QCOMPARE(notifiedToken, tool.storedCursorToken());
-    QCOMPARE(notifiedCursor.shape(), QCursor().shape());
     QCOMPARE(tokenNotificationCount, 1);
-    QCOMPARE(compatibilityNotificationCount, 1);
+}
+
+void KisAsyncColorSamplerHelperTest::toolShapeCursorReachesHostAsThatShape()
+{
+    EllipsePreviewCanvas canvas;
+    EllipsePreviewTool tool(&canvas);
+
+    const int importsBefore = canvas.cursorImportCount;
+    int tokenNotificationCount = 0;
+    PkObject::connect(&tool, &KoToolBase::cursorTokenChanged, &tool,
+                      [&](KisCanvasCursorToken) { ++tokenNotificationCount; });
+
+    // KoToolBase::useCursor(Pk::CursorShape) is the entry point the retained
+    // call sites use; it can only reach the canvas through
+    // KoCanvasCursorHost::toolShapeCursorToken(). ForbiddenCursor is
+    // deliberately not ArrowCursor: a host that fails to answer for the shape
+    // returns token zero, which restores the platform default arrow, and both
+    // the token asserted below and the observed shape would then be the
+    // default one instead.
+    tool.applyShapeCursor(Pk::ForbiddenCursor);
+
+    const KisCanvasCursorToken token = tool.cursorToken();
+    QVERIFY(token);
+    QCOMPARE(canvas.cursorImportCount, importsBefore + 1);
+    QCOMPARE(canvas.lastAppliedCursor, token);
+    QCOMPARE(canvas.lastAppliedCursorShape, Qt::ForbiddenCursor);
+    QCOMPARE(tokenNotificationCount, 1);
+
+    // The host's own snapshot oracle must agree about what it holds.
+    QVERIFY(canvas.toolCursorSnapshot(token));
+    QCOMPARE(canvas.toolCursorSnapshot(token)->shape(), Qt::ForbiddenCursor);
+
+    // The answer is per shape, not one cached default: a second shape yields a
+    // different token that is observable as that other shape.
+    tool.applyShapeCursor(Pk::CrossCursor);
+    const KisCanvasCursorToken secondToken = tool.cursorToken();
+    QVERIFY(secondToken);
+    QVERIFY(secondToken != token);
+    QCOMPARE(canvas.lastAppliedCursor, secondToken);
+    QCOMPARE(canvas.lastAppliedCursorShape, Qt::CrossCursor);
 }
 
 void KisAsyncColorSamplerHelperTest::toolCursorRejectsForeignTokenWithoutObservableMutation()
@@ -1133,21 +1181,26 @@ void KisAsyncColorSamplerHelperTest::toolCursorRejectsForeignTokenWithoutObserva
         foreignHost.toolImportCursor(QCursor(Qt::CrossCursor));
 
     const KisCanvasCursorToken retainedToken = tool.storedCursorToken();
-    const Qt::CursorShape retainedCursorShape = tool.compatibilityCursor().shape();
+    const KisCanvasCursorToken retainedAppliedToken = canvas.lastAppliedCursor;
+    const Qt::CursorShape retainedAppliedShape = canvas.lastAppliedCursorShape;
     int tokenNotificationCount = 0;
-    int compatibilityNotificationCount = 0;
     PkObject::connect(&tool, &KoToolBase::cursorTokenChanged, &tool,
                       [&](KisCanvasCursorToken) { ++tokenNotificationCount; });
-    PkObject::connect(&tool, &KoToolBase::cursorChanged, &tool,
-                      [&](const QCursor &) { ++compatibilityNotificationCount; });
 
     QVERIFY(!tool.applyCursorToken(foreignToken));
+
+    // One failed change makes its host ownership decision and stops there: no
+    // apply, no rejection of an owned token, no token notification, and nothing
+    // observable on the host changed.
+    QCOMPARE(canvas.cursorOwnershipQueryCount, 1);
+    QVERIFY(!canvas.toolOwnsCursor(foreignToken));
+    QVERIFY(canvas.toolOwnsCursor(retainedToken));
     QCOMPARE(tool.storedCursorToken(), retainedToken);
-    QCOMPARE(tool.compatibilityCursor().shape(), retainedCursorShape);
+    QCOMPARE(canvas.lastAppliedCursor, retainedAppliedToken);
+    QCOMPARE(canvas.lastAppliedCursorShape, retainedAppliedShape);
     QCOMPARE(canvas.cursorApplyCount, 0);
     QCOMPARE(canvas.cursorRejectCount, 0);
     QCOMPARE(tokenNotificationCount, 0);
-    QCOMPARE(compatibilityNotificationCount, 0);
 }
 
 void KisAsyncColorSamplerHelperTest::cursorTokenContractCoversZeroIdentityScopeAndThreadAffinity()

@@ -23,6 +23,8 @@
 #include "KoShapeManager.h"
 #include "KoSelectedShapesProxy.h"
 #include "KoCanvasBase.h"
+#include "KoCanvasActionHost.h"
+#include "KoCanvasCursorHost.h"
 #include "KoPointerEvent.h"
 #include "tools/KoZoomTool.h"
 #include "KoToolFactoryBase.h"
@@ -35,7 +37,6 @@
 #include <PkStringList.h>
 #include <FlakeDebug.h>
 
-#include <QAction>
 #include <climits>
 #include <stack>
 
@@ -57,9 +58,9 @@ public:
         toolActions.clear();
         disabledGlobalActions.clear();
 
-        QObject *windowActionCollection = canvas->actionCollection();
+        auto *actionHost = dynamic_cast<KoCanvasActionHost *>(canvas);
 
-        if (!windowActionCollection) {
+        if (!actionHost) {
             qWarning() << "We haven't got an action collection";
             return;
         }
@@ -70,38 +71,37 @@ public:
 
 //        qDebug() << "................... activating tool" << activeToolId;
 
-        Q_FOREACH(QAction *action, windowActionCollection->findChildren<QAction *>()) {
+        Q_FOREACH(const KisHostActionIdentity &action, actionHost->hostActions()) {
 
-            if (action->property("tool_action").isValid()) {
-                PkStringList tools = toPkStringList(action->property("tool_action").toStringList());
+            if (action.carriesToolAction) {
 
-                if (KoToolRegistry::instance()->keys().contains(toPkString(action->objectName()))) {
+                if (KoToolRegistry::instance()->keys().contains(action.objectName)) {
                     //qDebug() << "This action needs to be enabled!";
-                    action->setEnabled(true);
-                    toolActions << toPkString(action->objectName());
+                    actionHost->setHostActionEnabled(action.objectName, true);
+                    toolActions << action.objectName;
                 }
                 else {
-                    if (tools.contains(activeToolId) || action->property("always_enabled").toBool()) {
+                    if (action.toolIds.contains(activeToolId) || action.alwaysEnabled) {
                         //qDebug() << "\t\tenabling";
-                        action->setEnabled(true);
-                        toolActions << toPkString(action->objectName());
+                        actionHost->setHostActionEnabled(action.objectName, true);
+                        toolActions << action.objectName;
                     }
                     else {
                         //qDebug() << "\t\tDISabling";
-                        action->setDisabled(true);
+                        actionHost->setHostActionEnabled(action.objectName, false);
                     }
                 }
             }
             else {
-                globalActions << toPkString(action->objectName());
+                globalActions << action.objectName;
             }
 
-            for (const auto &shortcut : KoToolManagerShortcuts::fromHostAction(*action)) {
+            for (const auto &shortcut : action.shortcutChords) {
                 if (shortcutMap.contains(shortcut)) {
-                    shortcutMap[shortcut].append(toPkString(action->objectName()));
+                    shortcutMap[shortcut].append(action.objectName);
                 }
                 else {
-                    shortcutMap[shortcut] = PkStringList() << toPkString(action->objectName());
+                    shortcutMap[shortcut] = PkStringList() << action.objectName;
                 }
             }
         }
@@ -119,7 +119,7 @@ public:
                 Q_FOREACH(const PkString &action, actions) {
                     if (toolActionFound && globalActions.contains(action)) {
                         //qDebug() << "\tdisabling global action" << action;
-                        windowActionCollection->findChild<QAction *>(toQString(action))->setEnabled(false);
+                        actionHost->setHostActionEnabled(action, false);
                         disabledGlobalActions << action;
                     }
                 }
@@ -137,15 +137,18 @@ public:
 
         //qDebug() << "............... deactivating previous tool because activating" << activeToolId;
 
-        QObject *windowActionCollection = canvas->actionCollection();
+        auto *actionHost = dynamic_cast<KoCanvasActionHost *>(canvas);
+
+        if (!actionHost)
+            return;
 
         Q_FOREACH(const PkString &action, toolActions) {
             //qDebug() << "disabling" << action;
-            windowActionCollection->findChild<QAction *>(toQString(action))->setDisabled(true);
+            actionHost->setHostActionEnabled(action, false);
         }
         Q_FOREACH(const PkString &action, disabledGlobalActions) {
             //qDebug() << "enabling" << action;
-            windowActionCollection->findChild<QAction *>(toQString(action))->setEnabled(true);
+            actionHost->setHostActionEnabled(action, true);
         }
     }
 
@@ -468,8 +471,8 @@ void KoToolManager::Private::setup()
 void KoToolManager::Private::connectActiveTool()
 {
     if (canvasData->activeTool) {
-        PkObject::connect(canvasData->activeTool, &KoToolBase::cursorChanged, q,
-                [this](const QCursor &cursor) { this->updateCursor(cursor); });
+        PkObject::connect(canvasData->activeTool, &KoToolBase::cursorTokenChanged, q,
+                [this](KisCanvasCursorToken cursor) { this->updateCursor(cursor); });
         PkObject::connect(canvasData->activeTool, &KoToolBase::activateTool, q,
                 [this](const PkString &id) { q->switchToolRequested(id); });
         PkObject::connect(canvasData->activeTool, &KoToolBase::statusTextChanged, q,
@@ -493,7 +496,14 @@ void KoToolManager::Private::connectActiveTool()
     }
 
     // we expect the tool to Q_EMIT a cursor on activation.
-    updateCursor(QCursor(Pk::BlankCursor));
+    // 语义判断点：现状无条件 setCursor(QCursor(Pk::BlankCursor))，作用是先复位上一把工具
+    // 留下的游标，再等新工具自己 emit。blank 只能由宿主产出——canvas 未实现
+    // KoCanvasCursorHost 时没有任何可应用的游标，宿主动作整体不发生，与
+    // KoCanvasInputMethodHost 的无宿主形态一致。这里不能改调 setCursor(零 token)：零
+    // token 的语义是「平台默认游标」而非 blank，那会静默换成一个不同的游标。
+    if (auto *cursorHost = dynamic_cast<KoCanvasCursorHost *>(canvasData->canvas->canvas())) {
+        updateCursor(cursorHost->toolShapeCursorToken(Pk::BlankCursor));
+    }
 }
 
 
@@ -736,7 +746,7 @@ void KoToolManager::Private::attachCanvas(KoCanvasController *controller)
     q->changedCanvas(canvasData ? canvasData->canvas->canvas() : 0);
 }
 
-void KoToolManager::Private::updateCursor(const QCursor &cursor)
+void KoToolManager::Private::updateCursor(KisCanvasCursorToken cursor)
 {
     Q_ASSERT(canvasData);
     Q_ASSERT(canvasData->canvas);

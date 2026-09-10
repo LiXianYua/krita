@@ -17,7 +17,7 @@ public:
     ~KoPathToolFactory() override;
 
     KoToolBase *createTool(KoCanvasBase *canvas) override;
-    PkList<QAction *> createActionsImpl() override;
+    PkList<KisHostActionSpec> createActionsImpl() override;
 };
 
 #endif

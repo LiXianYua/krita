@@ -129,7 +129,7 @@ void KisToolMove::resetCursorStyle()
     if (canMove) {
         KisTool::resetCursorStyle();
     } else {
-       useCursor(Qt::ForbiddenCursor);
+       useCursor(Pk::ForbiddenCursor);
     }
 }
 
@@ -333,7 +333,7 @@ void KisToolMove::slotStrokeStartedEmpty()
 void KisToolMove::slotStrokePickedLayers(const KisNodeList &nodes)
 {
     if (nodes.isEmpty()) {
-        useCursor(Qt::ForbiddenCursor);
+        useCursor(Pk::ForbiddenCursor);
     } else {
         KisTool::resetCursorStyle();
     }

@@ -15,6 +15,8 @@
 
 #include <QCursor>
 
+#include <KisCanvasCursorToken.h>
+
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
 #include <KoCanvasResourcesIds.h>
@@ -72,7 +74,7 @@ public:
         resourceValue = value;
         ++resourceChangeCount;
     }
-    void useCursor(const QCursor &cursor) { cursorChanged(cursor); }
+    void useCursor(KisCanvasCursorToken cursor) { cursorTokenChanged(cursor); }
     virtual void requestUpdateOutline(const PkPointF &, const KoPointerEvent *) {}
     int getOutlinePath() const { return 0; }
 
@@ -183,7 +185,7 @@ public:
 
     void gridSize(PkPointF *, PkSizeF *) const override {}
     bool snapToGrid() const override { return false; }
-    void setCursor(const QCursor &) override {}
+    void setCursor(KisCanvasCursorToken) override {}
     void addCommand(KUndo2Command *) override {}
     KoShapeManager *shapeManager() const override { return m_shapeManager.data(); }
     KoSelectedShapesProxy *selectedShapesProxy() const override
@@ -345,7 +347,7 @@ void KisDynamicDelegatedToolTest::forwardsAllNotificationsAcrossReplacement()
     DynamicTool tool(nullptr);
     PkObject observer;
     PkString activationId;
-    QCursor cursor;
+    KisCanvasCursorToken cursor;
     bool hasSelection = false;
     PkString statusText;
     int activationCount = 0;
@@ -358,8 +360,8 @@ void KisDynamicDelegatedToolTest::forwardsAllNotificationsAcrossReplacement()
                           activationId = value;
                           ++activationCount;
                       });
-    PkObject::connect(&tool, &KoToolBase::cursorChanged,
-                      &observer, [&](const QCursor &value) {
+    PkObject::connect(&tool, &KoToolBase::cursorTokenChanged,
+                      &observer, [&](KisCanvasCursorToken value) {
                           cursor = value;
                           ++cursorCount;
                       });
@@ -378,12 +380,12 @@ void KisDynamicDelegatedToolTest::forwardsAllNotificationsAcrossReplacement()
     PkPointer<DelegateTool> firstGuard(first);
     tool.setDelegateTool(first);
     first->activateTool("first-tool");
-    first->cursorChanged(QCursor(Qt::CrossCursor));
+    first->cursorTokenChanged(KisCanvasCursorToken(1));
     first->selectionChanged(true);
     first->statusTextChanged("first-status");
 
     QCOMPARE(activationId, PkString("first-tool"));
-    QCOMPARE(cursor.shape(), Qt::CrossCursor);
+    QCOMPARE(cursor.value(), std::uint64_t(1));
     QVERIFY(hasSelection);
     QCOMPARE(statusText, PkString("first-status"));
     QCOMPARE(activationCount, 1);
@@ -396,12 +398,12 @@ void KisDynamicDelegatedToolTest::forwardsAllNotificationsAcrossReplacement()
     tool.setDelegateTool(second);
     QVERIFY(firstGuard.isNull());
     second->activateTool("second-tool");
-    second->cursorChanged(QCursor(Qt::WaitCursor));
+    second->cursorTokenChanged(KisCanvasCursorToken(2));
     second->selectionChanged(false);
     second->statusTextChanged("second-status");
 
     QCOMPARE(activationId, PkString("second-tool"));
-    QCOMPARE(cursor.shape(), Qt::WaitCursor);
+    QCOMPARE(cursor.value(), std::uint64_t(2));
     QVERIFY(!hasSelection);
     QCOMPARE(statusText, PkString("second-status"));
     QCOMPARE(activationCount, 2);
@@ -495,8 +497,8 @@ void KisDynamicDelegatedToolTest::ownerNamesAndProducerCursorDeliveryUsePkPaths(
         &rectangle, &ellipse, &path, &lasso, &brush
     };
     for (std::size_t i = 0; i < producers.size(); ++i) {
-        PkObject::connect(producers[i], &KoToolBase::cursorChanged,
-                          &observer, [&, i](const QCursor &) {
+        PkObject::connect(producers[i], &KoToolBase::cursorTokenChanged,
+                          &observer, [&, i](KisCanvasCursorToken) {
                               ++cursorDeliveries[i];
                           });
     }
@@ -561,8 +563,8 @@ void KisDynamicDelegatedToolTest::concreteDelegateReplacementPreservesMaskAndRes
     PkPointer<KisLassoEnclosingProducer> firstProducerGuard(firstProducer);
     PkObject observer;
     int firstResourceDeliveryCount = 0;
-    PkObject::connect(firstProducer, &KoToolBase::cursorChanged,
-                      &observer, [&](const QCursor &) {
+    PkObject::connect(firstProducer, &KoToolBase::cursorTokenChanged,
+                      &observer, [&](KisCanvasCursorToken) {
                           ++firstResourceDeliveryCount;
                       });
 
@@ -589,8 +591,8 @@ void KisDynamicDelegatedToolTest::concreteDelegateReplacementPreservesMaskAndRes
         reinterpret_cast<KisRectangleEnclosingProducer *>(tool.delegateTool());
     QVERIFY(replacementProducer);
     int replacementResourceDeliveryCount = 0;
-    PkObject::connect(replacementProducer, &KoToolBase::cursorChanged,
-                      &observer, [&](const QCursor &) {
+    PkObject::connect(replacementProducer, &KoToolBase::cursorTokenChanged,
+                      &observer, [&](KisCanvasCursorToken) {
                           ++replacementResourceDeliveryCount;
                       });
 

@@ -18,40 +18,28 @@ KisToolPaintFactoryBase::~KisToolPaintFactoryBase()
 {
 }
 
-PkList<QAction *> KisToolPaintFactoryBase::createActionsImpl()
+PkList<KisHostActionSpec> KisToolPaintFactoryBase::createActionsImpl()
 {
-    PkList<QAction *> actions;
+    PkList<KisHostActionSpec> actions;
 
-    QAction *increaseBrushSize = createHostAction(
+    actions << createHostAction(
         "Increase Brush Size", "increase_brush_size", Pk::Key_BracketRight);
 
-    actions << increaseBrushSize;
-
-    QAction *decreaseBrushSize = createHostAction(
+    actions << createHostAction(
         "Decrease Brush Size", "decrease_brush_size", Pk::Key_BracketLeft);
 
-    actions << decreaseBrushSize;
-
-    QAction *rotateBrushTipClockwise = createHostAction(
+    actions << createHostAction(
         "Rotate brush tip clockwise", "rotate_brush_tip_clockwise");
 
-    actions << rotateBrushTipClockwise;
-
-    QAction *rotateBrushTipClockwisePrecise = createHostAction(
+    actions << createHostAction(
         "Rotate brush tip clockwise (precise)", "rotate_brush_tip_clockwise_precise");
 
-    actions << rotateBrushTipClockwisePrecise;
-
-    QAction *rotateBrushTipCounterClockwise = createHostAction(
+    actions << createHostAction(
         "Rotate brush tip counter-clockwise", "rotate_brush_tip_counter_clockwise");
 
-    actions << rotateBrushTipCounterClockwise;
-
-    QAction *rotateBrushTipCounterClockwisePrecise = createHostAction(
+    actions << createHostAction(
         "Rotate brush tip counter-clockwise (precise)",
         "rotate_brush_tip_counter_clockwise_precise");
-
-    actions << rotateBrushTipCounterClockwisePrecise;
 
     return actions;
 }

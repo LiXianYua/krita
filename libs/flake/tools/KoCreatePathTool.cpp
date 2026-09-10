@@ -458,7 +458,7 @@ void KoCreatePathTool::activate(const PkSet<KoShape*> &shapes)
     KoToolBase::activate(shapes);
 
     Q_D(KoCreatePathTool);
-    useCursor(Qt::ArrowCursor);
+    useCursor(Pk::ArrowCursor);
 
     // retrieve the actual global handle radius
     d->handleRadius = handleRadius();

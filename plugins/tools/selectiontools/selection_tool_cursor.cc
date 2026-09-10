@@ -77,3 +77,9 @@ QCursor selectionToolCursor(const KisCanvasToolServices *host,
 {
     return host->toolLoadCursor(PkString(descriptor.name.data()), descriptor.hotspotX, descriptor.hotspotY);
 }
+
+KisCanvasCursorToken selectionToolCursorToken(const KisCanvasToolServices *host,
+                                              const SelectionToolCursorDescriptor &descriptor)
+{
+    return host->toolLoadCursorToken(PkString(descriptor.name.data()), descriptor.hotspotX, descriptor.hotspotY);
+}
