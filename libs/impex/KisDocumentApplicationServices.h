@@ -22,6 +22,7 @@
 
 #include <KisCumulativeUndoData.h>
 #include <KoCanvasResourcesInterface.h>
+#include <PkClipboardData.h>
 #include <kis_types.h>
 
 #include "kritaimpex_export.h"
@@ -46,14 +47,12 @@ public:
 class KRITAIMPEX_EXPORT KisDocumentApplicationServices
 {
 public:
-    struct ClipboardData {
-        bool hasText = false;
-        bool hasHtml = false;
-        bool hasSvg = false;
-        PkString text;
-        PkString html;
-        PkByteArray svg;
-    };
+    /**
+     * The payload value is owned by flake, the lowest layer the producer and
+     * this service both already depend on. This name stays as a source-level
+     * alias so every existing consumer keeps compiling unchanged.
+     */
+    using ClipboardData = PkClipboardData;
 
     enum class InputMethodAction {
         Click

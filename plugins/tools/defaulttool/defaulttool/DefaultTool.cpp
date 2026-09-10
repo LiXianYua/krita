@@ -28,6 +28,7 @@
 #include <KoShapeLayer.h>
 #include <KoPathShape.h>
 #include <KoDrag.h>
+#include <KisDocumentApplicationServices.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
 #include <KoCanvasResourcesIds.h>
@@ -1367,7 +1368,10 @@ void DefaultTool::copy() const
     if (!shapes.isEmpty()) {
         KoDrag drag;
         drag.setSvg(shapes);
-        drag.addToClipboard();
+
+        // The kernel produces the payload; the application-owned clipboard
+        // service is the side that hands it to the host.
+        KisDocumentApplicationServices::instance()->setClipboardData(drag.takeClipboardData());
     }
 }
 

@@ -8,6 +8,7 @@
 
 #include <KoDrag.h>
 #include <KoSvgPaste.h>
+#include <PkClipboardData.h>
 #include <PkFlakeBridge.h>
 #include <PkFileStream.h>
 
@@ -16,9 +17,6 @@
 #include <svg/SvgParser.h>
 #include <KoDocumentResourceManager.h>
 #include <KoShapeGroup.h>
-#include <QApplication>
-#include <QClipboard>
-#include <QMimeData>
 
 #include <qimage_test_util.h>
 
@@ -50,14 +48,50 @@ void TestKoDrag::test()
         QCOMPARE(KoShape::absoluteOutlineRect(shapes).toAlignedRect(), PkRect(6,6,19,18));
     }
 
-    KoDrag drag;
-    drag.setSvg(shapes);
-    drag.addToClipboard();
+    {
+        // A KoDrag that was handed nothing carries an empty payload: every
+        // format flag is unset and no field holds bytes.
+        KoDrag empty;
+        const PkClipboardData payload = empty.takeClipboardData();
+        QVERIFY(!payload.hasText);
+        QVERIFY(!payload.hasHtml);
+        QVERIFY(!payload.hasSvg);
+        QVERIFY(payload.text.isEmpty());
+        QVERIFY(payload.html.isEmpty());
+        QVERIFY(payload.svg.isEmpty());
+    }
 
-    const QMimeData *mimeData = QApplication::clipboard()->mimeData();
-    const bool hasSvg = mimeData->hasFormat(QStringLiteral("image/svg+xml"));
-    const QByteArray svg = mimeData->data(QStringLiteral("image/svg+xml"));
-    KoSvgPaste paste(PkByteArray(svg.constData(), svg.size()), hasSvg);
+    {
+        // The setData() path fills the same payload the format flags index.
+        KoDrag dataDrag;
+        dataDrag.setData(PkString("text/plain"), PkString("Hello").toUtf8());
+        dataDrag.setData(PkString("text/html"), PkString("<p>Hello</p>").toUtf8());
+
+        const PkClipboardData payload = dataDrag.takeClipboardData();
+        QVERIFY(payload.hasText);
+        QVERIFY(payload.hasHtml);
+        QVERIFY(!payload.hasSvg);
+        QCOMPARE(payload.text, PkString("Hello"));
+        QCOMPARE(payload.html, PkString("<p>Hello</p>"));
+        QVERIFY(payload.svg.isEmpty());
+    }
+
+    KoDrag drag;
+    QVERIFY(drag.setSvg(shapes));
+
+    const PkClipboardData payload = drag.takeClipboardData();
+    QVERIFY(payload.hasSvg);
+    QVERIFY(!payload.svg.isEmpty());
+
+    {
+        // Taking the payload transfers its ownership: the KoDrag no longer
+        // holds it, and nothing was refilled in between.
+        const PkClipboardData secondTake = drag.takeClipboardData();
+        QVERIFY(!secondTake.hasSvg);
+        QVERIFY(secondTake.svg.isEmpty());
+    }
+
+    KoSvgPaste paste(payload.svg, payload.hasSvg);
     QVERIFY(paste.hasShapes());
 
     PkList<KoShape*> newShapes = paste.fetchShapes(PkRectF(0,0,15,15) /* px */, 144 /* ppi */, &fragmentSize);

@@ -8,11 +8,8 @@
 #include "KoDrag.h"
 #include <PkFlakeBridge.h>
 
-#include <QApplication>
 #include <PkMemoryStream.h>
 #include <PkByteArray.h>
-#include <QClipboard>
-#include <QMimeData>
 #include <PkString.h>
 
 #include <FlakeDebug.h>
@@ -30,9 +27,7 @@
 
 class KoDragPrivate {
 public:
-    KoDragPrivate() : mimeData(0) { }
-    ~KoDragPrivate() { delete mimeData; }
-    QMimeData *mimeData;
+    PkClipboardData payload;
 };
 
 KoDrag::KoDrag()
@@ -78,23 +73,23 @@ bool KoDrag::setSvg(const PkList<KoShape *> originalShapes)
 
 void KoDrag::setData(const PkString &mimeType, const PkByteArray &data)
 {
-    if (d->mimeData == 0) {
-        d->mimeData = new QMimeData();
+    // The payload models exactly the formats the clipboard contract carries.
+    // A mime type outside that set has no slot here and is not representable.
+    if (mimeType == PkString("image/svg+xml")) {
+        d->payload.hasSvg = true;
+        d->payload.svg = data;
+    } else if (mimeType == PkString("text/html")) {
+        d->payload.hasHtml = true;
+        d->payload.html = PkString::fromUtf8(data);
+    } else if (mimeType == PkString("text/plain")) {
+        d->payload.hasText = true;
+        d->payload.text = PkString::fromUtf8(data);
     }
-    d->mimeData->setData(toQString(mimeType), QByteArray(data.data(), int(data.size())));
 }
 
-void KoDrag::addToClipboard()
+PkClipboardData KoDrag::takeClipboardData()
 {
-    if (d->mimeData) {
-        QApplication::clipboard()->setMimeData(d->mimeData);
-        d->mimeData = 0;
-    }
-}
-
-QMimeData * KoDrag::mimeData()
-{
-    QMimeData *mimeData = d->mimeData;
-    d->mimeData = 0;
-    return mimeData;
+    PkClipboardData payload = d->payload;
+    d->payload = PkClipboardData();
+    return payload;
 }

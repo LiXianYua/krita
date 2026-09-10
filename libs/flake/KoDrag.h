@@ -9,11 +9,9 @@
 
 #include "kritaflake_export.h"
 
+#include <PkClipboardData.h>
 #include <PkList.h>
 
-class QMimeData;
-class PkString;
-class PkByteArray;
 class KoDragPrivate;
 class KoShape;
 
@@ -24,6 +22,9 @@ class KoShape;
  * It implements the writing of the body of the document. The
  * setOdf takes care of saving styles and all the other
  * common stuff.
+ *
+ * KoDrag only produces the payload. Installing it into the platform clipboard
+ * is the host's job.
  */
 class KRITAFLAKE_EXPORT KoDrag
 {
@@ -31,9 +32,8 @@ public:
     KoDrag();
     ~KoDrag();
 
-
     /**
-     * Load SVG data into the current mime data
+     * Load SVG data into the current clipboard payload
      */
     bool setSvg(const PkList<KoShape*> shapes);
 
@@ -43,18 +43,13 @@ public:
     void setData(const PkString &mimeType, const PkByteArray &data);
 
     /**
-     * Add the mimeData to the clipboard
-     */
-    void addToClipboard();
-
-    /**
-     * Get the mime data
+     * Get the clipboard payload
      *
-     * This transfers the ownership of the mimeData to the caller
-     *
-     * This function is for use in automated tests
+     * This transfers the ownership of the payload to the caller: the KoDrag no
+     * longer holds it, so a later call without an intervening setSvg()/setData()
+     * returns an empty payload.
      */
-    QMimeData *mimeData();
+    PkClipboardData takeClipboardData();
 
 private:
     KoDragPrivate * const d;
