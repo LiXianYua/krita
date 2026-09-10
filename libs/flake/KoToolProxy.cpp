@@ -8,7 +8,6 @@
 #include "KoToolProxy_p.h"
 
 #include <QApplication>
-#include <QTouchEvent>
 #include <QEvent>
 #include <QKeyEvent>
 #include <QInputMethodEvent>
@@ -315,14 +314,14 @@ void KoToolProxy::mousePressEvent(KoPointerEvent *ev)
     d->isToolPressed = true;
 }
 
-void KoToolProxy::mousePressEvent(QMouseEvent *event, const PkPointF &point)
+void KoToolProxy::mousePressEvent(const PkInputEvent &event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mousePressEvent(&ev);
     d->lastPointerEvent = ev.detachedCopy();
 }
 
-void KoToolProxy::mouseDoubleClickEvent(QMouseEvent *event, const PkPointF &point)
+void KoToolProxy::mouseDoubleClickEvent(const PkInputEvent &event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseDoubleClickEvent(&ev);
@@ -335,7 +334,7 @@ void KoToolProxy::mouseDoubleClickEvent(KoPointerEvent *event)
     mousePressEvent(event);
 }
 
-void KoToolProxy::mouseMoveEvent(QMouseEvent *event, const PkPointF &point)
+void KoToolProxy::mouseMoveEvent(const PkInputEvent &event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseMoveEvent(&ev);
@@ -360,7 +359,7 @@ void KoToolProxy::mouseMoveEvent(KoPointerEvent *event)
     d->checkAutoScroll(*event);
 }
 
-void KoToolProxy::mouseReleaseEvent(QMouseEvent *event, const PkPointF &point)
+void KoToolProxy::mouseReleaseEvent(const PkInputEvent &event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseReleaseEvent(&ev);
@@ -515,22 +514,22 @@ void KoToolProxy::toolChanged(const PkString &toolId)
         this, PkMemberFnKey::from(&KoToolProxy::toolChanged), toolId);
 }
 
-void KoToolProxy::touchEvent(QTouchEvent* event, const PkPointF& point)
+void KoToolProxy::touchEvent(const PkTouchEvent &event, const PkPointF& point)
 {
     // only one "touchpoint" events should be here
     KoPointerEvent ev(event, point);
 
     if (!d->activeTool) return;
 
-    switch (event->touchPointStates())
+    switch (event.touchPointStates())
     {
-    case Qt::TouchPointPressed:
+    case Pk::TouchPointPressed:
         countMultiClick(&ev, KoPointerInputSource::Touch);
         break;
-    case Qt::TouchPointMoved:
+    case Pk::TouchPointMoved:
         d->activeTool->mouseMoveEvent(&ev);
         break;
-    case Qt::TouchPointReleased:
+    case Pk::TouchPointReleased:
         d->activeTool->mouseReleaseEvent(&ev);
         break;
     default: // don't care

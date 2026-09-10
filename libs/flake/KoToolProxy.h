@@ -21,7 +21,6 @@
 #include <PkNamespace.h>
 
 class QAction;
-class QMouseEvent;
 class QKeyEvent;
 class QWheelEvent;
 // Upstream relied on the real `<QObject>` to declare QEvent transitively. The
@@ -37,10 +36,11 @@ class QInputMethodEvent;
 class KoPointerEvent;
 class KoInputDevice;
 class PkTabletEvent;
+class PkInputEvent;
+class PkTouchEvent;
 class QDragMoveEvent;
 class QDragLeaveEvent;
 class QDropEvent;
-class QTouchEvent;
 class QFocusEvent;
 class PkPainter;
 class PkPointF;
@@ -95,19 +95,19 @@ public:
     void tabletEvent(const KoInputDevice &id, const PkTabletEvent &event, const PkPointF &point);
 
     /// Forwarded to the current KoToolBase
-    void mousePressEvent(QMouseEvent *event, const PkPointF &point);
+    void mousePressEvent(const PkInputEvent &event, const PkPointF &point);
     void mousePressEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
-    void mouseDoubleClickEvent(QMouseEvent *event, const PkPointF &point);
+    void mouseDoubleClickEvent(const PkInputEvent &event, const PkPointF &point);
     void mouseDoubleClickEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
-    void mouseMoveEvent(QMouseEvent *event, const PkPointF &point);
+    void mouseMoveEvent(const PkInputEvent &event, const PkPointF &point);
     void mouseMoveEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
-    void mouseReleaseEvent(QMouseEvent *event, const PkPointF &point);
+    void mouseReleaseEvent(const PkInputEvent &event, const PkPointF &point);
     void mouseReleaseEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
@@ -174,7 +174,7 @@ public:
     /// Set the new active tool.
     virtual void setActiveTool(KoToolBase *tool);
 
-    void touchEvent(QTouchEvent* event, const PkPointF& point);
+    void touchEvent(const PkTouchEvent &event, const PkPointF& point);
 
     KoPointerEvent* lastDeliveredPointerEvent() const;
 
