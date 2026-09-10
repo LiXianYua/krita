@@ -7,16 +7,6 @@
 #include "KoToolProxy.h"
 #include "KoToolProxy_p.h"
 
-#include <QApplication>
-#include <QEvent>
-#include <QKeyEvent>
-#include <QInputMethodEvent>
-#include <QFocusEvent>
-#include <QDragMoveEvent>
-#include <QDragLeaveEvent>
-#include <QDropEvent>
-#include <QTextFormat>
-
 #include <PkThreadCallQueue.h>
 #include <PkInputEvent.h>
 
@@ -29,6 +19,7 @@
 #include <klocalizedstring.h>
 
 #include "KoToolBase.h"
+#include "KoCanvasPlatformHost.h"
 #include "KoPointerEvent.h"
 #include "KoInputDevice.h"
 #include "KoToolManager_p.h"
@@ -48,51 +39,17 @@
 
 namespace {
 
-void syncAcceptedState(const PkToolEvent &source, QEvent *target)
+/**
+ * The platform's double-click interval, read from the canvas platform host.
+ * A canvas with no host attached (bare or headless) must not crash, and the
+ * only definition of the default lives in KoCanvasPlatformHost.h.
+ */
+int platformDoubleClickInterval(KoCanvasController *controller)
 {
-    source.isAccepted() ? target->accept() : target->ignore();
-}
-
-PkToolInputMethodTextFormat toolInputMethodTextFormat(const QTextCharFormat &format)
-{
-    PkToolInputMethodTextFormat result;
-    if (format.hasProperty(QTextFormat::FontUnderline)) {
-        result.underline = format.property(QTextFormat::FontUnderline).toBool();
-    }
-    if (format.hasProperty(QTextFormat::FontOverline)) {
-        result.overline = format.property(QTextFormat::FontOverline).toBool();
-    }
-    if (format.hasProperty(QTextFormat::FontStrikeOut)) {
-        result.strikeOut = format.property(QTextFormat::FontStrikeOut).toBool();
-    }
-    if (format.hasProperty(QTextFormat::TextUnderlineStyle)) {
-        const QTextCharFormat::UnderlineStyle style = format.underlineStyle();
-        result.underline = style != QTextCharFormat::NoUnderline;
-        if (style == QTextCharFormat::DotLine) {
-            result.style = PkToolInputMethodLineStyle::Dotted;
-        } else if (style == QTextCharFormat::DashUnderline) {
-            result.style = PkToolInputMethodLineStyle::Dashed;
-        } else if (style == QTextCharFormat::WaveUnderline || style == QTextCharFormat::SpellCheckUnderline) {
-            result.style = PkToolInputMethodLineStyle::Wavy;
-#ifdef Q_OS_MACOS
-            if (style == QTextCharFormat::SpellCheckUnderline) {
-                result.style = PkToolInputMethodLineStyle::Dotted;
-            }
-#endif
-        }
-    }
-    if (format.hasProperty(QTextFormat::BackgroundBrush)) {
-        result.thick = format.background().isOpaque();
-#ifdef Q_OS_LINUX
-        if (result.style == PkToolInputMethodLineStyle::Dashed) {
-            result.style = PkToolInputMethodLineStyle::Solid;
-        }
-#endif
-    }
-    if (!result.underline && !result.overline && !result.strikeOut) {
-        result.underline = true;
-    }
-    return result;
+    auto *host = dynamic_cast<KoCanvasPlatformHost *>(
+        controller ? controller->canvas() : nullptr);
+    static const KoCanvasPlatformHost kDefaultPlatformHost;
+    return (host ? *host : kDefaultPlatformHost).doubleClickInterval();
 }
 
 }
@@ -148,7 +105,7 @@ void KoToolProxyPrivate::checkAutoScroll(const KoPointerEvent &event)
     if (!activeTool->wantsAutoScroll()) return;
     if (!event.isAccepted()) return;
     if (!isToolPressed) return;
-    if (event.buttons() != Qt::LeftButton) return;
+    if (event.buttons() != Pk::LeftButton) return;
 
 
     widgetScrollPointDoc = event.point;
@@ -227,7 +184,7 @@ void KoToolProxy::countMultiClick(KoPointerEvent *ev, KoPointerInputSource sourc
         d->multiClickGlobalPoint = globalPoint;
     }
 
-    if (d->multiClickCount && d->multiClickTimeStamp.elapsed() < QApplication::doubleClickInterval()) {
+    if (d->multiClickCount && d->multiClickTimeStamp.elapsed() < platformDoubleClickInterval(d->controller)) {
         // One more multiclick;
         d->multiClickCount++;
     } else {
@@ -382,31 +339,21 @@ void KoToolProxy::mouseReleaseEvent(KoPointerEvent* event)
     d->isToolPressed = false;
 }
 
-void KoToolProxy::keyPressEvent(QKeyEvent *event)
+void KoToolProxy::keyPressEvent(PkToolKeyEvent &event)
 {
     if (d->activeTool) {
-        PkToolKeyEvent nativeEvent(
-            static_cast<Pk::Key>(event->key()),
-            Pk::KeyboardModifiers(PkFlag(static_cast<int>(event->modifiers()))),
-            event->isAccepted(), event->isAutoRepeat(), toPkString(event->text()));
-        d->activeTool->pkKeyPressEvent(&nativeEvent);
-        nativeEvent.isAccepted() ? event->accept() : event->ignore();
+        d->activeTool->pkKeyPressEvent(&event);
     } else {
-        event->ignore();
+        event.ignore();
     }
 }
 
-void KoToolProxy::keyReleaseEvent(QKeyEvent *event)
+void KoToolProxy::keyReleaseEvent(PkToolKeyEvent &event)
 {
     if (d->activeTool) {
-        PkToolKeyEvent nativeEvent(
-            static_cast<Pk::Key>(event->key()),
-            Pk::KeyboardModifiers(PkFlag(static_cast<int>(event->modifiers()))),
-            event->isAccepted(), event->isAutoRepeat(), toPkString(event->text()));
-        d->activeTool->pkKeyReleaseEvent(&nativeEvent);
-        nativeEvent.isAccepted() ? event->accept() : event->ignore();
+        d->activeTool->pkKeyReleaseEvent(&event);
     } else {
-        event->ignore();
+        event.ignore();
     }
 
     d->isToolPressed = false;
@@ -426,54 +373,22 @@ PkVariant KoToolProxy::inputMethodQuery(Pk::InputMethodQuery query) const
     return PkVariant();
 }
 
-void KoToolProxy::inputMethodEvent(QInputMethodEvent *event)
+void KoToolProxy::inputMethodEvent(PkToolInputMethodEvent &event)
 {
     if (!d->activeTool) return;
-
-    PkToolInputMethodEvent nativeEvent;
-    event->isAccepted() ? nativeEvent.accept() : nativeEvent.ignore();
-    nativeEvent.commitString = toPkString(event->commitString());
-    nativeEvent.preeditString = toPkString(event->preeditString());
-    nativeEvent.replacementStart = event->replacementStart();
-    nativeEvent.replacementLength = event->replacementLength();
-    for (const QInputMethodEvent::Attribute &attribute : event->attributes()) {
-        PkToolInputMethodAttribute nativeAttribute;
-        nativeAttribute.start = attribute.start;
-        nativeAttribute.length = attribute.length;
-        if (attribute.type == QInputMethodEvent::Selection) {
-            nativeAttribute.type = PkToolInputMethodAttributeType::Selection;
-        } else if (attribute.type == QInputMethodEvent::Cursor) {
-            nativeAttribute.type = PkToolInputMethodAttributeType::Cursor;
-        } else if (attribute.type == QInputMethodEvent::TextFormat) {
-            if (attribute.length == 0 || attribute.start < 0 || !attribute.value.isValid()) {
-                continue;
-            }
-            nativeAttribute.type = PkToolInputMethodAttributeType::TextFormat;
-            nativeAttribute.format = toolInputMethodTextFormat(
-                attribute.value.value<QTextFormat>().toCharFormat());
-        } else {
-            continue;
-        }
-        nativeEvent.attributes.append(nativeAttribute);
-    }
-    d->activeTool->inputMethodEvent(&nativeEvent);
-    syncAcceptedState(nativeEvent, event);
+    d->activeTool->inputMethodEvent(&event);
 }
 
-void KoToolProxy::focusInEvent(QFocusEvent *event)
+void KoToolProxy::focusInEvent(PkToolEvent &event)
 {
     if (!d->activeTool) return;
-    PkToolEvent nativeEvent(event->isAccepted());
-    d->activeTool->focusInEvent(&nativeEvent);
-    syncAcceptedState(nativeEvent, event);
+    d->activeTool->focusInEvent(&event);
 }
 
-void KoToolProxy::focusOutEvent(QFocusEvent *event)
+void KoToolProxy::focusOutEvent(PkToolEvent &event)
 {
     if (!d->activeTool) return;
-    PkToolEvent nativeEvent(event->isAccepted());
-    d->activeTool->focusOutEvent(&nativeEvent);
-    syncAcceptedState(nativeEvent, event);
+    d->activeTool->focusOutEvent(&event);
 }
 
 QMenu *KoToolProxy::popupActionsMenu()
@@ -594,28 +509,22 @@ void KoToolProxy::deselect()
         d->activeTool->deselect();
 }
 
-void KoToolProxy::dragMoveEvent(QDragMoveEvent *event, const PkPointF &point)
+void KoToolProxy::dragMoveEvent(PkToolEvent &event, const PkPointF &point)
 {
     if (!d->activeTool) return;
-    PkToolEvent nativeEvent(event->isAccepted());
-    d->activeTool->dragMoveEvent(&nativeEvent, point);
-    syncAcceptedState(nativeEvent, event);
+    d->activeTool->dragMoveEvent(&event, point);
 }
 
-void KoToolProxy::dragLeaveEvent(QDragLeaveEvent *event)
+void KoToolProxy::dragLeaveEvent(PkToolEvent &event)
 {
     if (!d->activeTool) return;
-    PkToolEvent nativeEvent(event->isAccepted());
-    d->activeTool->dragLeaveEvent(&nativeEvent);
-    syncAcceptedState(nativeEvent, event);
+    d->activeTool->dragLeaveEvent(&event);
 }
 
-void KoToolProxy::dropEvent(QDropEvent *event, const PkPointF &point)
+void KoToolProxy::dropEvent(PkToolEvent &event, const PkPointF &point)
 {
     if (!d->activeTool) return;
-    PkToolEvent nativeEvent(event->isAccepted());
-    d->activeTool->dropEvent(&nativeEvent, point);
-    syncAcceptedState(nativeEvent, event);
+    d->activeTool->dropEvent(&event, point);
 }
 
 void KoToolProxy::deleteSelection()
@@ -624,25 +533,30 @@ void KoToolProxy::deleteSelection()
         d->activeTool->deleteSelection();
 }
 
-void KoToolProxy::processEvent(QEvent *e) const
+void KoToolProxy::processEvent() const
 {
     // The host calls this entry for every canvas event. It is the retained
     // input thread's explicit pump for PkTimer and queued tool callbacks.
     PkThreadCallQueue::processPendingCalls();
+}
 
-    if(e->type()==QEvent::ShortcutOverride
-            && d->activeTool
-            && d->activeTool->isInTextMode()
-            && (static_cast<QKeyEvent*>(e)->modifiers()==Qt::NoModifier ||
-                static_cast<QKeyEvent*>(e)->modifiers()==Qt::ShiftModifier
-#ifdef Q_OS_WIN
-            // we should disallow AltGr shortcuts if a text box is in focus
-            || (static_cast<QKeyEvent*>(e)->modifiers()==(Qt::AltModifier | Qt::ControlModifier) &&
-                static_cast<QKeyEvent*>(e)->key() < Qt::Key_Escape)
-#endif
-            )) {
-        e->accept();
+bool KoToolProxy::shortcutOverride(const PkToolKeyEvent &event) const
+{
+    if (!d->activeTool || !d->activeTool->isInTextMode()) {
+        return false;
     }
+
+    if (event.modifiers() == Pk::NoModifier || event.modifiers() == Pk::ShiftModifier) {
+        return true;
+    }
+#ifdef Q_OS_WIN
+    // we should disallow AltGr shortcuts if a text box is in focus
+    if (event.modifiers() == (Pk::AltModifier | Pk::ControlModifier) &&
+        event.key() < Pk::Key_Escape) {
+        return true;
+    }
+#endif
+    return false;
 }
 
 void KoToolProxy::requestUndoDuringStroke()

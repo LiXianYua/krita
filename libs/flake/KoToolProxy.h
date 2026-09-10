@@ -21,27 +21,19 @@
 #include <PkNamespace.h>
 
 class QAction;
-class QKeyEvent;
 class QWheelEvent;
-// Upstream relied on the real `<QObject>` to declare QEvent transitively. The
-// compat routing (pk/signal/compat/QObject) does not, and `processEvent()` only
-// ever takes a pointer, so a forward declaration is all the native compile
-// interface needs. Same form as `libs/flake/KoPointerEvent.h`.
-class QEvent;
 class KoCanvasBase;
 class KoViewConverter;
 class KoToolBase;
 class KoToolProxyPrivate;
-class QInputMethodEvent;
 class KoPointerEvent;
 class KoInputDevice;
 class PkTabletEvent;
 class PkInputEvent;
 class PkTouchEvent;
-class QDragMoveEvent;
-class QDragLeaveEvent;
-class QDropEvent;
-class QFocusEvent;
+class PkToolEvent;
+class PkToolKeyEvent;
+class PkToolInputMethodEvent;
 class PkPainter;
 class PkPointF;
 class QMenu;
@@ -111,10 +103,10 @@ public:
     void mouseReleaseEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
-    void keyPressEvent(QKeyEvent *event);
+    void keyPressEvent(PkToolKeyEvent &event);
 
     /// Forwarded to the current KoToolBase
-    void keyReleaseEvent(QKeyEvent *event);
+    void keyReleaseEvent(PkToolKeyEvent &event);
 
     /// Forwarded to the current KoToolBase
     void explicitUserStrokeEndRequest();
@@ -123,13 +115,13 @@ public:
     PkVariant inputMethodQuery(Pk::InputMethodQuery query) const;
 
     /// Forwarded to the current KoToolBase
-    void inputMethodEvent(QInputMethodEvent *event);
+    void inputMethodEvent(PkToolInputMethodEvent &event);
 
     /// Forwarded to the current KoToolBase
-    void focusInEvent(QFocusEvent *event);
+    void focusInEvent(PkToolEvent &event);
 
     /// Forwarded to the current KoToolBase
-    void focusOutEvent(QFocusEvent *event);
+    void focusOutEvent(PkToolEvent &event);
 
     /// Forwarded to the current KoToolBase
     QMenu* popupActionsMenu();
@@ -140,9 +132,14 @@ public:
     /// Forwarded to the current KoToolBase
     void deleteSelection();
 
-    /// This method gives the proxy a chance to do things. for example it is need to have working singlekey
-    /// shortcuts. call it from the canvas' event function and forward it to QWidget::event() later.
-    void processEvent(QEvent *) const;
+    /// The host calls this once per canvas event. It is the retained input
+    /// thread's explicit pump for PkTimer and queued tool callbacks.
+    void processEvent() const;
+
+    /// The host asks whether the platform's imminent shortcut for this key is
+    /// really the tool's text input. A true return means the host must accept
+    /// the key, so the shortcut does not fire.
+    bool shortcutOverride(const PkToolKeyEvent &event) const;
 
     /// returns true if the current tool holds a selection
     bool hasSelection() const;
@@ -163,13 +160,13 @@ public:
     void deselect();
 
     /// Forwarded to the current KoToolBase
-    void dragMoveEvent(QDragMoveEvent *event, const PkPointF &point);
+    void dragMoveEvent(PkToolEvent &event, const PkPointF &point);
 
     /// Forwarded to the current KoToolBase
-    void dragLeaveEvent(QDragLeaveEvent *event);
+    void dragLeaveEvent(PkToolEvent &event);
 
     /// Forwarded to the current KoToolBase
-    void dropEvent(QDropEvent *event, const PkPointF &point);
+    void dropEvent(PkToolEvent &event, const PkPointF &point);
 
     /// Set the new active tool.
     virtual void setActiveTool(KoToolBase *tool);
