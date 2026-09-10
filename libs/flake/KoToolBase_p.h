@@ -24,7 +24,7 @@ class KoToolBasePrivate
 {
 public:
     KoToolBasePrivate(KoToolBase *qq, KoCanvasBase *canvas_)
-        : currentCursor(Qt::ArrowCursor),
+        : currentCursor(Pk::ArrowCursor),
         q(qq),
         canvas(canvas_),
         isInTextMode(false),

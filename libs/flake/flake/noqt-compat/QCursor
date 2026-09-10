@@ -29,22 +29,31 @@
 // ---- 成员面由编译诊断驱动（native 桶实测，不是照 brief 举例）----
 //
 // 查遍本波目标对象与 `KoToolBase_p.h`、`KoZoomTool.h`、`KoToolManager_p.h`，
-// native 侧对 QCursor 的全部用法只有三种，且都不看值：
-//   1. 当成员声明 `QCursor currentCursor;`（`KoToolBase_p.h:78`）
+// native 侧对 QCursor 的全部用法只有四种，且都不看值：
+//   1. 当成员声明 `QCursor currentCursor;`（`KoToolBase_p.h` 的 KoToolBasePrivate）
 //   2. 按 const 引用传参 / 按值返回（`KoToolBase::useCursor(const QCursor&)`、
 //      `cursor()` 按值返回、`cursorChanged(const QCursor&)` 信号参数、
 //      `KoToolManager::Private::updateCursor(const QCursor&)`）
-//   3. 解引用宿主快照并**拷贝**它（`KoToolBase.cpp:304-306` `d->currentCursor = *snapshot;`）
-// 因此本类只需要「可默认构造 + 可拷贝」。
+//   3. 解引用宿主快照并**拷贝**它（`KoToolBase::useCursor(KisCanvasCursorToken)`
+//      里 `d->currentCursor = *snapshot;`）
+//   4. 由**游标形状值**构造（见下 a 项）
+// 因此本类需要「可默认构造 + 可拷贝 + 可由形状构造」。
 //
-// **本类刻意不提供的两处，是实测出的边界，不是遗漏**：
+// **本类刻意不提供的仅剩 b 一项**（a 项曾刻意不提供，已被实测推翻）：
 //
-//   a) 任何形态的 `QCursor(CursorShape)` 构造。native 侧唯一的产生处是
-//      `KoToolBase.cpp:317` 的 `useCursor(QCursor(static_cast<Qt::CursorShape>(cursorShape)))`
-//      ——它要的是 `Qt::CursorShape` **这个类型**，而 native 桶里 `Qt::` 命名空间
-//      根本不存在（`pk/namespace/compat/` 是空目录，`Qt`→`Pk` 的枚举桥接归
-//      R-27）。**没有任何构造签名能修好那一行**：缺的是 `Qt::` 这个限定名，
-//      不是 QCursor 的成员。故按「没有可达调用点的成员是负债」的规矩不预置。
+//   a) `QCursor(CursorShape)` 构造 —— **已提供**。曾经拒绝它的理由是「native
+//      侧唯一的产生处要的是 `Qt` 这个限定名所指的**类型**，而 native 桶里 `Qt`
+//      命名空间不存在，没有任何构造签名能修好那一行」。
+//      **该理由的两半都已被实测推翻（S-09-g 步 6/9 收口波，2026-09-10）**：
+//      ① `Pk::CursorShape` 在 native 桶**可达**（`pk/namespace/PkNamespace.h`，
+//         与 Qt 逐值同构）；生产侧唯一的形状构造调用点
+//         `KarbonCalligraphyTool.cpp` 用的**本来就是** `Pk::CrossCursor`；
+//      ② **三处可达调用点**需要它：`KoToolBase_p.h` 的 `currentCursor(...)`
+//         初值、`KoToolBase::useCursor(Pk::CursorShape)`、`KoToolManager.cpp` 的
+//         `updateCursor(...)`。缺的从来不是「`Qt` 限定名」，是本类少一个构造。
+//      故按「补全既有面缺项」的纪律补上——与把 `Q_D` 补进
+//      `pk/global/compat/QtGlobal` 同一条纪律，**不是新造机制**。
+//      **取值器仍然不加**：native 桶没有读取调用点，那是负债；游标真值的读取归 M5。
 //
 //   b) 任何取值/比较成员（`operator==`、`pos()`、`hotSpot()`、`pixmap()`…）。
 //      native 侧没有一处读过游标的值。**游标身份的比较语义在 native 侧由
@@ -61,8 +70,16 @@
 #define PK_QCURSOR_ PK_CAT_(Q, Cursor)
 #endif
 
+// ---- 前置包（纪律：每个 compat 垫片都必须先包 compat/QtGlobal）----
+// 本垫片现在要引 Pk 头（下一行），故必须先包 compat/QtGlobal，理由与
+// `pk/global/compat/QtGlobal` 顶部、`pk/geometry/compat/QtGlobal` 顶部写明的
+// 同一条：否则 `#include <QCursor>` 会**绕开** compat/QtGlobal 直达 PkGlobal.h，
+// 随后 pk/test 那份 compat/QtGlobal 再进同一个 TU 时撞 qAbs 重定义。
+#include <QtGlobal>
+#include <PkNamespace.h>
+
 /**
- * 不透明游标句柄。native 侧只传递与拷贝它，从不读值——
+ * 不透明游标句柄。native 侧只传递、拷贝与按形状构造它，从不读值——
  * 身份/比较语义在 `KisCanvasCursorToken` 上。宿主侧（M5）提供真正的游标值。
  */
 class PK_QCURSOR_
@@ -72,4 +89,14 @@ public:
     PK_QCURSOR_(const PK_QCURSOR_ &) = default;
     PK_QCURSOR_ &operator=(const PK_QCURSOR_ &) = default;
     ~PK_QCURSOR_() = default;
+
+    /**
+     * 由游标形状构造。形状值只被**存下**（native 侧没有任何读取调用点），
+     * 真值的读取与平台落地归 M5——所以本类不给取值器。
+     * 不标 explicit：与真 Qt `QCursor(Qt::CursorShape)` 的隐式转换面同形。
+     */
+    PK_QCURSOR_(Pk::CursorShape shape) noexcept : m_shape(shape) {}
+
+private:
+    Pk::CursorShape m_shape = Pk::ArrowCursor;
 };

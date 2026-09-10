@@ -313,7 +313,7 @@ bool KoToolBase::useCursor(KisCanvasCursorToken cursor)
 
 void KoToolBase::useCursor(Pk::CursorShape cursorShape)
 {
-    useCursor(QCursor(static_cast<Qt::CursorShape>(cursorShape)));
+    useCursor(QCursor(cursorShape));
 }
 
 QAction *KoToolBase::action(const PkString &name) const

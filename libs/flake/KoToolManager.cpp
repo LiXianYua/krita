@@ -492,7 +492,7 @@ void KoToolManager::Private::connectActiveTool()
     }
 
     // we expect the tool to Q_EMIT a cursor on activation.
-    updateCursor(Qt::BlankCursor);
+    updateCursor(QCursor(Pk::BlankCursor));
 }
 
 
