@@ -28,6 +28,7 @@
 #include "KoToolProxy.h"
 #include "KoDerivedResourceConverter.h"
 #include "KoAbstractCanvasResourceInterface.h"
+#include "KoCanvasInputMethodHost.h"
 
 #include <klocalizedstring.h>
 #include <PkFileStream.h>
@@ -447,7 +448,11 @@ void KoToolBase::setTextMode(bool value)
 {
     Q_D(KoToolBase);
     d->isInTextMode = value;
-    qApp->inputMethod()->update(Qt::ImEnabled);
+    // 该属性只有内核知道（isInTextMode），宿主必须被通知去重新查询；宿主能力接口
+    // 是这条信息的唯一出口——canvas 未实现该接口时没有接收方，通知照旧发出即可。
+    if (auto *host = dynamic_cast<KoCanvasInputMethodHost *>(d->canvas)) {
+        host->updateInputMethod(Pk::ImEnabled);
+    }
     Q_EMIT textModeChanged(d->isInTextMode);
 }
 
