@@ -7,6 +7,7 @@
 #define KOCANVASINPUTMETHODHOST_H
 
 #include <PkNamespace.h>
+#include <PkSize.h>
 
 #include "kritaflake_export.h"
 
@@ -29,6 +30,23 @@ public:
     virtual ~KoCanvasInputMethodHost() = default;
 
     virtual void updateInputMethod(Pk::InputMethodQueries) {}
+
+    /**
+     * Size of the widget the platform input method positions against, in widget
+     * coordinates. An empty size means the host has no such widget.
+     *
+     * The core does not own that widget — the host does — so the geometry a tool
+     * needs for ImCursorRectangle can only come from here. Named after
+     * KisCanvasToolServices::toolCanvasWidgetSize(), which answers the same
+     * question one layer up; the core asks it here because flake is where the
+     * tool lives and libs/canvas is above flake, not below it.
+     *
+     * The default (an empty size) is the "no widget" answer: a host that does
+     * not override this is treated exactly as a canvas whose canvas widget is
+     * null, which is what this query checked before the widget type left the
+     * core.
+     */
+    virtual PkSize toolCanvasWidgetSize() const { return PkSize(); }
 };
 
 #endif // KOCANVASINPUTMETHODHOST_H

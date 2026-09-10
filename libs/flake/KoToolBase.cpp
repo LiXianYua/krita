@@ -31,6 +31,7 @@
 #include "KoCanvasInputMethodHost.h"
 
 #include <klocalizedstring.h>
+#include <PkFlakeBridge.h>
 #include <PkFileStream.h>
 #include <PkXmlDocument.h>
 #include <PkXmlElement.h>
@@ -229,14 +230,16 @@ void KoToolBase::explicitUserStrokeEndRequest()
 PkVariant KoToolBase::inputMethodQuery(Pk::InputMethodQuery query) const
 {
     Q_D(const KoToolBase);
-    if (d->canvas->canvasWidget() == 0)
+    const KoCanvasInputMethodHost *host = dynamic_cast<KoCanvasInputMethodHost *>(d->canvas);
+    const PkSize widgetSize = host ? host->toolCanvasWidgetSize() : PkSize();
+    if (widgetSize.isEmpty())
         return PkVariant();
 
     switch (query) {
     case Pk::ImEnabled:
         return isInTextMode();
     case Pk::ImCursorRectangle:
-        return PkRect(d->canvas->canvasWidget()->width() / 2, 0, 1, d->canvas->canvasWidget()->height());
+        return PkRect(widgetSize.width() / 2, 0, 1, widgetSize.height());
     case Pk::ImFont:
         // 过渡期：QFont 无法进 PkVariant（输入法字体提示，绘画内核非关键路径）。
         return PkVariant();
