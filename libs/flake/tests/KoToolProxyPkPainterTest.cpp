@@ -4,6 +4,7 @@
  */
 
 #include <QTest>
+#include <PkInputEvent.h>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QInputMethodEvent>
@@ -288,7 +289,7 @@ public:
     int dragMoveCalls = 0;
     int dropCalls = 0;
     PkPointF lastMouseMovePoint;
-    Qt::MouseButtons lastMouseMoveButtons;
+    Pk::MouseButtons lastMouseMoveButtons;
     Pk::Key lastKey = static_cast<Pk::Key>(0);
     Pk::KeyboardModifiers lastModifiers = Pk::NoModifier;
     bool lastAcceptedOnEntry = false;
@@ -776,9 +777,10 @@ private Q_SLOTS:
         proxy.priv()->activeTool = &tool;
 
         {
-            QMouseEvent move(QEvent::MouseMove, QPointF(7, 9), QPointF(17, 19),
-                             Qt::NoButton, Qt::LeftButton, Qt::ShiftModifier);
-            proxy.mouseMoveEvent(&move, PkPointF(70, 90));
+            PkInputEvent move(PkInputEvent::MouseMove,
+                              PkPointF(7, 9), PkPointF(7, 9), PkPointF(17, 19),
+                              Pk::NoButton, Pk::LeftButton, Pk::ShiftModifier);
+            proxy.mouseMoveEvent(move, PkPointF(70, 90));
         }
 
         const KoPointerEvent *saved = proxy.lastDeliveredPointerEvent();
@@ -786,8 +788,8 @@ private Q_SLOTS:
         QCOMPARE(saved->point, PkPointF(70, 90));
         QCOMPARE(saved->pos(), PkPoint(7, 9));
         QCOMPARE(saved->globalPos(), PkPoint(17, 19));
-        QCOMPARE(saved->buttons(), Qt::LeftButton);
-        QCOMPARE(saved->modifiers(), Qt::ShiftModifier);
+        QCOMPARE(saved->buttons(), Pk::LeftButton);
+        QCOMPARE(saved->modifiers(), Pk::ShiftModifier);
     }
 
     void autoScrollPkTimerFiresOnceAndReleaseCancelsRepeat()
@@ -801,9 +803,10 @@ private Q_SLOTS:
         proxy.priv()->activeTool = &tool;
         proxy.priv()->controller = &controller;
 
-        QMouseEvent move(QEvent::MouseMove, QPointF(25, 35),
-                         Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-        KoPointerEvent pointer(&move, PkPointF(25, 35));
+        PkInputEvent move(PkInputEvent::MouseMove,
+                          PkPointF(25, 35), PkPointF(25, 35), PkPointF(25, 35),
+                          Pk::NoButton, Pk::LeftButton, Pk::NoModifier);
+        KoPointerEvent pointer(move, PkPointF(25, 35));
         proxy.mousePressEvent(&pointer);
         proxy.mouseMoveEvent(&pointer);
         QVERIFY(proxy.priv()->scrollTimer.isActive());
@@ -817,7 +820,7 @@ private Q_SLOTS:
         QCOMPARE(controller.ensureVisibleCalls, 1);
         QCOMPARE(tool.mouseMoveCalls, 2);
         QCOMPARE(tool.lastMouseMovePoint, PkPointF(25, 35));
-        QCOMPARE(tool.lastMouseMoveButtons, Qt::LeftButton);
+        QCOMPARE(tool.lastMouseMoveButtons, Pk::LeftButton);
 
         proxy.mouseReleaseEvent(&pointer);
         QVERIFY(!proxy.priv()->scrollTimer.isActive());
@@ -867,13 +870,15 @@ private Q_SLOTS:
         PencilPreviewTool tool(&canvas);
         tool.setStrokeTemplate(KoShapeStroke(2.0, Pk::red));
         tool.setStrokeColor(Pk::red);
-        QMouseEvent press(QEvent::MouseButtonPress, QPointF(10, 20),
-                          Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-        KoPointerEvent start(&press, PkPointF(10, 20));
+        PkInputEvent press(PkInputEvent::MouseButtonPress,
+                           PkPointF(10, 20), PkPointF(10, 20), PkPointF(10, 20),
+                           Pk::LeftButton, Pk::LeftButton, Pk::NoModifier);
+        KoPointerEvent start(press, PkPointF(10, 20));
         tool.mousePressEvent(&start);
-        QMouseEvent move(QEvent::MouseMove, QPointF(30, 20),
-                         Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-        KoPointerEvent end(&move, PkPointF(30, 20));
+        PkInputEvent move(PkInputEvent::MouseMove,
+                          PkPointF(30, 20), PkPointF(30, 20), PkPointF(30, 20),
+                          Pk::NoButton, Pk::LeftButton, Pk::NoModifier);
+        KoPointerEvent end(move, PkPointF(30, 20));
         tool.mouseMoveEvent(&end);
         proxy.priv()->activeTool = &tool;
 

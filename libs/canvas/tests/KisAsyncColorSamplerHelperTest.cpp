@@ -1289,18 +1289,21 @@ void KisAsyncColorSamplerHelperTest::proxyDispatchesPolylineDecorations()
     KisToolPolylineBase *tool = &polyline;
     proxy.priv()->activeTool = tool;
     for (const PkPointF &point : {PkPointF(10, 20), PkPointF(30, 20)}) {
-        QMouseEvent press(QEvent::MouseButtonPress, QPointF(point.x(), point.y()),
-                          Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-        KoPointerEvent start(&press, point);
+        PkInputEvent press(PkInputEvent::MouseButtonPress,
+                           PkPointF(point.x(), point.y()), PkPointF(point.x(), point.y()), PkPointF(point.x(), point.y()),
+                           Pk::LeftButton, Pk::LeftButton, Pk::NoModifier);
+        KoPointerEvent start(press, point);
         tool->beginPrimaryAction(&start);
-        QMouseEvent release(QEvent::MouseButtonRelease, QPointF(point.x(), point.y()),
-                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-        KoPointerEvent end(&release, point);
+        PkInputEvent release(PkInputEvent::MouseButtonRelease,
+                             PkPointF(point.x(), point.y()), PkPointF(point.x(), point.y()), PkPointF(point.x(), point.y()),
+                             Pk::LeftButton, Pk::NoButton, Pk::NoModifier);
+        KoPointerEvent end(release, point);
         tool->endPrimaryAction(&end);
     }
-    QMouseEvent move(QEvent::MouseMove, QPointF(50, 40),
-                     Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-    KoPointerEvent hover(&move, PkPointF(50, 40));
+    PkInputEvent move(PkInputEvent::MouseMove,
+                      PkPointF(50, 40), PkPointF(50, 40), PkPointF(50, 40),
+                      Pk::NoButton, Pk::NoButton, Pk::NoModifier);
+    KoPointerEvent hover(move, PkPointF(50, 40));
     tool->mouseMoveEvent(&hover);
 
     RecordingBackend backend;
@@ -1345,9 +1348,10 @@ void KisAsyncColorSamplerHelperTest::hostCallbacksPreserveActionAndRightClickLif
     QVERIFY(canvas.rightClickCallback);
     QVERIFY(!canvas.rightClickCallback());
 
-    QMouseEvent press(QEvent::MouseButtonPress, QPointF(10, 20),
-                      Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-    KoPointerEvent start(&press, PkPointF(10, 20));
+    PkInputEvent press(PkInputEvent::MouseButtonPress,
+                       PkPointF(10, 20), PkPointF(10, 20), PkPointF(10, 20),
+                       Pk::LeftButton, Pk::LeftButton, Pk::NoModifier);
+    KoPointerEvent start(press, PkPointF(10, 20));
     tool.beginPrimaryAction(&start);
     QVERIFY(canvas.rightClickCallback());
     QVERIFY(!canvas.rightClickCallback());
@@ -1478,9 +1482,10 @@ void KisAsyncColorSamplerHelperTest::proxyDispatchesProductionAsyncSampler()
     SamplingPreviewTool tool(&canvas);
     proxy.priv()->activeTool = &tool;
 
-    QMouseEvent press(QEvent::MouseButtonPress, QPointF(2, 3),
-                      Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-    KoPointerEvent event(&press, PkPointF(2, 3));
+    PkInputEvent press(PkInputEvent::MouseButtonPress,
+                       PkPointF(2, 3), PkPointF(2, 3), PkPointF(2, 3),
+                       Pk::LeftButton, Pk::LeftButton, Pk::NoModifier);
+    KoPointerEvent event(press, PkPointF(2, 3));
     tool.activateAlternateAction(KisTool::SampleFgImage);
     tool.beginAlternateAction(&event, KisTool::SampleFgImage);
     tool.endAlternateAction(&event, KisTool::SampleFgImage);

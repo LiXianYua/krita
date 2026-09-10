@@ -24,7 +24,7 @@
 #include <kis_paint_layer.h>
 #include <KoColorSpaceRegistry.h>
 
-#include <QMouseEvent>
+#include <PkInputEvent.h>
 
 #include <functional>
 #include <optional>
@@ -241,29 +241,35 @@ void SelectionPolygonalDispatchTest::proxyPaintDispatchesFixedAndDraggingSegment
     proxy.priv()->activeTool = polymorphicTool;
 
     for (const PkPointF &point : {PkPointF(10, 20), PkPointF(30, 20)}) {
-        QMouseEvent press(QEvent::MouseButtonPress,
-                          QPointF(point.x(), point.y()),
-                          Qt::LeftButton,
-                          Qt::LeftButton,
-                          Qt::NoModifier);
-        KoPointerEvent start(&press, point);
+        PkInputEvent press(PkInputEvent::MouseButtonPress,
+                           PkPointF(point.x(), point.y()),
+                           PkPointF(point.x(), point.y()),
+                           PkPointF(point.x(), point.y()),
+                           Pk::LeftButton,
+                           Pk::LeftButton,
+                           Pk::NoModifier);
+        KoPointerEvent start(press, point);
         polymorphicTool->beginPrimaryAction(&start);
 
-        QMouseEvent release(QEvent::MouseButtonRelease,
-                            QPointF(point.x(), point.y()),
-                            Qt::LeftButton,
-                            Qt::NoButton,
-                            Qt::NoModifier);
-        KoPointerEvent end(&release, point);
+        PkInputEvent release(PkInputEvent::MouseButtonRelease,
+                             PkPointF(point.x(), point.y()),
+                             PkPointF(point.x(), point.y()),
+                             PkPointF(point.x(), point.y()),
+                             Pk::LeftButton,
+                             Pk::NoButton,
+                             Pk::NoModifier);
+        KoPointerEvent end(release, point);
         polymorphicTool->endPrimaryAction(&end);
     }
 
-    QMouseEvent move(QEvent::MouseMove,
-                     QPointF(50, 40),
-                     Qt::NoButton,
-                     Qt::NoButton,
-                     Qt::NoModifier);
-    KoPointerEvent hover(&move, PkPointF(50, 40));
+    PkInputEvent move(PkInputEvent::MouseMove,
+                      PkPointF(50, 40),
+                      PkPointF(50, 40),
+                      PkPointF(50, 40),
+                      Pk::NoButton,
+                      Pk::NoButton,
+                      Pk::NoModifier);
+    KoPointerEvent hover(move, PkPointF(50, 40));
     polymorphicTool->mouseMoveEvent(&hover);
 
     RecordingBackend backend;
