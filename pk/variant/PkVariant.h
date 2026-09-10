@@ -231,6 +231,12 @@ private:
     AnyDataAccessor m_anyDataAccessor = nullptr;
     void* m_data_ptr;
 
+    // 用户类型相等比较器：与 m_anyDataAccessor 同一形制——由 fromValue<T>/setValue<T>
+    // 随 T 一并存入，operator== 的 UserType 分支借此 O(1) 拿到 T 的 operator==。
+    // 两侧 T 不同时 std::any_cast<T> 返回 nullptr ⇒ 不相等（与 Qt 按 userType 判等一致）。
+    using AnyEqualAccessor = bool (*)(const std::any &, const std::any &);
+    AnyEqualAccessor m_anyEqualAccessor = nullptr;
+
     void initFromPOD();
     void rebindDataPointer();
     void setDateTimeWireState(DateTimeSpec spec, int offsetSeconds, const PkString& timeZoneId);

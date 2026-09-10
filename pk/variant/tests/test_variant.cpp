@@ -511,6 +511,71 @@ void VariantCase::setValue()
     PK_VERIFY(!ws.isEmpty());
 }
 
+void VariantCase::userTypeEquality()
+{
+    // ── 1. 自反性 ────────────────────────────────────────────────────
+    // 缺口本体：UserType 变体此前与自身比较恒 false（x != x 为真）。
+    PkVariant x = PkVariant::fromValue(std::vector<int>{1, 2, 3});
+    PK_COMPARE(static_cast<int>(x.type()), static_cast<int>(PkVariant::UserType));
+    PK_VERIFY(x == x);
+    PK_VERIFY(!(x != x));
+
+    // ── 2. 副本自反 ──────────────────────────────────────────────────
+    // 比较器必须随拷贝 ctor / 拷贝赋值 / 移动 ctor / 移动赋值一起搬；
+    // 漏掉任何一处（尤其拷贝 ctor —— KoDerivedResourceConverter::writeToSource
+    // 里那步 `PkVariant newSourceValue = sourceValue;` 正是拷贝构造），这里就红。
+    {
+        PkVariant copied(x);
+        PK_VERIFY(copied == x);
+        PK_VERIFY(!(copied != x));
+
+        PkVariant assigned;
+        assigned = x;
+        PK_VERIFY(assigned == x);
+
+        PkVariant moveSource(x);
+        PkVariant moved(std::move(moveSource));
+        PK_VERIFY(moved == x);
+
+        PkVariant moveAssignedSource(x);
+        PkVariant moveAssigned;
+        moveAssigned = std::move(moveAssignedSource);
+        PK_VERIFY(moveAssigned == x);
+    }
+
+    // ── 3. 值语义 ────────────────────────────────────────────────────
+    // 两个独立构造的等值对象必须相等——比的是值，不是指针身份。
+    PkVariant x2 = PkVariant::fromValue(std::vector<int>{1, 2, 3});
+    PK_VERIFY(x == x2);
+    PK_VERIFY(x2 == x);
+
+    // ── 4. 同类型不同值 ⇒ 不相等 ─────────────────────────────────────
+    PkVariant y = PkVariant::fromValue(std::vector<int>{4, 5, 6});
+    PK_VERIFY(!(x == y));
+    PK_VERIFY(x != y);
+
+    // ── 5. 不同 T ⇒ 双向都不相等 ─────────────────────────────────────
+    // 两个类型都落 UserType（m_type 相同），靠 std::any_cast<T> 在类型不符时
+    // 返回 nullptr 判不相等。注意：PkString 已被 PkVariantTypeId 特化、**不落
+    // UserType**，所以这里用两个元素类型不同的 std::vector 当「不同的 UserType T」。
+    PkVariant d = PkVariant::fromValue(std::vector<double>{1.0, 2.0, 3.0});
+    PK_COMPARE(static_cast<int>(d.type()), static_cast<int>(PkVariant::UserType));
+    PK_VERIFY(!(x == d));
+    PK_VERIFY(!(d == x));
+    PK_VERIFY(x != d);
+    PK_VERIFY(d != x);
+
+    // ── 6. setValue<T> 这条存储路径同样要存比较器 ────────────────────
+    // fromValue<T> 与 setValue<T> 是两个独立的存取点（同在 PkVariantImpl.h），
+    // 漏掉 setValue 那处会得到「同一个对象也不等于自己」的静默回归。
+    PkVariant sv;
+    sv.setValue(std::vector<int>{1, 2, 3});
+    PK_COMPARE(static_cast<int>(sv.type()), static_cast<int>(PkVariant::UserType));
+    PK_VERIFY(sv == sv);
+    PK_VERIFY(!(sv != sv));
+    PK_VERIFY(sv == x);
+}
+
 // ── 转换边角 ──────────────────────────────────────────────────────────────
 
 void VariantCase::conversionEdgeCases()

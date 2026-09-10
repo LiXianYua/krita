@@ -60,6 +60,7 @@ PkVariant::PkVariant(const PkVariant& other)
     , m_dateTimeZoneId(other.m_dateTimeZoneId)
     , m_anyDataAccessor(other.m_anyDataAccessor)
     , m_data_ptr(nullptr)
+    , m_anyEqualAccessor(other.m_anyEqualAccessor)
 {
     if (pkIsPODType(m_type)) {
         std::memcpy(&m_bool, &other.m_bool, sizeof(double)); // 足够大
@@ -77,6 +78,7 @@ PkVariant::PkVariant(PkVariant&& other) noexcept
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = std::move(other.m_dateTimeZoneId);
     m_anyDataAccessor = other.m_anyDataAccessor;
+    m_anyEqualAccessor = other.m_anyEqualAccessor;
     if (pkIsPODType(m_type)) {
         std::memcpy(&m_bool, &other.m_bool, sizeof(double));
     } else {
@@ -88,6 +90,7 @@ PkVariant::PkVariant(PkVariant&& other) noexcept
     other.m_isNull = true;
     other.m_wireNullFlag = true;
     other.m_anyDataAccessor = nullptr;
+    other.m_anyEqualAccessor = nullptr;
     other.m_data_ptr = nullptr;
 }
 
@@ -102,6 +105,7 @@ PkVariant& PkVariant::operator=(const PkVariant& other)
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = other.m_dateTimeZoneId;
     m_anyDataAccessor = other.m_anyDataAccessor;
+    m_anyEqualAccessor = other.m_anyEqualAccessor;
     if (pkIsPODType(m_type)) {
         std::memcpy(&m_bool, &other.m_bool, sizeof(double));
     }
@@ -119,6 +123,7 @@ PkVariant& PkVariant::operator=(PkVariant&& other) noexcept
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = std::move(other.m_dateTimeZoneId);
     m_anyDataAccessor = other.m_anyDataAccessor;
+    m_anyEqualAccessor = other.m_anyEqualAccessor;
     if (pkIsPODType(m_type)) {
         std::memcpy(&m_bool, &other.m_bool, sizeof(double));
     } else {
@@ -129,6 +134,7 @@ PkVariant& PkVariant::operator=(PkVariant&& other) noexcept
     other.m_isNull = true;
     other.m_wireNullFlag = true;
     other.m_anyDataAccessor = nullptr;
+    other.m_anyEqualAccessor = nullptr;
     other.m_data_ptr = nullptr;
     return *this;
 }
@@ -341,6 +347,7 @@ void PkVariant::clear()
     m_dateTimeOffsetSeconds = 0;
     m_dateTimeZoneId = PkString();
     m_anyDataAccessor = nullptr;
+    m_anyEqualAccessor = nullptr;
     m_data_ptr = &m_bool;
 }
 
@@ -798,6 +805,10 @@ bool PkVariant::operator==(const PkVariant& other) const
                 && m_dateTimeSpec == other.m_dateTimeSpec
                 && m_dateTimeOffsetSeconds == other.m_dateTimeOffsetSeconds
                 && m_dateTimeZoneId == other.m_dateTimeZoneId;
+        case UserType:
+            // 比较器由 fromValue<T>/setValue<T> 随 T 存入；两侧 T 不同时
+            // any_cast 返回 nullptr ⇒ 不相等（与 Qt 的 userType 判等一致）。
+            return m_anyEqualAccessor && m_anyEqualAccessor(m_any, other.m_any);
         default: return false;
     }
 }

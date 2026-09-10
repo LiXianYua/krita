@@ -19,6 +19,11 @@ PkVariant PkVariant::fromValue(const T& value)
         v.m_anyDataAccessor = [](std::any &storage) -> void * {
             return std::any_cast<T>(&storage);
         };
+        v.m_anyEqualAccessor = [](const std::any &lhs, const std::any &rhs) -> bool {
+            const T *a = std::any_cast<T>(&lhs);
+            const T *b = std::any_cast<T>(&rhs);
+            return a && b && *a == *b;
+        };
         if (v.m_any.has_value()) {
             v.rebindDataPointer();
         } else {
@@ -127,6 +132,11 @@ void PkVariant::setValue(const T& value)
         m_any = value;
         m_anyDataAccessor = [](std::any &storage) -> void * {
             return std::any_cast<T>(&storage);
+        };
+        m_anyEqualAccessor = [](const std::any &lhs, const std::any &rhs) -> bool {
+            const T *a = std::any_cast<T>(&lhs);
+            const T *b = std::any_cast<T>(&rhs);
+            return a && b && *a == *b;
         };
         if (m_any.has_value()) {
             rebindDataPointer();
