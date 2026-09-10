@@ -25,6 +25,11 @@ class QAction;
 class QMouseEvent;
 class QKeyEvent;
 class QWheelEvent;
+// Upstream relied on the real `<QObject>` to declare QEvent transitively. The
+// compat routing (pk/signal/compat/QObject) does not, and `processEvent()` only
+// ever takes a pointer, so a forward declaration is all the native compile
+// interface needs. Same form as `libs/flake/KoPointerEvent.h`.
+class QEvent;
 class KoCanvasBase;
 class KoViewConverter;
 class KoToolBase;
@@ -60,7 +65,17 @@ enum class KoPointerInputSource {
  * which will transparently be routed to the active tool.  Without the application
  * having to bother about which tool is active.
  */
+// The proxy carries two object identities at once: the host toolkit object
+// surface (QObject: object tree / QPointer / event loop, retained by the
+// 2026-09-05 ruling and handed to M5) and the native PkObject signal/lifetime
+// surface. Under the compat routing (pk/signal/compat/QObject) the token
+// `QObject` *is* `PkObject`, so naming both bases duplicates the base class;
+// the base list is therefore spelled per configuration.
+#if defined(QT_CORE_LIB)
 class KRITAFLAKE_EXPORT KoToolProxy : public QObject, public PkObject
+#else
+class KRITAFLAKE_EXPORT KoToolProxy : public PkObject
+#endif
 {
 public:
     /**

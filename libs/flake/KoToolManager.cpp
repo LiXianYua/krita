@@ -182,8 +182,13 @@ public:
 
 // ******** KoToolManager **********
 KoToolManager::KoToolManager()
+#if defined(QT_CORE_LIB)
     : QObject(),
       PkObject(),
+#else
+    // Under the compat routing `QObject` is `PkObject`, so that base is named once.
+    : PkObject(),
+#endif
       d(new Private(this))
 {
     QObject::connect(static_cast<QApplication *>(QApplication::instance()), &QApplication::focusChanged, this,

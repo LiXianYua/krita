@@ -123,7 +123,15 @@ private:
    the tool stuff.)
 
  */
+// Same dual identity as KoToolProxy: the host toolkit object surface plus the
+// native PkObject surface. Under the compat routing (pk/signal/compat/QObject)
+// the token `QObject` *is* `PkObject`, so the base list is spelled per
+// configuration to avoid duplicating the base class.
+#if defined(QT_CORE_LIB)
 class KRITAFLAKE_EXPORT KoToolManager : public QObject, public PkObject
+#else
+class KRITAFLAKE_EXPORT KoToolManager : public PkObject
+#endif
 {
 public:
     KoToolManager();
