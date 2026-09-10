@@ -23,15 +23,16 @@
 
 class QEvent;
 class PkTabletEvent;
-class QMouseEvent;
+class PkInputEvent;
+class PkTouchEvent;
+// Only the mouse and touch carriers translate to Pk here; `QEvent` and
+// `QWheelEvent` keep their Qt forward declarations for the steps that own
+// those faces.
 class QWheelEvent;
-class QTouchEvent;
 
 #include "kritaflake_export.h"
 // [migrate] missing include for Pk/Qt type
 #include <PkScopedPointer.h>
-
-struct KoPointerEventWrapper;
 
 /**
  * KoPointerEvent is a synthetic event that can be built from a mouse,
@@ -46,10 +47,10 @@ public:
     /**
      * Constructor.
      *
-     * @param event the mouse event that is the base of this event.
+     * @param event the host-carried mouse input event that is the base of this event.
      * @param point the zoomed point in the normal coordinate system.
      */
-    KoPointerEvent(QMouseEvent *event, const PkPointF &point);
+    KoPointerEvent(const PkInputEvent &event, const PkPointF &point);
 
     /**
      * Constructor.
@@ -59,7 +60,13 @@ public:
      */
     KoPointerEvent(const PkTabletEvent &event, const PkPointF &point);
 
-    KoPointerEvent(QTouchEvent* ev, const PkPointF& pnt);
+    /**
+     * Constructor.
+     *
+     * @param event the host-carried touch input event that is the base of this event.
+     * @param point the zoomed point in the normal coordinate system.
+     */
+    KoPointerEvent(const PkTouchEvent &event, const PkPointF &point);
 
     /** Construct a host-free mouse event for retained tool dispatch. */
     KoPointerEvent(const PkPoint &widgetPosition,
@@ -73,33 +80,21 @@ public:
     ~KoPointerEvent();
 
     /**
-     * Copies the event object
+     * Copies the event object.
      *
-     * The newly created object will still point to the original
-     * host mouse or touch event, so it is not
-     * safe to store such object. If you want to store a KoPointerEvent
-     * object, use deepCopyEvent() instead.
+     * The observable input state is held by value, so the copy does not
+     * depend on the lifetime of the event it was built from.
      */
     KoPointerEvent(const KoPointerEvent &rhs);
 
     /**
-     * Copies the event object
+     * Copies the event object.
      *
-     * See a comment in copy constructor for the difference between
-     * deep/shallow copies.
+     * See a comment in copy constructor for what is copied.
      */
     KoPointerEvent& operator=(const KoPointerEvent &rhs);
 
-    /**
-     * Copies KoPointerEvent **and** its underlying Qt event.
-     *
-     * Normal copy-constructor keeps the pointers to the original
-     * Qt event intact, therefore you cannot store this event for
-     * any time longer than the lifetime of the handler for this event.
-     */
-    KoPointerEventWrapper deepCopyEvent() const;
-
-    /** Copy the observable input state without retaining the host Qt event. */
+    /** Copy the observable input state. */
     KoPointerEvent detachedCopy() const;
 
     /**
@@ -218,12 +213,6 @@ public:
      */
     static bool tabletInputReceived();
 
-public:
-    static void copyQtPointerEvent(const QMouseEvent *event, PkScopedPointer<QEvent> &dst);
-    static void copyQtPointerEvent(const QTouchEvent *event, PkScopedPointer<QEvent> &dst);
-
-    static std::optional<PkPointF> fetchGlobalPositionFromPointerEvent(QEvent *event);
-
 protected:
     friend class KoToolProxy;
     friend class KisToolProxy;
@@ -232,15 +221,6 @@ private:
 
     class Private;
     const PkScopedPointer<Private> d;
-};
-
-struct KRITAFLAKE_EXPORT KoPointerEventWrapper
-{
-    template <typename Event>
-    KoPointerEventWrapper(Event *_event, const PkPointF &point);
-
-    KoPointerEvent event;
-    PkSharedPointer<QEvent> baseQtEvent;
 };
 
 #endif

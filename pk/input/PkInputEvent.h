@@ -99,12 +99,14 @@ public:
     const PkPointF &startPosition() const noexcept { return m_startPosition; }
     const PkPointF &globalPosition() const noexcept { return m_globalPosition; }
     double pressure() const noexcept { return m_pressure; }
+    double rotation() const noexcept { return m_rotation; }
 
     void setState(Pk::TouchPointState state) noexcept { m_state = state; }
     void setPosition(const PkPointF &position) noexcept { m_position = position; }
     void setStartPosition(const PkPointF &position) noexcept { m_startPosition = position; }
     void setGlobalPosition(const PkPointF &position) noexcept { m_globalPosition = position; }
     void setPressure(double pressure) noexcept { m_pressure = pressure; }
+    void setRotation(double rotation) noexcept { m_rotation = rotation; }
 
 private:
     int m_id = -1;
@@ -113,6 +115,7 @@ private:
     PkPointF m_startPosition;
     PkPointF m_globalPosition;
     double m_pressure = 1.0;
+    double m_rotation = 0.0;
 };
 
 class PkTabletEvent final : public PkInputEvent
