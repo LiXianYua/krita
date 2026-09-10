@@ -44,7 +44,6 @@
 #include <PkGradient.h>
 #include "kis_dom_utils.h"
 #include "kis_algebra_2d.h"
-#include <KisPortingUtils.h>
 #include <SvgWriter.h>
 #include <KoFlakeCoordinateSystem.h>
 

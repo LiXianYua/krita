@@ -5,12 +5,10 @@
  */
 
 #include <PkFlakeBridge.h>
-#include <KoGradientBridge.h>
 #include <PkGradient.h>
 
 #include "RectangleShapeFactory.h"
 #include "RectangleShape.h"
-#include <QLinearGradient>
 #include "KoShapeStroke.h"
 #include <KoXmlNS.h>
 #include <KoGradientBackground.h>
