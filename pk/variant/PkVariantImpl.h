@@ -2,6 +2,22 @@
 
 #include <type_traits>
 
+// 用户类型的相等可比性检测：比较器只在 T 有 operator== 时才安装。
+// 没有 == 的 T（例如 libs/impex 的 ThumbnailData/CommentBox）保持本任务之前的语义：
+// m_anyEqualAccessor 保持 nullptr ⇒ operator== 的 UserType 分支短路为 false
+// （= 与修前的 `default: return false;` 逐字一致）。这是 fail-closed 方向，
+// **不要**改成「同类型即相等」——那会让「两个不同的值」被判成「没变」而**漏发**通知。
+namespace PkVariantImplDetail {
+
+template <typename T, typename = void>
+struct HasEqualityOperator : std::false_type {};
+
+template <typename T>
+struct HasEqualityOperator<T, std::void_t<decltype(std::declval<const T &>() == std::declval<const T &>())>>
+    : std::true_type {};
+
+} // namespace PkVariantImplDetail
+
 // ── fromValue<T>() ────────────────────────────────────────────────────────
 
 template<typename T>
@@ -19,11 +35,13 @@ PkVariant PkVariant::fromValue(const T& value)
         v.m_anyDataAccessor = [](std::any &storage) -> void * {
             return std::any_cast<T>(&storage);
         };
-        v.m_anyEqualAccessor = [](const std::any &lhs, const std::any &rhs) -> bool {
-            const T *a = std::any_cast<T>(&lhs);
-            const T *b = std::any_cast<T>(&rhs);
-            return a && b && *a == *b;
-        };
+        if constexpr (PkVariantImplDetail::HasEqualityOperator<T>::value) {
+            v.m_anyEqualAccessor = [](const std::any &lhs, const std::any &rhs) -> bool {
+                const T *a = std::any_cast<T>(&lhs);
+                const T *b = std::any_cast<T>(&rhs);
+                return a && b && *a == *b;
+            };
+        }
         if (v.m_any.has_value()) {
             v.rebindDataPointer();
         } else {
@@ -133,11 +151,13 @@ void PkVariant::setValue(const T& value)
         m_anyDataAccessor = [](std::any &storage) -> void * {
             return std::any_cast<T>(&storage);
         };
-        m_anyEqualAccessor = [](const std::any &lhs, const std::any &rhs) -> bool {
-            const T *a = std::any_cast<T>(&lhs);
-            const T *b = std::any_cast<T>(&rhs);
-            return a && b && *a == *b;
-        };
+        if constexpr (PkVariantImplDetail::HasEqualityOperator<T>::value) {
+            m_anyEqualAccessor = [](const std::any &lhs, const std::any &rhs) -> bool {
+                const T *a = std::any_cast<T>(&lhs);
+                const T *b = std::any_cast<T>(&rhs);
+                return a && b && *a == *b;
+            };
+        }
         if (m_any.has_value()) {
             rebindDataPointer();
         } else {
