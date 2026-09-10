@@ -12,9 +12,8 @@
 #include <PkFlakeBridge.h>
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
-#include <QTabletEvent>
+#include <PkInputEvent.h>
 #include <QMouseEvent>
-#include <QWheelEvent>
 #include <cmath>
 #include <stdexcept>
 #include <boost/variant2/variant.hpp>
@@ -61,21 +60,6 @@ template<> void copyEventHack(const QMouseEvent *src, PkScopedPointer<QEvent> &d
     dst.reset(tmp);
 }
 
-template<> void copyEventHack(const QTabletEvent *src, PkScopedPointer<QEvent> &dst) {
-    QTabletEvent *tmp = new QTabletEvent(src->type(),
-                                         src->posF(), src->globalPosF(),
-                                         src->deviceType(), src->pointerType(),
-                                         src->pressure(),
-                                         src->xTilt(), src->yTilt(),
-                                         src->tangentialPressure(),
-                                         src->rotation(),
-                                         src->z(),
-                                         src->modifiers(),
-                                         src->uniqueId(),
-                                         src->button(), src->buttons());
-    tmp->setTimestamp(src->timestamp());
-    dst.reset(tmp);
-}
 
 template<> void copyEventHack(const QTouchEvent *src, PkScopedPointer<QEvent> &dst) {
     QTouchEvent *tmp = new QTouchEvent(src->type(),
@@ -123,7 +107,7 @@ public:
     {
     }
 
-    boost::variant2::variant<QMouseEvent*, QTabletEvent*, QTouchEvent*> eventPtr;
+    boost::variant2::variant<QMouseEvent*, QTouchEvent*> eventPtr;
     std::optional<NativeState> nativeState;
     static bool s_tabletInputReceived;
 };
@@ -136,9 +120,24 @@ KoPointerEvent::KoPointerEvent(QMouseEvent *ev, const PkPointF &pnt)
 {
 }
 
-KoPointerEvent::KoPointerEvent(QTabletEvent *ev, const PkPointF &pnt)
-    : point(pnt),
-      d(new Private(ev))
+KoPointerEvent::KoPointerEvent(const PkTabletEvent &ev, const PkPointF &pnt)
+    : point(pnt)
+    , d(new Private(Private::NativeState {
+          Private::NativeState::Source::Tablet,
+          static_cast<int>(ev.button()),
+          static_cast<int>(ev.buttons()),
+          static_cast<int>(ev.modifiers()),
+          ev.globalPosition().toPoint(),
+          ev.localPosition().toPoint(),
+          ev.pressure(),
+          ev.rotation(),
+          // Same rescaling the Qt tablet carrier used to apply: the native
+          // tangential pressure is signed [-1, 1], the consumer face is [0, 1).
+          std::fmod((ev.tangentialPressure() - (-1.0)) / (1.0 - (-1.0)), 2.0),
+          static_cast<double>(ev.xTilt()),
+          static_cast<double>(ev.yTilt()),
+          ev.z(),
+          ev.timestamp()}))
 {
     if (!Private::s_tabletInputReceived) {
         Private::s_tabletInputReceived = true;
@@ -231,9 +230,6 @@ KoPointerEventWrapper KoPointerEvent::deepCopyEvent() const
         KoPointerEventWrapper operator() (const QMouseEvent *event) {
             return KoPointerEventWrapper(event->clone(), point);
         }
-        KoPointerEventWrapper operator() (const QTabletEvent *event) {
-            return KoPointerEventWrapper(event->clone(), point);
-        }
         KoPointerEventWrapper operator() (const QTouchEvent *event) {
             return KoPointerEventWrapper(event->clone(), point);
         }
@@ -274,9 +270,6 @@ Pk::MouseButton KoPointerEvent::button() const
         Pk::MouseButton operator() (const QMouseEvent *event) {
             return static_cast<Pk::MouseButton>(event->button());
         }
-        Pk::MouseButton operator() (const QTabletEvent *event) {
-            return static_cast<Pk::MouseButton>(event->button());
-        }
         Pk::MouseButton operator() (const QTouchEvent *) {
             return Pk::LeftButton;
         }
@@ -292,9 +285,6 @@ Pk::MouseButtons KoPointerEvent::buttons() const
     }
     struct Visitor {
         Pk::MouseButtons operator() (const QMouseEvent *event) {
-            return Pk::MouseButtons(static_cast<int>(event->buttons()));
-        }
-        Pk::MouseButtons operator() (const QTabletEvent *event) {
             return Pk::MouseButtons(static_cast<int>(event->buttons()));
         }
         Pk::MouseButtons operator() (const QTouchEvent *) {
@@ -315,18 +305,12 @@ PkPoint KoPointerEvent::globalPos() const
         PkPoint operator() (const QMouseEvent *event) {
             return toPkPoint(event->globalPos());
         }
-        PkPoint operator() (const QTabletEvent *event) {
-            return toPkPoint(event->globalPos());
-        }
         PkPoint operator() (const QTouchEvent *event) {
             return toPkPoint(event->touchPoints().constFirst().screenPos().toPoint());
         }
 #else
     struct Visitor {
         PkPoint operator() (const QMouseEvent *event) {
-            return event->globalPosition().toPoint();
-        }
-        PkPoint operator() (const QTabletEvent *event) {
             return event->globalPosition().toPoint();
         }
         PkPoint operator() (const QTouchEvent *event) {
@@ -349,9 +333,6 @@ PkPoint KoPointerEvent::pos() const
         PkPoint operator() (const QMouseEvent *event) {
             return toPkPoint(event->pos());
         }
-        PkPoint operator() (const QTabletEvent *event) {
-            return toPkPoint(event->pos());
-        }
         PkPoint operator() (const QTouchEvent *event) {
             return toPkPoint(event->touchPoints().at(0).pos().toPoint());
         }
@@ -359,9 +340,6 @@ PkPoint KoPointerEvent::pos() const
 #else
     struct Visitor {
         PkPoint operator() (const QMouseEvent *event) {
-            return event->position().toPoint();
-        }
-        PkPoint operator() (const QTabletEvent *event) {
             return event->position().toPoint();
         }
         PkPoint operator() (const QTouchEvent *event) {
@@ -388,9 +366,6 @@ double KoPointerEvent::pressure() const
         return d->nativeState->pressure;
     }
     struct Visitor {
-        qreal operator() (const QTabletEvent *event) {
-            return event->pressure();
-        }
         qreal operator() (const QTouchEvent *event) {
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
             return s_optionContainer->useTouchPressure ? event->touchPoints().at(0).pressure() : 1.0;
@@ -412,9 +387,6 @@ double KoPointerEvent::rotation() const
         return d->nativeState->rotation;
     }
     struct Visitor {
-        qreal operator() (const QTabletEvent *event) {
-            return event->rotation();
-        }
         qreal operator() (const QTouchEvent *event) {
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
             return event->touchPoints().at(0).rotation();
@@ -436,9 +408,6 @@ double KoPointerEvent::tangentialPressure() const
         return d->nativeState->tangentialPressure;
     }
     struct Visitor {
-        qreal operator() (const QTabletEvent *event) {
-            return std::fmod((event->tangentialPressure() - (-1.0)) / (1.0 - (-1.0)), 2.0);
-        }
         qreal operator() (...) {
             return 0.0;
         }
@@ -453,9 +422,6 @@ double KoPointerEvent::xTilt() const
         return d->nativeState->xTilt;
     }
     struct Visitor {
-        int operator() (const QTabletEvent *event) {
-            return event->xTilt();
-        }
         int operator() (...) {
             return 0;
         }
@@ -471,9 +437,6 @@ double KoPointerEvent::yTilt() const
         return d->nativeState->yTilt;
     }
     struct Visitor {
-        int operator() (const QTabletEvent *event) {
-            return event->yTilt();
-        }
         int operator() (...) {
             return 0;
         }
@@ -488,9 +451,6 @@ int KoPointerEvent::z() const
         return d->nativeState->z;
     }
     struct Visitor {
-        int operator() (const QTabletEvent *event) {
-            return event->z();
-        }
         int operator() (...) {
             return 0;
         }
@@ -518,7 +478,9 @@ bool KoPointerEvent::isTabletEvent() const
     if (d->nativeState) {
         return d->nativeState->source == Private::NativeState::Source::Tablet;
     }
-    return d->eventPtr.index() == 1;
+    // The host event carrier no longer holds a tablet member: a tablet event is
+    // always built from PkTabletEvent and therefore always carries nativeState.
+    return false;
 }
 
 bool KoPointerEvent::isTouchEvent() const
@@ -526,7 +488,7 @@ bool KoPointerEvent::isTouchEvent() const
     if (d->nativeState) {
         return d->nativeState->source == Private::NativeState::Source::Touch;
     }
-    return d->eventPtr.index() == 2;
+    return d->eventPtr.index() == 1;
 }
 
 bool KoPointerEvent::tabletInputReceived()
@@ -612,10 +574,6 @@ void KoPointerEvent::copyQtPointerEvent(const QMouseEvent *event, PkScopedPointe
     detail::copyEventHack(event, dst);
 }
 
-void KoPointerEvent::copyQtPointerEvent(const QTabletEvent *event, PkScopedPointer<QEvent> &dst)
-{
-    detail::copyEventHack(event, dst);
-}
 
 void KoPointerEvent::copyQtPointerEvent(const QTouchEvent *event, PkScopedPointer<QEvent> &dst)
 {
@@ -648,13 +606,6 @@ std::optional<PkPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEve
             return toPkPointF(touchPoints.constFirst().screenPos());
 #endif
         }
-    } else if (event->type() == QEvent::TabletPress || event->type() == QEvent::TabletRelease) {
-        const QTabletEvent *tabletEvent = static_cast<const QTabletEvent *>(event);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        return tabletEvent->globalPosition();
-#else
-        return toPkPoint(tabletEvent->globalPos());
-#endif
     } else if (event->type() == QEvent::MouseButtonPress ||
                event->type() == QEvent::MouseButtonRelease ||
                event->type() == QEvent::MouseMove) {

@@ -25,13 +25,14 @@ class QAction;
 class QMouseEvent;
 class QKeyEvent;
 class QWheelEvent;
-class QTabletEvent;
 class KoCanvasBase;
 class KoViewConverter;
 class KoToolBase;
 class KoToolProxyPrivate;
 class QInputMethodEvent;
 class KoPointerEvent;
+class KoInputDevice;
+class PkTabletEvent;
 class QDragMoveEvent;
 class QDragLeaveEvent;
 class QDropEvent;
@@ -77,7 +78,7 @@ public:
     void repaintDecorations();
 
     /// Forwarded to the current KoToolBase
-    void tabletEvent(QTabletEvent *event, const PkPointF &point);
+    void tabletEvent(const KoInputDevice &id, const PkTabletEvent &event, const PkPointF &point);
 
     /// Forwarded to the current KoToolBase
     void mousePressEvent(QMouseEvent *event, const PkPointF &point);

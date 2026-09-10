@@ -22,7 +22,7 @@
 #include <cstdint>
 
 class QEvent;
-class QTabletEvent;
+class PkTabletEvent;
 class QMouseEvent;
 class QWheelEvent;
 class QTouchEvent;
@@ -54,10 +54,10 @@ public:
     /**
      * Constructor.
      *
-     * @param event the tablet event that is the base of this event.
+     * @param event the native tablet event that is the base of this event.
      * @param point the zoomed point in the normal coordinate system.
      */
-    KoPointerEvent(QTabletEvent *event, const PkPointF &point);
+    KoPointerEvent(const PkTabletEvent &event, const PkPointF &point);
 
     KoPointerEvent(QTouchEvent* ev, const PkPointF& pnt);
 
@@ -76,7 +76,7 @@ public:
      * Copies the event object
      *
      * The newly created object will still point to the original
-     * QMouseEvent, QTabletEvent or QTouchEvent, so it is not
+     * host mouse or touch event, so it is not
      * safe to store such object. If you want to store a KoPointerEvent
      * object, use deepCopyEvent() instead.
      */
@@ -220,7 +220,6 @@ public:
 
 public:
     static void copyQtPointerEvent(const QMouseEvent *event, PkScopedPointer<QEvent> &dst);
-    static void copyQtPointerEvent(const QTabletEvent *event, PkScopedPointer<QEvent> &dst);
     static void copyQtPointerEvent(const QTouchEvent *event, PkScopedPointer<QEvent> &dst);
 
     static std::optional<PkPointF> fetchGlobalPositionFromPointerEvent(QEvent *event);

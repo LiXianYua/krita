@@ -19,6 +19,7 @@
 #include <QTextFormat>
 
 #include <PkThreadCallQueue.h>
+#include <PkInputEvent.h>
 
 #include <chrono>
 
@@ -257,27 +258,24 @@ void KoToolProxy::countMultiClick(KoPointerEvent *ev, KoPointerInputSource sourc
 
 }
 
-void KoToolProxy::tabletEvent(QTabletEvent *event, const PkPointF &point)
+void KoToolProxy::tabletEvent(const KoInputDevice &id, const PkTabletEvent &event, const PkPointF &point)
 {
-    // We get these events exclusively from KisToolProxy - accept them
-    event->accept();
-
-    KoInputDevice id(KoInputDevice::convertDeviceType(event),
-                     KoInputDevice::convertPointerType(event), event->uniqueId());
+    // We get these events exclusively from KisToolProxy - the host has already
+    // classified the device, so the identity is taken as given here.
     KoToolManager::instance()->priv()->switchInputDevice(id);
 
     KoPointerEvent ev(event, point);
 
-    switch (event->type()) {
-    case QEvent::TabletPress:
+    switch (event.type()) {
+    case PkInputEvent::TabletPress:
         countMultiClick(&ev, KoPointerInputSource::Tablet);
         break;
-    case QEvent::TabletRelease:
+    case PkInputEvent::TabletRelease:
         d->scrollTimer.stop();
         if (d->activeTool)
             d->activeTool->mouseReleaseEvent(&ev);
         break;
-    case QEvent::TabletMove:
+    case PkInputEvent::TabletMove:
         if (d->activeTool)
             d->activeTool->mouseMoveEvent(&ev);
         d->checkAutoScroll(ev);
