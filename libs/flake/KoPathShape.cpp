@@ -8,6 +8,8 @@
 */
 
 #include <PkFlakeBridge.h>
+// pkBound 是原生数值谓词的名字（PkGlobal.h）；Qt 名 qBound 在 pk 层无定义。
+#include <PkGlobal.h>
 #include "KoPathShape.h"
 #include <PkStrokeOutline.h>
 #include "KoPathShape_p.h"
@@ -412,7 +414,7 @@ int KoPathShape::arcToCurve(qreal rx, qreal ry, qreal startAngle, qreal sweepAng
     if (sweepAngle == 0.0)
         return pointCnt;
 
-    sweepAngle = qBound(-360.0, sweepAngle, 360.0);
+    sweepAngle = pkBound(-360.0, sweepAngle, 360.0);
 
     if (rx == 0 || ry == 0) {
         //TODO

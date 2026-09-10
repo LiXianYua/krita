@@ -6,6 +6,8 @@
    SPDX-License-Identifier: LGPL-2.1-or-later
  */
 #include <PkFlakeBridge.h>
+// pkMax 是原生数值谓词的名字（PkGlobal.h）；Qt 名 qMax 在 pk 层无定义。
+#include <PkGlobal.h>
 #include <resources/KoSvgSymbolCollectionResource.h>
 
 #include <QDebug>
@@ -42,7 +44,7 @@ PkImage KoSvgSymbol::icon(int size = 0)
         size = 128;
     }
 
-    int maxDim = qMax(rc.width(), rc.height());
+    int maxDim = pkMax(rc.width(), rc.height());
     // no need to customize it, most of the time the code being able to set the size
     // doesn't even know where this image will end up
     // because it's saved into the database and then used in widgets
@@ -132,9 +134,9 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(PkStream *dev, KisResourcesIn
     PkXmlDocument doc = SvgParser::createDocumentFromSvg(d->data, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
 
-        errKrita << "Parsing error in " << filename() << "! Aborting!" << Qt::endl
-        << " In line: " << errorLine << ", column: " << errorColumn << Qt::endl
-        << " Error message: " << errorMsg << Qt::endl;
+        errKrita << "Parsing error in " << filename() << "! Aborting!" << "\n"
+        << " In line: " << errorLine << ", column: " << errorColumn << "\n"
+        << " Error message: " << errorMsg << "\n";
         errKrita << i18n("Parsing error in the main document at line %1, column %2\nError message: %3"
                          , errorLine , errorColumn , toQString(errorMsg));
         return false;

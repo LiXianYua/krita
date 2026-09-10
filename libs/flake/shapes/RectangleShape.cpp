@@ -7,6 +7,8 @@
 */
 
 #include <PkFlakeBridge.h>
+// pkBound 是原生数值谓词的名字（PkGlobal.h）；Qt 名 qBound 在 pk 层无定义。
+#include <PkGlobal.h>
 
 #include "RectangleShape.h"
 
@@ -237,7 +239,7 @@ qreal RectangleShape::cornerRadiusX() const
 
 void RectangleShape::setCornerRadiusX(qreal radius)
 {
-    radius = qBound(0.0, radius, 100.0);
+    radius = pkBound(0.0, radius, 100.0);
     m_cornerRadiusX = radius;
     updatePath(size());
     updateHandles();
@@ -250,7 +252,7 @@ qreal RectangleShape::cornerRadiusY() const
 
 void RectangleShape::setCornerRadiusY(qreal radius)
 {
-    radius = qBound(0.0, radius, 100.0);
+    radius = pkBound(0.0, radius, 100.0);
     m_cornerRadiusY = radius;
     updatePath(size());
     updateHandles();

@@ -6,6 +6,10 @@
 
 #include <PkGradient.h>
 #include <PkFlakeBridge.h>
+// pkMax/pkBound 是原生数值谓词的**名字**（pk/global/PkGlobal.h），Qt 名 qMax/qBound
+// 在 pk 层无定义（只有 qMin/qDeleteAll 经壳 PkXmlCompat.h 映射），故调用点用原生名
+// 并显式取头——与同目录 KoPathSegment.cpp:8 同形。
+#include <PkGlobal.h>
 #include "KoMarker.h"
 
 #include <KoXmlNS.h>
@@ -246,10 +250,10 @@ qreal KoMarker::maxInset(qreal strokeWidth) const
     PkRectF shapesBounds = boundingRect(strokeWidth, 0.0); // normalized to 0,0
     qreal result = 0.0;
 
-    result = qMax(KisAlgebra2D::norm(shapesBounds.topLeft()), result);
-    result = qMax(KisAlgebra2D::norm(shapesBounds.topRight()), result);
-    result = qMax(KisAlgebra2D::norm(shapesBounds.bottomLeft()), result);
-    result = qMax(KisAlgebra2D::norm(shapesBounds.bottomRight()), result);
+    result = pkMax(KisAlgebra2D::norm(shapesBounds.topLeft()), result);
+    result = pkMax(KisAlgebra2D::norm(shapesBounds.topRight()), result);
+    result = pkMax(KisAlgebra2D::norm(shapesBounds.bottomLeft()), result);
+    result = pkMax(KisAlgebra2D::norm(shapesBounds.bottomRight()), result);
 
     return result;
 }

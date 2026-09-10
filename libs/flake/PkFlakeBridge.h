@@ -735,12 +735,19 @@ private:
 // 已宏映射到同一 Pk 类型（List→PkList、PointF→PkPointF、DomElement→PkXmlElement 等），
 // 透传与真 Qt 分支按分量互转在 Qt-free 下语义一致。唯一例外是 String：壳 compat 的
 // String 垫片是 PkString 子类，故 toQString 返回 PK_QSTRING_（子类）以保真。
-// 无 Pk 对应的桥接（ByteArray/Image/IODevice 相关、PkDeviceStream、PkStreamIoDevice）
-// 只服务真 Qt 分支——壳内无对应类型，且剥离源文件不使用它们。
+// String/List/ByteArray 族**不是**「只服务真 Qt 分支」：实测剥离源在原生 TU 里真实
+// 调用 toPkString / toQString / toPkList / toPkByteArray / pkReadAllAsQByteArray
+// （ImageShape.cpp、KoSvgSymbolCollectionResource.cpp、ImageShapeFactory.cpp、
+// KoFlakeUtils.h），故本分支按恒等透传补齐它们（见文末）。Image/IODevice 相关的桥接
+// 暂仍只服务真 Qt 分支——本波实测未暴露原生调用点。
 #include <PkXmlCompat.h>
 #include <pk/color/PkColor.h>
 #include <pk/geometry/PkPen.h>
 #include <pk/pointer/PkSharedPointer.h>
+#include <pk/container/PkByteArray.h>
+#include <pk/port/PkStream.h>
+#include <cstdint>
+#include <vector>
 
 
 
@@ -767,4 +774,33 @@ inline PkSharedPointer<T> toPkSharedPointer(const PkSharedPointer<T> &p) { retur
 
 inline PkPen toQPen(const PkPen &p) { return p; }
 inline PkPen toPkPen(const PkPen &p) { return p; }
+
+// String/List/ByteArray 族的 Qt-free 恒等版。Qt-free 下 PK_QSTRING_/PK_QLIST_ 等宏
+// 已塌成同一 Pk 类型，故每个名字**只留一个恒等形态**（照搬真 Qt 分支的双载会撞重定义）。
+inline PkString toPkString(const PkString &s) { return s; }
+inline PkString toQString(const PkString &s) { return s; }
+
+// toPkList：KoFlakeUtils.h 模板体内以非依赖名调用，必须在模板定义点可见。
+template <typename T>
+inline PkList<T> toPkList(const PkList<T> &l) { return l; }
+
+inline PkByteArray toPkByteArray(const PkByteArray &b) { return b; }
+
+// pkReadAllAsQByteArray：真 Qt 分支由 PkStreamIoDevice 适配器逐块转发；Qt-free 下
+// PkStream 已是原生流，直接按 size 读满即可。PkByteArray 无 append，用 vector 累积。
+inline PkByteArray pkReadAllAsQByteArray(PkStream *stream)
+{
+    std::vector<uint8_t> buf;
+    if (stream) {
+        char chunk[8192];
+        while (!stream->atEnd()) {
+            const auto n = stream->read(chunk, sizeof(chunk));
+            if (n <= 0) {
+                break;
+            }
+            buf.insert(buf.end(), chunk, chunk + n);
+        }
+    }
+    return PkByteArray(buf);
+}
 #endif

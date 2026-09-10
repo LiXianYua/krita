@@ -14,6 +14,10 @@
 #include "kis_global.h"
 #include "KoShapeStrokeCommand.h"
 
+// toPkList 在下面 modifyShapesStrokes() 的模板体内是**非依赖名**（形参已是 PkList），
+// 必须在模板定义点就可见——不能靠某个调用点碰巧先包了 bridge 头。见 PkFlakeBridge.h。
+#include <PkFlakeBridge.h>
+
 
 namespace KoFlake {
 
