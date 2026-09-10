@@ -514,19 +514,27 @@ list(REMOVE_ITEM kritaflake_core_SRCS ${kritaflake_painting_SRCS})
 # 报成一条看不出根因的未定义引用。
 # 口径：**定向**移桶，只动这两个文件名，不重划对象库，也不动上面那段全局互斥
 # `REMOVE_ITEM`（裁定原文点名不许动它）。下列各行必须写在那段之后、各 `*_objects`
-# target 创建之前——写前面会被 `REMOVE_ITEM` 撤销，写后面该 target 已经定型。
+# target 创建之前——**位置是承重的**。写在那段**之前**不是「被撤销」，是**漏删**：
+# `kritaflake_core_SRCS` 在更早处由主表 `FILTER` 得出（含这个文件），而那段里的
+# `list(REMOVE_ITEM kritaflake_core_SRCS ${kritaflake_painting_SRCS})` 只能摘下**当时还在**
+# `kritaflake_painting_SRCS` 里的文件——先摘走就漏删，同一个 TU 被两个对象库各编一次
+# （重复定义）。写在各 target 创建之后则该 target 已经定型。
 #
 # 【本轮实测边界，别再往下扩】`KoToolManager.cpp` / `KoCanvasController.cpp` /
 # `KoToolFactoryBase.cpp` 曾被一并移进 Qt 桶试图让 oracle 跑起来，**已回退**。理由不是
 # 「超出列举」，是**它们与 native 桶构成一个必须同桶的簇**：
 # `KoCanvasController::actionCollection()` 的返回类型按桶分叉（Qt 桶真 `QObject*`、
 # native 桶 `PkObject*`），而**返回类型不进 mangled name**（符号恒为
-# `_ZN18KoCanvasController16actionCollectionEv`），所以它**永远链得过**；
+# `_ZNK18KoCanvasController16actionCollectionEv`），所以它**永远链得过**；
 # 一旦定义落在 Qt 桶，native 的 `KoToolBase.cpp:326` 就会把真 `QObject*` 当 `PkObject*`
 # 用（在真 QObject 内存上操作 `PkObject` 的 `std::mutex`）——实测 `SIGSEGV` /
-# `std::system_error: Invalid argument` / glibc assert。而 `KoToolBase.cpp`(native) 与
-# `KoToolManager.cpp` 都消费这个面，于是 `{KoToolBase, KoToolManager, KoCanvasController,
-# KoToolFactoryBase}` 必须同桶。**移动其中任何一个 = 重划对象库，裁定不许。**
+# `std::system_error: Invalid argument` / glibc assert。消费这个面的有 `KoToolBase.cpp:326`
+# **与** `KoToolManager.cpp:60/140`（native 与 Qt 两侧），故
+# `{KoToolBase, KoToolManager, KoCanvasController}` 必须同桶。
+# 注：`KoToolFactoryBase` **不**属这个簇——它的分叉在**参数**类型
+# `createActions(QObject*)` 上，参数进 mangled name，落错桶会当场链接失败（fail-closed）；
+# 但它唯一的消费方仍需要不可单独移的 `KoCanvasController` 的 `QObject*` 构造，
+# 所以单独移它换不来任何能跑的 oracle。**移动簇里任何一个 = 重划对象库，裁定不许。**
 list(REMOVE_ITEM kritaflake_painting_SRCS KoToolProxy.cpp)
 list(REMOVE_ITEM kritaflake_core_SRCS KoToolSelection.cpp)
 list(APPEND kritaflake_tools_SRCS KoToolProxy.cpp KoToolSelection.cpp)
