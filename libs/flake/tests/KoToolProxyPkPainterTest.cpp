@@ -5,13 +5,7 @@
 
 #include <QTest>
 #include <PkInputEvent.h>
-#include <QKeyEvent>
 #include <QKeySequence>
-#include <QInputMethodEvent>
-#include <QFocusEvent>
-#include <QDragMoveEvent>
-#include <QDropEvent>
-#include <QMimeData>
 
 #include "KoCanvasBase.h"
 #include "KoCanvasController.h"
@@ -189,6 +183,10 @@ class PkOnlyTool final : public KoToolBase
 {
 public:
     using KoToolBase::paint;
+
+    /// KoToolBase keeps the text-mode switch protected; the shortcut
+    /// arbitration test drives it directly.
+    using KoToolBase::setTextMode;
 
     explicit PkOnlyTool(KoCanvasBase *canvas)
         : KoToolBase(canvas)
@@ -681,11 +679,10 @@ private Q_SLOTS:
         PkOnlyTool tool(&canvas);
         proxy.priv()->activeTool = &tool;
 
-        QKeyEvent press(QEvent::KeyPress, Qt::Key_A,
-                        Qt::ControlModifier | Qt::ShiftModifier,
-                        QStringLiteral("A"), true);
-        press.ignore();
-        proxy.keyPressEvent(&press);
+        PkToolKeyEvent press(Pk::Key_A,
+                             Pk::KeyboardModifiers(Pk::ControlModifier | Pk::ShiftModifier),
+                             false, true, "A");
+        proxy.keyPressEvent(press);
 
         QCOMPARE(tool.keyPressCalls, 1);
         QCOMPARE(tool.lastKey, Pk::Key_A);
@@ -696,10 +693,8 @@ private Q_SLOTS:
         QCOMPARE(tool.lastText, PkString("A"));
         QVERIFY(press.isAccepted());
 
-        QKeyEvent release(QEvent::KeyRelease, Qt::Key_B, Qt::AltModifier,
-                          QStringLiteral("b"), false);
-        release.accept();
-        proxy.keyReleaseEvent(&release);
+        PkToolKeyEvent release(Pk::Key_B, Pk::AltModifier, true, false, "b");
+        proxy.keyReleaseEvent(release);
 
         QCOMPARE(tool.keyReleaseCalls, 1);
         QCOMPARE(tool.lastKey, Pk::Key_B);
@@ -718,6 +713,42 @@ private Q_SLOTS:
         QVERIFY(event.isAutoRepeat());
         QCOMPARE(event.text(), PkString("a"));
         QVERIFY(!event.isAccepted());
+    }
+
+    void shortcutOverrideClaimsTextInputOnly()
+    {
+        MinimalShapeController shapeController;
+        MinimalCanvas canvas(&shapeController);
+        TestToolProxy proxy(&canvas);
+        PkOnlyTool tool(&canvas);
+
+        const auto keyEvent = [](Pk::Key key, Pk::KeyboardModifiers modifiers) {
+            return PkToolKeyEvent(key, modifiers, false);
+        };
+
+        // Without a tool there is no text input to claim the key.
+        QVERIFY(!proxy.shortcutOverride(keyEvent(Pk::Key_A, Pk::NoModifier)));
+
+        proxy.priv()->activeTool = &tool;
+
+        // Outside text mode no single key is ever claimed.
+        tool.setTextMode(false);
+        QVERIFY(!proxy.shortcutOverride(keyEvent(Pk::Key_A, Pk::NoModifier)));
+        QVERIFY(!proxy.shortcutOverride(keyEvent(Pk::Key_A, Pk::ShiftModifier)));
+
+        // In text mode unmodified and shift-modified keys are text input.
+        tool.setTextMode(true);
+        QVERIFY(proxy.shortcutOverride(keyEvent(Pk::Key_A, Pk::NoModifier)));
+        QVERIFY(proxy.shortcutOverride(keyEvent(Pk::Key_A, Pk::ShiftModifier)));
+
+        // Chorded keys stay shortcuts, so the host must let them through.
+        QVERIFY(!proxy.shortcutOverride(keyEvent(Pk::Key_A, Pk::ControlModifier)));
+        QVERIFY(!proxy.shortcutOverride(keyEvent(Pk::Key_A, Pk::MetaModifier)));
+
+        // AltGr arrives as Ctrl+Alt and is claimed only under the Windows-only
+        // branch of KoToolProxy::shortcutOverride. The native build defines no
+        // Q_OS_* macro, so in this build the answer is always false.
+        QVERIFY(!proxy.shortcutOverride(keyEvent(Pk::Key_A, Pk::ControlModifier | Pk::AltModifier)));
     }
 
     void textPropertyNotificationsUseNativeSignalDelivery()
@@ -814,8 +845,7 @@ private Q_SLOTS:
         // A stalled host must not accumulate one callback per elapsed interval.
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
         QCOMPARE(PkThreadCallQueue::pendingCount(), size_t(1));
-        QEvent hostPulse(QEvent::User);
-        proxy.processEvent(&hostPulse);
+        proxy.processEvent();
         QCOMPARE(PkThreadCallQueue::pendingCount(), size_t(0));
         QCOMPARE(controller.ensureVisibleCalls, 1);
         QCOMPARE(tool.mouseMoveCalls, 2);
@@ -927,10 +957,13 @@ private Q_SLOTS:
         PkOnlyTool tool(&canvas);
         proxy.priv()->activeTool = &tool;
 
-        QInputMethodEvent input(QStringLiteral("preedit"), {});
-        input.setCommitString(QStringLiteral("commit"), -2, 1);
+        PkToolInputMethodEvent input;
+        input.commitString = "commit";
+        input.preeditString = "preedit";
+        input.replacementStart = -2;
+        input.replacementLength = 1;
         input.ignore();
-        proxy.inputMethodEvent(&input);
+        proxy.inputMethodEvent(input);
         QCOMPARE(tool.inputMethodCalls, 1);
         QCOMPARE(tool.lastCommitString, PkString("commit"));
         QCOMPARE(tool.lastPreeditString, PkString("preedit"));
@@ -938,31 +971,27 @@ private Q_SLOTS:
         QCOMPARE(tool.lastReplacementLength, 1);
         QVERIFY(input.isAccepted());
 
-        QFocusEvent focusIn(QEvent::FocusIn);
+        PkToolEvent focusIn;
         focusIn.ignore();
-        proxy.focusInEvent(&focusIn);
+        proxy.focusInEvent(focusIn);
         QCOMPARE(tool.focusInCalls, 1);
         QVERIFY(focusIn.isAccepted());
 
-        QFocusEvent focusOut(QEvent::FocusOut);
-        focusOut.accept();
-        proxy.focusOutEvent(&focusOut);
+        PkToolEvent focusOut(true);
+        proxy.focusOutEvent(focusOut);
         QCOMPARE(tool.focusOutCalls, 1);
         QVERIFY(!focusOut.isAccepted());
 
-        QMimeData mimeData;
-        QDragMoveEvent drag(QPoint(4, 5), Qt::CopyAction, &mimeData,
-                            Qt::LeftButton, Qt::NoModifier);
+        PkToolEvent drag;
         drag.ignore();
-        proxy.dragMoveEvent(&drag, PkPointF(40, 50));
+        proxy.dragMoveEvent(drag, PkPointF(40, 50));
         QCOMPARE(tool.dragMoveCalls, 1);
         QCOMPARE(tool.lastDragPoint, PkPointF(40, 50));
         QVERIFY(drag.isAccepted());
 
-        QDropEvent drop(QPointF(6, 7), Qt::CopyAction, &mimeData,
-                        Qt::LeftButton, Qt::NoModifier);
+        PkToolEvent drop;
         drop.ignore();
-        proxy.dropEvent(&drop, PkPointF(60, 70));
+        proxy.dropEvent(drop, PkPointF(60, 70));
         QCOMPARE(tool.dropCalls, 1);
         QCOMPARE(tool.lastDropPoint, PkPointF(60, 70));
         QVERIFY(drop.isAccepted());

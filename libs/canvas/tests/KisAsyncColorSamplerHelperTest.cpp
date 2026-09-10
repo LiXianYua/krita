@@ -1404,18 +1404,17 @@ void KisAsyncColorSamplerHelperTest::hostKeyAdapterDispatchesPkPayload()
     DecorationProxy hostProxy(&canvas);
     hostProxy.priv()->activeTool = &tool;
 
-    QKeyEvent press(QEvent::KeyPress, Qt::Key_Control,
-                    Qt::ShiftModifier | Qt::AltModifier);
-    press.ignore();
-    hostProxy.keyPressEvent(&press);
+    PkToolKeyEvent press(Pk::Key_Control,
+                         Pk::KeyboardModifiers(Pk::ShiftModifier | Pk::AltModifier),
+                         false);
+    hostProxy.keyPressEvent(press);
     QCOMPARE(tool.pressCount, 1);
     QCOMPARE(tool.lastKey, Pk::Key_Control);
     QCOMPARE(int(tool.lastModifiers), int(press.modifiers()));
     QVERIFY(press.isAccepted());
 
-    QKeyEvent release(QEvent::KeyRelease, Qt::Key_Shift, Qt::ControlModifier);
-    release.accept();
-    hostProxy.keyReleaseEvent(&release);
+    PkToolKeyEvent release(Pk::Key_Shift, Pk::ControlModifier, true);
+    hostProxy.keyReleaseEvent(release);
     QCOMPARE(tool.releaseCount, 1);
     QCOMPARE(tool.lastKey, Pk::Key_Shift);
     QCOMPARE(int(tool.lastModifiers), int(release.modifiers()));
