@@ -14,6 +14,8 @@
 #include <QDebug>
 #include <klocalizedstring.h>
 
+#include <PkFlakeBridge.h>
+
 namespace {
 QString translateHostActionText(const char *text)
 {

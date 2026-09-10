@@ -14,11 +14,11 @@
 #include <PkList.h>
 #include <PkNamespace.h>
 #include <PkKeySequence.h>
+#include <QObject>
 
 class KoCanvasBase;
 class KoToolBase;
 class QAction;
-class QObject;
 
 /**
  * Each tool has a "section" which it uses to be grouped in the toolbox.

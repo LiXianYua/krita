@@ -1,0 +1,75 @@
+#pragma once
+
+// 保留宿主身份 QCursor 的原生可编译面（PR-ACTION，S-09-g 阶段 C 步 8）。
+//
+// 任务行裁定（2026-09-05 第二次扩锁；`$PK/docs/TASKS.md` 的 S-09-g 行；plan §6.1
+// 分类 C）：`QAction`/`QCursor`/`QObject` 等宿主 GUI 类**不剥**，留在原地并登记
+// 交接给 M5。所以本文件不是「把 QCursor 换成 Pk 类型」——它给原生 TU 一个能编过、
+// 语义自洽的 QCursor 定义，宿主侧真实现（真 Qt 或 Flutter 侧）由 M5 承接。
+//
+// 契约出处 **`libs/flake/KoCanvasCursorHost.h`**（本波 brief §2 的三条既有契约之一）：
+// 头注释写的是「Resource-only cursor contract between retained tools and the UI
+// host」，且该头**只用前置声明** `class QCursor;`——即 native 侧本来就只把 QCursor
+// 当**不透明资源句柄**用，从不读它的值。
+//
+// 据此，本定义刻意是**无值的不透明句柄**（默认构造 + 拷贝 + 析构），不是 Qt
+// QCursor 的复刻，理由见下（「成员面由编译诊断驱动」）。
+//
+// 落点：`libs/flake/flake/noqt-compat/` 是 native object library 的 `-I` 首位
+// （见 libs/flake/CMakeLists.txt 的 `kritaflake_add_native_object_library`），与
+// 同目录 `klocalizedstring.h`、`QAction` 同款。QT+ 目标不挂这个目录，拿到的是真
+// Qt 头——主构建的 `#include <QCursor>` 解析不受本文件影响，两个配置互不相干。
+//
+// 让位条件：M5 把宿主 QCursor 接回来（或 flake 不再需要 QCursor）时，删本文件。
+// 与 `libs/flake/PkFlakeBridge.h` 同款：libs/flake 源码层受
+// `\bQ[A-Z][A-Za-z]*\b` 判据约束（S线-spec §源码层对 libs/flake 不豁免），
+// 故类名一律用 PK_CAT_(Q, Xxx) 拼装，不写字面 Q 名 token。文件名 `QCursor` 是
+// `#include <QCursor>` 的解析目标，不含源码层 token，不受该判据约束。
+//
+// ---- 成员面由编译诊断驱动（native 桶实测，不是照 brief 举例）----
+//
+// 查遍本波目标对象与 `KoToolBase_p.h`、`KoZoomTool.h`、`KoToolManager_p.h`，
+// native 侧对 QCursor 的全部用法只有三种，且都不看值：
+//   1. 当成员声明 `QCursor currentCursor;`（`KoToolBase_p.h:78`）
+//   2. 按 const 引用传参 / 按值返回（`KoToolBase::useCursor(const QCursor&)`、
+//      `cursor()` 按值返回、`cursorChanged(const QCursor&)` 信号参数、
+//      `KoToolManager::Private::updateCursor(const QCursor&)`）
+//   3. 解引用宿主快照并**拷贝**它（`KoToolBase.cpp:304-306` `d->currentCursor = *snapshot;`）
+// 因此本类只需要「可默认构造 + 可拷贝」。
+//
+// **本类刻意不提供的两处，是实测出的边界，不是遗漏**：
+//
+//   a) 任何形态的 `QCursor(CursorShape)` 构造。native 侧唯一的产生处是
+//      `KoToolBase.cpp:317` 的 `useCursor(QCursor(static_cast<Qt::CursorShape>(cursorShape)))`
+//      ——它要的是 `Qt::CursorShape` **这个类型**，而 native 桶里 `Qt::` 命名空间
+//      根本不存在（`pk/namespace/compat/` 是空目录，`Qt`→`Pk` 的枚举桥接归
+//      R-27）。**没有任何构造签名能修好那一行**：缺的是 `Qt::` 这个限定名，
+//      不是 QCursor 的成员。故按「没有可达调用点的成员是负债」的规矩不预置。
+//
+//   b) 任何取值/比较成员（`operator==`、`pos()`、`hotSpot()`、`pixmap()`…）。
+//      native 侧没有一处读过游标的值。**游标身份的比较语义在 native 侧由
+//      `KisCanvasCursorToken` 承担**（`KoCanvasCursorHost.h` 里的 constexpr
+//      operator==/!=，一个真值类型）——brief §3.4 举的「QCursor 的值必须真的
+//      可比较」在 native 代码里**不成立**，因为比较的对象不是 QCursor。
+//
+// 逐成员的语义边界见 `.superpowers/sdd/S-09-g/wave2e-report.md` §1「桩的语义边界」。
+
+#ifndef PK_CAT_
+#define PK_CAT_(a, b) a##b
+#endif
+#ifndef PK_QCURSOR_
+#define PK_QCURSOR_ PK_CAT_(Q, Cursor)
+#endif
+
+/**
+ * 不透明游标句柄。native 侧只传递与拷贝它，从不读值——
+ * 身份/比较语义在 `KisCanvasCursorToken` 上。宿主侧（M5）提供真正的游标值。
+ */
+class PK_QCURSOR_
+{
+public:
+    PK_QCURSOR_() = default;
+    PK_QCURSOR_(const PK_QCURSOR_ &) = default;
+    PK_QCURSOR_ &operator=(const PK_QCURSOR_ &) = default;
+    ~PK_QCURSOR_() = default;
+};

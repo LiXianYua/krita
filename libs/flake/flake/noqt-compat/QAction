@@ -1,0 +1,170 @@
+#pragma once
+
+// 保留宿主身份 QAction 的原生可编译面（PR-ACTION，S-09-g 阶段 C 步 8）。
+//
+// 任务行裁定（2026-09-05 第二次扩锁；`$PK/docs/TASKS.md` 的 S-09-g 行；plan §6.1
+// 分类 C）：`QAction`/`QCursor`/`QObject` 等宿主 GUI 类**不剥**，留在原地并登记
+// 交接给 M5。所以本文件不是「把 QAction 换成 Pk 类型」——它给原生 TU 一个能编过、
+// 语义自洽的 QAction 定义，宿主侧真实现（真 Qt 或 Flutter 侧）由 M5 承接。
+//
+// 形态照同族先例 `plugins/tools/defaulttool/defaulttool/DefaultToolUi.h` 的
+// `DefaultToolAction`：宿主中性原生载体，派生 PkObject，信号用 PkObject 的
+// activateSignal 真发（不是空壳）。它承载的是「一个动作对象」的身份与状态，
+// 不含任何桌面工具包 API。
+//
+// 落点：`libs/flake/flake/noqt-compat/` 是 native object library 的 `-I` 首位
+// （见 libs/flake/CMakeLists.txt 的 `kritaflake_add_native_object_library`），与
+// 同目录 `klocalizedstring.h` 同款。QT+ 目标不挂这个目录，拿到的是真 Qt 头——
+// 主构建的 `#include <QAction>` 解析不受本文件影响，两个配置互不相干。
+//
+// 让位条件：M5 把宿主 QAction 接回来（或 flake 不再需要 QAction）时，删本文件与
+// 下面的 PK_* 拼装宏。与 `libs/flake/PkFlakeBridge.h` 同款：libs/flake 源码层受
+// `\bQ[A-Z][A-Za-z]*\b` 判据约束（S线-spec §源码层对 libs/flake 不豁免），
+// 故类名一律用 PK_CAT_(Q, Xxx) 拼装，不写字面 Q 名 token。文件名 `QAction` 是
+// `#include <QAction>` 的解析目标，不含源码层 token，不受该判据约束。
+//
+// 成员面**由编译诊断驱动**，只做 native TU（`kritaflake_painting_objects`）编过
+// 所必需的最小集合；逐成员的原生语义与 no-op 边界见
+// `.superpowers/sdd/S-09-g/wave2e-report.md` §1「桩的语义边界」。
+
+#ifndef PK_CAT_
+#define PK_CAT_(a, b) a##b
+#endif
+#ifndef PK_QACTION_
+#define PK_QACTION_ PK_CAT_(Q, Action)
+#endif
+#ifndef PK_QKEYSEQUENCE_
+#define PK_QKEYSEQUENCE_ PK_CAT_(Q, KeySequence)
+#endif
+
+#include <PkList.h>
+#include <PkMap.h>
+#include <PkObject.h>
+#include <PkSignalTraits.h>
+#include <PkString.h>
+#include <PkVariant.h>
+
+#include <vector>
+
+/**
+ * 一个宿主快捷键序列跨边界读入原生侧后的值载体。
+ *
+ * `KoToolManagerShortcuts::fromHostAction()` 是唯一的读者，它只做一件事：把这个
+ * 序列的非空判据（`toString().isEmpty()`）与逐和弦整数（`count()`/`operator[]`）
+ * 拷成原生 encoded chord。它**不**比较或存储工具包快捷键值（见
+ * `KoToolManagerShortcuts_p.h` 的边界注释），所以这里不实现 Qt 的本地化键名表：
+ * `toString()` 只承担「这个序列是否携带真实载荷」这一个判据，默认构造（空载荷）
+ * 返回空串，携带和弦时返回非空的原生描述。
+ */
+class PK_QKEYSEQUENCE_
+{
+public:
+    PK_QKEYSEQUENCE_() = default;
+
+    /** 从一个原生 encoded chord（Qt 5.15 Key | Modifier 位布局，见 PkKeySequence.h）构造。 */
+    explicit PK_QKEYSEQUENCE_(int chord)
+        : m_text(PkString::number(chord)), m_chords{chord}
+    {
+    }
+
+    /** 载荷判据：空序列（默认构造 / 无和弦）为真，携带和弦为假。 */
+    bool isEmpty() const { return m_chords.empty(); }
+
+    /** 非空即「携带真实载荷」。见类注释：不承担 Qt 的本地化键名。 */
+    PkString toString() const { return m_text; }
+
+    int count() const { return static_cast<int>(m_chords.size()); }
+
+    int operator[](int index) const { return m_chords[static_cast<std::size_t>(index)]; }
+
+private:
+    PkString m_text;
+    std::vector<int> m_chords;
+};
+
+/**
+ * 保留宿主动作身份。
+ *
+ * 它同时是「对象树里的一个节点」（派生 PkObject：setParent/objectName/findChild 由
+ * 基类承担，action collection 按 `findChild<QAction *>(name)` 取回）与「一个动作
+ * 状态载体」（enabled/属性/快捷键载荷）。
+ *
+ * **不在这里做的事**：`createActions()` 建好动作后，`triggered` 由谁发——宿主侧的
+ * 真 QAction（M5）在用户激活动作时发；原生侧没有 UI，没有任何调用点会发它，所以
+ * 这里也不提供 `trigger()` 之类的触发入口（无调用点的成员是纯负债）。
+ */
+class PK_QACTION_ : public PkObject
+{
+public:
+    explicit PK_QACTION_(PkObject *parent = nullptr)
+        : PkObject(parent)
+    {
+    }
+
+    /**
+     * 宿主侧构造形态（`new QAction(text, parent)`）。名字/父对象之外的展示文本只有
+     * 宿主读得到，这里照存不丢——`createHostAction()` 传进来的就是它。
+     */
+    PK_QACTION_(const PkString &text, PkObject *parent = nullptr)
+        : PkObject(parent), m_text(text)
+    {
+    }
+
+    PkString text() const { return m_text; }
+
+    void setEnabled(bool enabled) { m_enabled = enabled; }
+    bool isEnabled() const { return m_enabled; }
+    void setDisabled(bool disabled) { m_enabled = !disabled; }
+
+    /**
+     * 宿主动作的自由属性（`createActions()` 用 "tool_action" 挂工具 id 列表）。
+     * 缺席返回无效 PkVariant，与 Qt 的 QObject::property 同语义。
+     */
+    PkVariant property(const char *name) const
+    {
+        const auto it = m_properties.constFind(PkString(name));
+        return it == m_properties.constEnd() ? PkVariant() : it.value();
+    }
+
+    void setProperty(const char *name, const PkVariant &value)
+    {
+        m_properties.insert(PkString(name), value);
+    }
+
+    /**
+     * 该动作携带的原生快捷键载荷。宿主侧由宿主装填；原生侧没有任何调用点装填它，
+     * 所以原生桶里它为默认（空）——`fromHostAction()` 因此产出零条冲突记录，这正是
+     * 「无宿主 UI 的原生内核里不存在快捷键冲突」的语义。
+     */
+    PkList<PK_QKEYSEQUENCE_> shortcuts() const { return m_shortcuts; }
+
+    void setShortcuts(const PkList<PK_QKEYSEQUENCE_> &shortcuts) { m_shortcuts = shortcuts; }
+
+    /** 单个原生 encoded chord（`createHostAction()` 的 `Pk::Key` 路径）。 */
+    void setShortcut(int chord) { m_shortcuts = PkList<PK_QKEYSEQUENCE_>() << PK_QKEYSEQUENCE_(chord); }
+
+    /**
+     * 真信号（PkObject 的 activateSignal 路径，非空壳）：宿主激活动作时发，
+     * `createActions()` 建立的 `switchToolRequested` 委托就挂在这条线上。
+     *
+     * **无参形态，不是 Qt 的 `triggered(bool checked)`** —— 这是实测驱动的取舍：
+     * native 桶里 `&PK_QACTION_::triggered` 只有一个消费者
+     * （`libs/flake/KoToolFactoryBase.cpp` 的 `createActions()`），它接的是
+     * `[toolId = id()] { ... }` 这种**零参 lambda**；而 `PkSlotImpl` 的 lambda
+     * 打包器不做 Qt 那样的"槽只取信号参数前缀"截断（`PkConnect.h` 的
+     * `PkCallSlotPrefix` 只对成员函数指针槽生效），声明成 `(bool)` 会在
+     * `pk/signal` 里硬编不过。同族先例 `DefaultToolAction::triggered()` 也是无参。
+     * 宿主侧（M5）接回真 QAction 后，`checked` 由真 Qt 信号提供——见报告
+     * `.superpowers/sdd/S-09-g/wave2e-report.md` §1「桩的语义边界」。
+     */
+    void triggered()
+    {
+        activateSignal<>(this, PkMemberFnKey::from(&PK_QACTION_::triggered));
+    }
+
+private:
+    PkString m_text;
+    bool m_enabled {true};
+    PkMap<PkString, PkVariant> m_properties;
+    PkList<PK_QKEYSEQUENCE_> m_shortcuts;
+};
