@@ -23,8 +23,15 @@ class KoToolFactoryBase;
 class KoToolBasePrivate
 {
 public:
+    // The retained cursor handle starts at the platform default. Written as
+    // `QCursor()` rather than a named shape because this header is compiled in
+    // BOTH buckets: real Qt's QCursor takes `Qt::CursorShape` and the native
+    // shim takes `Pk::CursorShape`, so no single named enumerator compiles in
+    // both. QCursor's default constructor is specified as the default arrow
+    // cursor (Qt: "Constructs a cursor with the default arrow shape"), which is
+    // exactly the `Qt::ArrowCursor` this used to name.
     KoToolBasePrivate(KoToolBase *qq, KoCanvasBase *canvas_)
-        : currentCursor(Pk::ArrowCursor),
+        : currentCursor(QCursor()),
         q(qq),
         canvas(canvas_),
         isInTextMode(false),
