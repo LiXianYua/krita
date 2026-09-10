@@ -361,11 +361,16 @@ static_assert(std::is_same_v<decltype(&KoZoomTool::pkKeyPressEvent),
                             void (KoZoomTool::*)(PkToolKeyEvent *)>);
 static_assert(std::is_same_v<decltype(&KoZoomTool::pkKeyReleaseEvent),
                             void (KoZoomTool::*)(PkToolKeyEvent *)>);
-static_assert(std::is_same_v<decltype(&KoCanvasBase::qt_metacall),
-                            decltype(&QObject::qt_metacall)>);
+// KoCanvasBase and KoShapeUserData were moved to a PkObject-only identity by
+// 911506ce ("migrate flake lifecycle signals to Pk"), in the same direction the
+// three-way Qt split takes every non-UI Qt face. They therefore no longer carry
+// the Qt meta-object face, and these two assertions pin that actual state — the
+// same form the neighbouring assertions already use.
+static_assert(!std::is_base_of_v<QObject, KoCanvasBase>);
+static_assert(std::is_base_of_v<PkObject, KoCanvasBase>);
 static_assert(!std::is_base_of_v<QObject, KoShapeFactoryBase>);
-static_assert(std::is_same_v<decltype(&KoShapeUserData::qt_metacall),
-                            decltype(&QObject::qt_metacall)>);
+static_assert(!std::is_base_of_v<QObject, KoShapeUserData>);
+static_assert(std::is_base_of_v<PkObject, KoShapeUserData>);
 static_assert(!std::is_base_of_v<QObject, KoToolBase>);
 static_assert(!std::is_base_of_v<QObject, KoToolFactoryBase>);
 static_assert(!std::is_base_of_v<QObject, KoSelectedShapesProxy>);
