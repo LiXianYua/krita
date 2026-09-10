@@ -21,7 +21,6 @@
 #include <PkNamespace.h>
 
 class QAction;
-class QAction;
 class QMouseEvent;
 class QKeyEvent;
 class QWheelEvent;
