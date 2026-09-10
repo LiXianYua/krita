@@ -10,7 +10,7 @@
 #include <PkImageRasterBackend.h>
 // pk 侧的数值谓词是原生名 pkMin/pkMax（pk/global/PkGlobal.h）。Qt 名 qMin/qMax
 // 只在经壳 PkXmlCompat.h 的 TU 里被映射，本 TU 不含该头——故调用点用原生名并
-// 显式取头，与 libs/flake/KoMarker.cpp:11、KoPathSegment.cpp:8 同形。
+// 显式取头，与 libs/flake/KoMarker.cpp:12、KoPathSegment.cpp:8 同形。
 #include <PkGlobal.h>
 
 #include "kis_shape_selection.h"
