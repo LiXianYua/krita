@@ -7,6 +7,8 @@
 #define KOTOOLSELECTION_H
 
 #include "kritaflake_export.h"
+
+#if defined(QT_CORE_LIB)
 #include <QObject>
 
 /**
@@ -30,5 +32,12 @@ public:
         return false;
     }
 };
+#else
+// The class is defined in the Qt translation unit only: its base list names a
+// configuration-dependent type, so a native translation unit must never see the
+// layout. Native code reaches the selection state through the bucket-agnostic
+// forwarder KoToolBase::selectionHasSelection().
+class KoToolSelection;
+#endif
 
 #endif

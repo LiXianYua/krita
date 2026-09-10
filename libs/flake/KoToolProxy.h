@@ -9,6 +9,7 @@
 #define _KO_TOOL_PROXY_H_
 
 #include "kritaflake_export.h"
+#include "KoToolProxyHost.h"
 
 #include <QObject>
 #include <PkObject.h>
@@ -62,11 +63,13 @@ enum class KoPointerInputSource {
 // surface. Under the compat routing (pk/signal/compat/QObject) the token
 // `QObject` *is* `PkObject`, so naming both bases duplicates the base class;
 // the base list is therefore spelled per configuration.
+//
+// Because of that, the class is defined in the Qt translation unit only: the
+// layout differs between the two spellings, so a native translation unit must
+// never see it. Native code holds KoToolProxy* and reaches the proxy through
+// the bucket-agnostic KoToolProxyHost interface (see KoToolProxyHost.h).
 #if defined(QT_CORE_LIB)
-class KRITAFLAKE_EXPORT KoToolProxy : public QObject, public PkObject
-#else
-class KRITAFLAKE_EXPORT KoToolProxy : public PkObject
-#endif
+class KRITAFLAKE_EXPORT KoToolProxy : public QObject, public PkObject, public KoToolProxyHost
 {
 public:
     /**
@@ -178,6 +181,14 @@ public:
     /// \internal
     KoToolProxyPrivate *priv();
 
+    // KoToolProxyHost — the bucket-agnostic surface native code sees. The
+    // base-class upcasts happen here, in the Qt translation unit, where the
+    // layout is the real one.
+    void setCanvasController(KoCanvasController *controller) override;
+    PkObject *toolProxyObject() override;
+    void repaintToolDecorations() override;
+    KoPointerEvent *lastDeliveredToolPointerEvent() override;
+
 protected:
     /// Forwarded to the current KoToolBase
     void requestUndoDuringStroke();
@@ -217,5 +228,8 @@ private:
     friend class KoToolProxyPrivate;
     KoToolProxyPrivate * const d;
 };
+#else
+class KoToolProxy;
+#endif
 
 #endif // _KO_TOOL_PROXY_H_

@@ -15,6 +15,7 @@
 #include "KoInputDevice.h"
 #include "KoToolManager.h"
 #include "KoCanvasCursorHost.h"
+#include "KoToolProxyHost.h"
 
 class KoToolFactoryBase;
 class KoShapeManager;
@@ -25,7 +26,6 @@ class KoToolManager;
 class KoCanvasController;
 class KoShapeLayer;
 class CanvasData;
-class KoToolProxy;
 
 class Q_DECL_HIDDEN KoToolManager::Private
 {
@@ -66,14 +66,14 @@ public:
      * @param canvas which canvas the proxy is associated with; whenever a new tool is selected for that canvas,
      *        the proxy gets an update.
      */
-    void registerToolProxy(KoToolProxy *proxy, KoCanvasBase *canvas);
+    void registerToolProxy(KoToolProxyHost *proxy, KoCanvasBase *canvas);
 
     KoToolManager *q;
 
     PkList<KoToolAction*> toolActionList; // list of all available tools via their actions.
 
     PkHash<KoCanvasController*, PkList<CanvasData*> > canvasses;
-    PkHash<KoCanvasBase*, KoToolProxy*> proxies;
+    PkHash<KoCanvasBase*, KoToolProxyHost*> proxies;
 
     CanvasData *canvasData; // data about the active canvas.
 

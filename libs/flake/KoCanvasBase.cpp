@@ -90,8 +90,8 @@ void KoCanvasBase::disconnectCanvasObserver(PkObject *object)
         PkObject::disconnect(resourceManager(), nullptr, object, nullptr);
     }
     if (shapeManager()) PkObject::disconnect(shapeManager(), nullptr, object, nullptr);
-    if (toolProxy()) {
-        PkObject::disconnect(toolProxy(), nullptr, object, nullptr);
+    if (PkObject *proxy = toolProxyObject()) {
+        PkObject::disconnect(proxy, nullptr, object, nullptr);
     }
     if (selectedShapesProxy()) {
         PkObject::disconnect(selectedShapesProxy(), nullptr, object, nullptr);

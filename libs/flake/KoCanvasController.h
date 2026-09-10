@@ -176,7 +176,8 @@ public:
      */
     virtual void resetScrollBars() = 0;
 
-   /**
+#if defined(QT_CORE_LIB)
+    /**
      * Returns the action collection for the window
      *
      * The returned QObject acts as an action repository. Actions are added
@@ -186,7 +187,21 @@ public:
      *
      * @returns action collection for this window, can be 0
      */
-    QObject *actionCollection() const;
+    /**
+     * 宿主动作集合（**qt 支独有**）。
+     *
+     * native 桶的 `QObject` 是 `PkObject`：这个访问器若两桶共用一条声明，
+     * 它的 mangled name 两桶相同（返回类型不进 mangled name），qt 侧就会把
+     * native 侧存进来的 `PkObject` 当真 Qt `QObject` 用。所以它只留 qt 支、
+     * 定义也只在 qt 支（头内 inline），native 侧不存在这个声明 —— 跨桶符号
+     * 不存在。
+     *
+     * 句柄本身桶无关（见 `m_hostActionCollection`）：native 侧 ctor 从形参
+     * 原样存入，这里 static_cast 回来拿到的就是调用者交进来的那个对象，
+     * 与改动前的位模式逐位相同。
+     */
+    QObject *actionCollection() const { return static_cast<QObject *>(m_hostActionCollection); }
+#endif
 
     /**
      * 宿主动作集合的桶无关回报（KoCanvasActionHost）。
@@ -215,6 +230,14 @@ protected:
 private:
     class Private;
     Private * const d;
+
+    // 桶无关的不透明宿主动作集合句柄：native 桶存的是 PkObject*、qt 桶存的是
+    // QObject*，void* 两桶都装得下。由 KoCanvasController.cpp 的 ctor 从形参
+    // 原样存入；qt 支的 actionCollection() 把它 static_cast 回 QObject*。
+    //
+    // 声明在 d 之后 → 成员初始化顺序为 proxyObject、d、m_hostActionCollection，
+    // 与 ctor 初始化列表（只列 d）一致，不会有 -Wreorder。
+    void *m_hostActionCollection = nullptr;
 };
 
 

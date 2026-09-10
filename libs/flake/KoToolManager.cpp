@@ -13,8 +13,7 @@
 #include "KoToolManager_p.h"
 #include "KoToolManagerShortcuts_p.h"
 #include "KoToolRegistry.h"
-#include "KoToolProxy.h"
-#include "KoToolProxy_p.h"
+#include "KoToolProxyHost.h"
 #include "KoSelection.h"
 #include "KoCanvasController.h"
 #include "KoShape.h"
@@ -639,7 +638,7 @@ void KoToolManager::Private::switchCanvasData(CanvasData *cd)
             disconnectActiveTool();
         }
 
-        KoToolProxy *proxy = proxies.value(oldCanvas);
+        KoToolProxyHost *proxy = proxies.value(oldCanvas);
         Q_ASSERT(proxy);
         proxy->setActiveTool(0);
     }
@@ -684,7 +683,7 @@ void KoToolManager::Private::detachCanvas(KoCanvasController *controller)
         }
     }
 
-    KoToolProxy *proxy = proxies.value(controller->canvas());
+    KoToolProxyHost *proxy = proxies.value(controller->canvas());
     if (proxy)
         proxy->setActiveTool(0);
 
@@ -717,9 +716,9 @@ void KoToolManager::Private::attachCanvas(KoCanvasController *controller)
     canvasses_.append(cd);
     canvasses[controller] = canvasses_;
 
-    KoToolProxy *tp = proxies[controller->canvas()];
+    KoToolProxyHost *tp = proxies[controller->canvas()];
     if (tp)
-        tp->priv()->setCanvasController(controller);
+        tp->setCanvasController(controller);
 
     if (cd->activeTool == 0) {
         // no active tool, so we activate the highest priority main tool
@@ -808,7 +807,7 @@ void KoToolManager::Private::currentLayerChanged(const KoShapeLayer *layer)
 
 void KoToolManager::Private::updateToolForProxy()
 {
-    KoToolProxy *proxy = proxies.value(canvasData->canvas->canvas());
+    KoToolProxyHost *proxy = proxies.value(canvasData->canvas->canvas());
     if(!proxy) return;
 
     bool canUseTool = !layerExplicitlyDisabled || canvasData->activationShapeId.endsWith(toPkString(QLatin1String("/always")));
@@ -857,12 +856,12 @@ void KoToolManager::Private::switchInputDevice(const KoInputDevice &device)
     switchTool(oldTool);
 }
 
-void KoToolManager::Private::registerToolProxy(KoToolProxy *proxy, KoCanvasBase *canvas)
+void KoToolManager::Private::registerToolProxy(KoToolProxyHost *proxy, KoCanvasBase *canvas)
 {
     proxies.insert(canvas, proxy);
     Q_FOREACH (KoCanvasController *controller, canvasses.keys()) {
         if (controller->canvas() == canvas) {
-            proxy->priv()->setCanvasController(controller);
+            proxy->setCanvasController(controller);
             break;
         }
     }

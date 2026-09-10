@@ -30,6 +30,7 @@ class KoCanvasController;
 class KoShape;
 class KoSnapGuide;
 class KoSelectedShapesProxy;
+class KoPointerEvent;
 
 class QWidget;
 class QCursor;
@@ -166,6 +167,16 @@ public:
      * so leave that to others.
      */
     virtual KoToolProxy *toolProxy() const = 0;
+
+    /**
+     * Bucket-agnostic forwards to the host tool proxy. KoToolProxy is only
+     * defined in the Qt translation unit, so a native translation unit must not
+     * dereference it; these three are declared here and defined in that same
+     * translation unit, where the base-class upcast uses the real layout.
+     */
+    PkObject *toolProxyObject() const;
+    void repaintToolDecorations();
+    KoPointerEvent *lastDeliveredToolPointerEvent() const;
 
     /**
      * Return the viewConverter for this view.

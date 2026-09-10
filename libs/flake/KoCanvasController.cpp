@@ -63,6 +63,9 @@ KoCanvasController::KoCanvasController(QObject *actionCollection)
 {
     proxyObject = new KoCanvasControllerProxyObject(this);
     d->actionCollection = actionCollection;
+    // 桶无关句柄：这里（native 桶）存进去的是 PkObject*，qt 侧的 inline
+    // actionCollection() 把它 static_cast 回 QObject* 原样取出。
+    m_hostActionCollection = actionCollection;
 }
 
 KoCanvasController::~KoCanvasController()
@@ -81,11 +84,6 @@ KoCanvasControllerProxyObject::KoCanvasControllerProxyObject(KoCanvasController 
     : PkObject(parent)
     , m_canvasController(controller)
 {
-}
-
-QObject *KoCanvasController::actionCollection() const
-{
-    return d->actionCollection;
 }
 
 PkList<KisHostActionIdentity> KoCanvasController::hostActions() const

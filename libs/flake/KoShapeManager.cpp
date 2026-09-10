@@ -299,8 +299,8 @@ void KoShapeManager::Private::forwardCompressedUpdate()
         compressedUpdatedShapes.clear();
     }
 
-    if (shouldUpdateDecorations && canvas->toolProxy()) {
-        canvas->toolProxy()->repaintDecorations();
+    if (shouldUpdateDecorations) {
+        canvas->repaintToolDecorations();
     }
     canvas->updateCanvas(scheduledUpdate);
 

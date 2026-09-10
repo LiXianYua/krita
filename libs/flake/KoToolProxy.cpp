@@ -139,13 +139,59 @@ KoToolProxy::KoToolProxy(KoCanvasBase *canvas, QObject *parent)
     : QObject(parent),
       d(new KoToolProxyPrivate(this))
 {
-    KoToolManager::instance()->priv()->registerToolProxy(this, canvas);
+    KoToolManager::instance()->priv()->registerToolProxy(static_cast<KoToolProxyHost *>(this), canvas);
 
 }
 
 KoToolProxy::~KoToolProxy()
 {
     delete d;
+}
+
+// KoToolProxyHost — the bucket-agnostic surface native code sees. Every upcast
+// to a base class happens in this translation unit, against the real (Qt)
+// layout; native code never computes an offset of its own.
+void KoToolProxy::setCanvasController(KoCanvasController *controller)
+{
+    d->setCanvasController(controller);
+}
+
+PkObject *KoToolProxy::toolProxyObject()
+{
+    return static_cast<PkObject *>(this);
+}
+
+void KoToolProxy::repaintToolDecorations()
+{
+    repaintDecorations();
+}
+
+KoPointerEvent *KoToolProxy::lastDeliveredToolPointerEvent()
+{
+    return lastDeliveredPointerEvent();
+}
+
+// KoCanvasBase host forwards, declared bucket-agnostically in KoCanvasBase.h and
+// defined here so the dereference of the proxy uses the Qt layout.
+PkObject *KoCanvasBase::toolProxyObject() const
+{
+    KoToolProxy *proxy = toolProxy();
+    if (!proxy) return nullptr;
+    return static_cast<KoToolProxyHost *>(proxy)->toolProxyObject();
+}
+
+void KoCanvasBase::repaintToolDecorations()
+{
+    KoToolProxy *proxy = toolProxy();
+    if (!proxy) return;
+    static_cast<KoToolProxyHost *>(proxy)->repaintToolDecorations();
+}
+
+KoPointerEvent *KoCanvasBase::lastDeliveredToolPointerEvent() const
+{
+    KoToolProxy *proxy = toolProxy();
+    if (!proxy) return nullptr;
+    return static_cast<KoToolProxyHost *>(proxy)->lastDeliveredToolPointerEvent();
 }
 
 void KoToolProxy::paint(PkPainter &painter, const KoViewConverter &converter)

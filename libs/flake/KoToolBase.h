@@ -325,6 +325,13 @@ public:
     virtual KoToolSelection *selection();
 
     /**
+     * Bucket-agnostic forward for hasSelection(): KoToolSelection is only defined
+     * in the Qt translation unit, and this definition lives there too, so the
+     * selection object is dereferenced with the real (Qt) layout.
+     */
+    bool selectionHasSelection();
+
+    /**
      * @returns true if the tool has selected data.
      */
     virtual bool hasSelection();

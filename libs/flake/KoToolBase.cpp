@@ -164,9 +164,8 @@ KoPointerEvent *KoToolBase::lastDeliveredPointerEvent() const
     Q_D(const KoToolBase);
 
     if (!d->canvas) return 0;
-    if (!d->canvas->toolProxy()) return 0;
 
-    return d->canvas->toolProxy()->lastDeliveredPointerEvent();
+    return d->canvas->lastDeliveredToolPointerEvent();
 }
 
 void KoToolBase::activate(const PkSet<KoShape *> &shapes)
@@ -463,8 +462,7 @@ void KoToolBase::dropEvent(PkToolEvent *event, const PkPointF &point)
 
 bool KoToolBase::hasSelection()
 {
-    KoToolSelection *sel = selection();
-    return (sel && sel->hasSelection());
+    return selectionHasSelection();
 }
 
 KoToolSelection *KoToolBase::selection()
