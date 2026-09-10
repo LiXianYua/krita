@@ -426,7 +426,7 @@ list(REMOVE_ITEM kritaflake_core_SRCS ${__per_arch_alpha_applicator_factory_objs
 #    ⚠ 2026-09-09 实测：这条补回在当前 compat 架构下不是一处 CMake 改动就能落地的
 #    （真 Qt 头会被 pk/*/compat 的类型宏改写、pk 的 R-38 让位守卫在未定义
 #    QT_CORE_LIB 时不生效），三条候选机制全部实测失败，已报人裁决。测量与机制见
-#    .superpowers/sdd/S-09-g/wave3-root-map-ready.md §4 步 4b 与 plan §7.6.9。
+#    .superpowers/sdd/S-09-g/wave3-root-map-ready.md §4 Step 8b 与 plan §7.6.9。
 set(kritaflake_painting_SRCS
     kis_painting_tweaks.cpp
     KisHandlePainterHelper.cpp
