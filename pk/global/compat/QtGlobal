@@ -107,6 +107,14 @@
         bool exists() const { return NAME##_created(); } \
     } NAME;
 #endif
+// Q_D(Class)：Qt 语义 = 取私有实现的本地别名 d，宏体依赖 d_func()。
+// 本族的补项：本文件已定义 Q_DECL_*/Q_DISABLE_COPY(_MOVE)/Q_ASSERT_X/Q_CHECK_PTR/
+// Q_FALLTHROUGH/Q_PRIVATE_SLOT/Q_GLOBAL_STATIC 等 Q_ 宏，独缺 Q_D。宏体与真 Qt
+// （qglobal.h）逐字同形；d_func() 由本树 PkGlobal.h 的 PK_DECLARE_PRIVATE(Class)
+// 生成，故不引入第二套私有访问词汇。
+#if !defined(Q_D)
+#define Q_D(Class) Class##Private * const d = d_func()
+#endif
 // qobject_cast：壳里没有对象系统实现（pk README 单列），PkObject 有虚析构，
 // dynamic_cast 语义等价（RTTI 开启）。
 #if !defined(qobject_cast)
