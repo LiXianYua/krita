@@ -399,7 +399,7 @@ qreal KoToolBase::handleDocRadius() const
     Q_D(const KoToolBase);
     const KoViewConverter * converter = d->canvas->viewConverter();
     const PkPointF doc = converter->viewToDocument(PkPointF(handleRadius(), handleRadius()));
-    return qMax(doc.x(), doc.y());
+    return pkMax(doc.x(), doc.y());
 }
 
 int KoToolBase::decorationThickness() const

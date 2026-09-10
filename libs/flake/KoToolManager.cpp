@@ -36,6 +36,7 @@
 #include <FlakeDebug.h>
 
 #include <QAction>
+#include <climits>
 #include <stack>
 
 Q_GLOBAL_STATIC(KoToolManager, s_instance)
