@@ -86,9 +86,8 @@ void KoCanvasBase::disconnectCanvasObserver(PkObject *object)
     if (shapeManager()) {
         PkObject::disconnect(shapeManager()->selection(), nullptr, object, nullptr);
     }
-    if (auto *qtObserver = dynamic_cast<QObject *>(object)) {
-        if (resourceManager()) resourceManager()->disconnect(qtObserver);
-        if (toolProxy()) toolProxy()->QObject::disconnect(qtObserver);
+    if (resourceManager()) {
+        PkObject::disconnect(resourceManager(), nullptr, object, nullptr);
     }
     if (shapeManager()) PkObject::disconnect(shapeManager(), nullptr, object, nullptr);
     if (toolProxy()) {
