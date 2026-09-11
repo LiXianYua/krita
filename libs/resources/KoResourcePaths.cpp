@@ -23,7 +23,6 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <map>
 #include <mutex>
 #include <string>
 #include <system_error>
@@ -57,11 +56,6 @@ PkString fromPath(const fs::path &path)
 {
     const std::string text = path.generic_u8string();
     return PkString::PkFromUtf8(text.data(), static_cast<int>(text.size()));
-}
-
-std::string pathKey(const fs::path &path)
-{
-    return path.generic_u8string();
 }
 
 fs::path toPath(const PkString &path)
@@ -532,12 +526,6 @@ std::mutex &resourceConfigProcessMutex()
     return mutex;
 }
 
-std::map<std::string, PkString> &resourceConfigSnapshots()
-{
-    static std::map<std::string, PkString> snapshots;
-    return snapshots;
-}
-
 bool persistResourceLocation(const PkString &location)
 {
     std::lock_guard<std::mutex> processLock(resourceConfigProcessMutex());
@@ -556,46 +544,38 @@ bool persistResourceLocation(const PkString &location)
     PkString persistedLocation;
     if (readPersistentResourceLocationUnlocked(configPath, &persistedLocation) &&
         persistedLocation == location) {
-        resourceConfigSnapshots()[pathKey(configPath)] = location;
         return true;
     }
-    const bool written = writePersistentResourceLocationUnlocked(configPath, location);
-    if (written) {
-        resourceConfigSnapshots()[pathKey(configPath)] = location;
-    }
-    return written;
+    return writePersistentResourceLocationUnlocked(configPath, location);
 }
 
 PkString configuredResourceLocation(PkConfigGroup &config)
 {
     std::lock_guard<std::mutex> processLock(resourceConfigProcessMutex());
     const fs::path configPath = resourceConfigFilePath();
-    const std::string snapshotKey = pathKey(configPath);
-    const bool hasMemoryValue = config.hasKey(kResourceLocationKey);
-    const PkString memoryValue = hasMemoryValue
-                                     ? config.readEntry(kResourceLocationKey, PkString())
-                                     : PkString();
-    std::map<std::string, PkString> &snapshots = resourceConfigSnapshots();
-    const auto snapshot = snapshots.find(snapshotKey);
-    const bool memoryMatchesSnapshot =
-        hasMemoryValue && snapshot != snapshots.end() && snapshot->second == memoryValue;
-    const bool hasExplicitMemoryValue = hasMemoryValue && !memoryMatchesSnapshot;
+    const PkString memoryValue = config.readEntry(kResourceLocationKey, PkString());
+    // A value this process wrote and has not merged into kritarc yet is the
+    // caller's. Anything else in memory is only a copy of what the file held
+    // when this process started, so a fresh process that merely read an
+    // existing kritarc must not be mistaken for a writer: the journal, not a
+    // per-process cache of the last value seen on disk, is what tells them
+    // apart.
+    const bool hasExplicitMemoryValue = config.hasPendingWrite(kResourceLocationKey);
 
+    // Mirrors what the file holds into memory without journaling a mutation.
+    // Adopting persistent state is a read, and a read must not make this
+    // process rewrite the shared file on teardown.
     const auto adoptPersistedValue = [&] (bool hasPersistedValue,
                                           const PkString &persistedValue) -> PkString {
         if (hasPersistedValue) {
-            config.writeEntry(kResourceLocationKey, persistedValue);
-            snapshots[snapshotKey] = persistedValue;
+            config.adoptPersistedValue(kResourceLocationKey, persistedValue);
             return persistedValue;
         }
-        if (hasMemoryValue) {
-            config.deleteEntry(kResourceLocationKey);
-        }
-        snapshots.erase(snapshotKey);
+        config.dropPersistedValue(kResourceLocationKey);
         return PkString();
     };
 
-    // Ordinary reads first take a side-effect-free optimistic snapshot. A
+    // Ordinary reads first take a side-effect-free optimistic read. A
     // writer announces itself by creating the lock before changing kritarc;
     // observing that lock before or after the read sends us to the exclusive
     // protocol below. With no lock at either point, returning the observed
@@ -636,13 +616,12 @@ PkString configuredResourceLocation(PkConfigGroup &config)
         return adoptPersistedValue(hasPersistedValue, persistedValue);
     }
 
-    // No matching snapshot means that the in-memory value was explicitly
-    // modified by a caller. Persist only when the disk value actually differs.
+    // A pending write means a caller explicitly modified the in-memory value.
+    // Persist only when the disk value actually differs.
     if ((!hasPersistedValue || persistedValue != memoryValue) &&
         !writePersistentResourceLocationUnlocked(configPath, memoryValue)) {
         return memoryValue;
     }
-    snapshots[snapshotKey] = memoryValue;
     return memoryValue;
 }
 
