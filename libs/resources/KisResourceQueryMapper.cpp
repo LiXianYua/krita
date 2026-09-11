@@ -48,6 +48,10 @@ PkImage KisResourceQueryMapper::thumbnailFromResourceQuery(const PkSqlQuery &que
     const int resourceId = query.value(columnName(useResourcePrefix,
                                                    "id",
                                                    "resource_id")).toInt();
+    if (resourceId < 0) {
+        return PkImage();
+    }
+
     PkSqlQuery thumbnailQuery;
     if (!thumbnailQuery.prepare(PkString(
             "SELECT thumbnail FROM resources WHERE id = :resource_id"))) {
