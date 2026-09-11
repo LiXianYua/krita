@@ -8,7 +8,7 @@ kis_add_tests(
     TestColorSpaceRegistry.cpp
     TestLcmsRGBP2020PQColorSpace.cpp
     TestProfileGeneration.cpp
-    LINK_LIBRARIES kritapigment kritatestsdk ${LCMS2_LIBRARIES}
+    LINK_LIBRARIES kritapigment kritatestsdk -Wl,--whole-archive kritalcmsengine -Wl,--no-whole-archive ${LCMS2_LIBRARIES}
     )
 
 add_executable(kritalcms_profile_discovery_test

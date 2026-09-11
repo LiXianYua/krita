@@ -157,6 +157,14 @@ kis_add_tests(
 # kis_mesh_transform_worker_test still owns its diagnostic render coverage.
 target_sources(kis_mesh_transform_worker_test PRIVATE ../KisBezierGradientMesh.cpp)
 
+# kis_fill_painter_test 需要真实色彩管理：它的参考图是在 lcms 引擎注册的
+# 色彩空间下生成的，缺引擎时会退回 KoSimpleColorSpace（"unmanaged"），
+# 填充结果与参考图差 1 像素。D-12 之后插件是静态库，必须 --whole-archive
+# 才能把它的自注册静态对象（LcmsEngineRegistration）拉进来；--no-as-needed
+# 对静态库无效（静态库按符号引用取成员，无引用的成员照样被丢弃）。
+target_link_options(kis_fill_painter_test PRIVATE
+    "-Wl,--whole-archive" "$<TARGET_FILE:kritalcmsengine>" "-Wl,--no-whole-archive")
+
 kis_add_test(
     kis_clone_layer_test.cpp
     LINK_LIBRARIES kritaimage kritatestsdk kritaglobal kritatransformmaskstubs
