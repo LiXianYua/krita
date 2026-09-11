@@ -32,9 +32,16 @@
 //   在 libpkvariant.a 里，被**两个镜像各静态链一份**；value<T>() 是头里的模板
 //   实例化，同样各镜像一份）。
 //
-// Task 1 不挂任何属性：本头所在的 pk/variant 并不持有那 11 个几何/时间类型，
-// 属性落点在 pk/geometry、pk/time 的类型定义上（plan §4.2），Task 2 才动。
-// 所以本载体在 Task 1 的树上**必须跑出红**——这一条正是它有没有判别力的证明。
+// 属性挂载状态（**轮 3 现状**）：17 个类型**全部已挂**——S-17 的 3 个、几何/时间的
+// 11 个（落点见 PkPoint.h/PkRect.h/PkSize.h/PkLine.h、PkDateTime.h），以及 R-53 裁决 A
+// 给 `class PkVariant` 挂的那一行（`pk/variant/PkVariant.h`），它**透过模板实参传播**
+// 使 3 个容器 typedef 一并翻开（见 PkTypeVisibility.h）。⇒ **本载体在轮 3 的树上 17 个
+// 类型全绿**。
+//
+// 历史（轮 2）：当时 `PkVariant` 尚未挂属性 ⇒ 3 个容器类型红、其余 14 个绿，那条
+// 「3 红 14 绿」正是载体判别力的证明。轮 3 挂上后判别力改由 `typeInfoUniqueBit` 槽
+// 承担（两镜像 `__type_name` 互异断言，恒过只出证据）——它才是「两镜像没被合并」的
+// 守门人，见 CMakeLists.txt 顶部的负控说明。
 
 #include "../PkVariant.h"
 
@@ -43,13 +50,17 @@
 #include <typeinfo>
 
 // ---------------------------------------------------------------------------
-// 负载类型清单 —— plan §4.1 现场枚举出的 14 个（枚举点：PkVariant.h 的非模板
-// 构造声明 + PkVariant.cpp:rebindDataPointer 的 case 分支）。
-// X-macro，两侧逐字共用同一份清单：改名/增删只改这里，不会有第二份漂移。
+// 负载类型清单 —— 现场枚举出的 17 个 = plan §4.1 的 14 个（枚举点：PkVariant.h 的
+// 非模板构造声明 + PkVariant.cpp:rebindDataPointer 的 case 分支）+ 轮 2 新增的 3 个
+// 容器类型。X-macro，两侧逐字共用同一份清单：改名/增删只改这里，不会有第二份漂移。
 //
-//   前 3 个（PkString / PkStringList / PkByteArray）= S-17 已修，本任务只做
-//   回归覆盖，是**对照组**：两段都必须绿。
-//   后 11 个 = 本任务范围，Task 1 未挂属性 ⇒ 期望红；Task 2 挂属性后转绿。
+//   前 3 个（PkString / PkStringList / PkByteArray）= S-17 已修，只做回归覆盖，
+//   是**对照组**：恒绿。
+//   中间 11 个（PkPoint … PkDateTime）= 几何/时间类型，属性已挂（落点在 pk/geometry、
+//   pk/time 的类型定义上，前几轮完成）⇒ **回归对照**：恒绿。
+//   末 3 个（PkVariantList / PkVariantHash / PkVariantMap）= **A 裁决新增**：std
+//   容器的 typedef，跨镜像判等靠 `PkVariant` 自己挂属性（见 PkTypeVisibility.h）
+//   ——不是给 typedef 挂（挂不了）。轮 3 已挂 ⇒ 全绿（轮 2 未挂时这 3 个是红的）。
 //
 // 第二个实参是各类型的规范值：**每个值都用括号包住**，因为预处理器只把
 // 圆括号当分组、不认花括号——`PkStringList{...}` 里那个逗号会撕开宏实参。
@@ -68,7 +79,10 @@
     X(PkLineF, (PkLineF(1.5, 2.5, 3.5, 4.5)))                                 \
     X(PkDate, (PkDate(2026, 9, 12)))                                          \
     X(PkTime, (PkTime(13, 14, 15)))                                           \
-    X(PkDateTime, (PkDateTime(PkDate(2026, 9, 12), PkTime(13, 14, 15))))
+    X(PkDateTime, (PkDateTime(PkDate(2026, 9, 12), PkTime(13, 14, 15))))      \
+    X(PkVariantList, (PkVariantList{PkVariant(PkString("r53-ximg"))}))         \
+    X(PkVariantMap, (PkVariantMap{{PkString("k"), PkVariant(PkString("v"))}})) \
+    X(PkVariantHash, (PkVariantHash{{PkString("k"), PkVariant(PkString("v"))}}))
 
 // ---------------------------------------------------------------------------
 // 平台门（plan §8）

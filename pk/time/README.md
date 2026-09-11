@@ -394,16 +394,18 @@ dylib + 一个 exe）：
 
 | 文件 | 角色 |
 |---|---|
-| `pk/variant/tests/cross_image_payload.h` | 两侧共用：14 个负载类型的清单 + 每人一份 `ximg_read_<T>` / `ximg_make_<T>` 桥声明 |
+| `pk/variant/tests/cross_image_payload.h` | 两侧共用：17 个负载类型的清单 + 每人一份 `ximg_read_<T>` / `ximg_make_<T>` 桥声明 |
 | `pk/variant/tests/cross_image_payload.cpp` | 编进 SHARED 库 `pkcrossimage` 的那一份实现 |
 | `pk/variant/tests/test_cross_image_payload.cpp` | exe 侧用例（`pk/test` 的 PK_* harness） |
 | `pk/variant/tests/cross_image_case.h` | `Q_OBJECT` + `private Q_SLOTS`，槽名 = 类型名 |
 | `pk/variant/CMakeLists.txt` | 注册 SHARED `pkcrossimage` + exe `test_pk_cross_image` + `add_test` |
 
-用例覆盖全部 **14** 个负载类型（本目录 3 个 + `pk/geometry` 8 个 + S-17 的
-`PkString`/`PkStringList`/`PkByteArray`），**两个方向**都测（exe 造/lib 读、
-lib 造/exe 读）。R-53 实测：挂属性前 `6 passed, 11 failed`（失败项包含本目录 3 个
-类型），挂属性后 `17 passed, 0 failed`。
+用例覆盖全部 **17** 个负载类型（本目录 3 个 + `pk/geometry` 8 个 + S-17 的
+`PkString`/`PkStringList`/`PkByteArray` + R-53 裁决 A 新并入的 3 个容器 typedef
+`PkVariantList`/`PkVariantHash`/`PkVariantMap`），**两个方向**都测（exe 造/lib 读、
+lib 造/exe 读）。R-53 实测：给本目录 3 个 + `pk/geometry` 8 个补挂属性前是
+`6 passed, 11 failed`（失败项正好是这 11 个未挂属性类型，含本目录 3 个）；裁决 A 给
+`class PkVariant` 也挂上后，17 个类型全绿（`20 passed, 0 failed`）。
 
 **模板实参传播规则（R-53 新实测）**：一个类模板特化的 unique 位 = 该特化**全部模板
 实参**（**含** `std::less<K>` / `std::hash<K>` / `std::allocator<…>` 这类由库推导出来
@@ -415,18 +417,22 @@ lib 造/exe 读）。R-53 实测：挂属性前 `6 passed, 11 failed`（失败�
 那里**没有可见性层面的解法**；**Linux / libstdc++** 上是 **no-op**。⇒ 跨镜像用例在
 非 Apple arm64 上打印 `SKIP: …` 并**通过**（平台门），不做断言。
 
-**⚠ 已知缺口 —— 下面是 `pk` 未覆盖的负载类型，别把这节读成「pk 负载已全覆盖」。**
-`PkVariantList` / `PkVariantHash` / `PkVariantMap`（`pk/variant/PkVariant.h:46-48`；
-另在 `pk/variant/PkDataStream.h:18-20` 有一份**同样**的 typedef）**本任务没有处理**：
+**R-53 裁决 A 已关掉此前登记的缺口。** 早先这里写着「`PkVariantList` /
+`PkVariantHash` / `PkVariantMap`（`pk/variant/PkVariant.h:46-48`；另在
+`pk/variant/PkDataStream.h:18-20` 有一份**同样**的 typedef）**本任务没有处理**、
+跨镜像读取仍然是坏的」——**那节现在假了**：
 
-- **现状**：它们是 `std::vector<PkVariant>` / `std::unordered_map<PkString,PkVariant>` /
-  `std::map<PkString,PkVariant>` 的 **typedef**，而 `class PkVariant`
-  （`pk/variant/PkVariant.h:52`）**自身未挂** `PK_TYPE_VISIBILITY`。
-- **后果**：这三个负载的**跨镜像读取仍然是坏的**——与 geometry/time 修前同症状。
-- **为什么不修**：任务行明写「**设计岔路，先回报再动手**」，一行未动是**照令执行**，
-  不是遗漏。（按上面的传播规则，给 `class PkVariant` 挂一行属性会让三个 typedef
-  一起翻开；三个选项的对比与一个自足可复现的最小探针在
-  `$PK/docs/superpowers/plans/R-53.md` §7 / §7.1。）
+- **怎么修的**：三者分别是 `std::vector<PkVariant>` / `std::unordered_map<PkString,PkVariant>`
+  / `std::map<PkString,PkVariant>` 的 **typedef**，而 `using` / `typedef` 别名**产生不了
+  新类型**、挂不了属性。R-53 按裁决 A **给被别名化的 `class PkVariant`
+  （`pk/variant/PkVariant.h`）挂一行 `PK_TYPE_VISIBILITY`**——属性**透过模板实参传播**
+  （规则见上、以及 `pk/container/PkTypeVisibility.h`），三个 typedef 遂一起翻开，
+  **没有改设计**。
+- **现状**：这三条已并入上面的跨镜像载体，与其余 14 个类型一样跨镜像双向可读；
+  载体 17 个类型全绿（`20 passed, 0 failed`）。**缺口已关闭**。
+- **仍不在覆盖内**：`fromValue<T>` / `setValue<T>` 的 **UserType 分支接受任意 `T`**
+  （调用方自己的类型、挂不了属性），跨镜像读它 = **调用方自己的责任**——这条已写进
+  `pk/container/PkTypeVisibility.h` 的「不在覆盖内：UserType 分支（开放集）」一节。
 
 ## 8. 怎么跑
 

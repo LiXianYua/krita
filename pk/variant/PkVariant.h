@@ -16,6 +16,7 @@
 #include "PkRect.h"
 #include "PkLine.h"
 #include "PkAuxTypes.h"
+#include "../container/PkTypeVisibility.h"   // PK_TYPE_VISIBILITY（T 本身也是负载类型，见下）
 #include "../time/PkDateTime.h"   // pk/time：PkDate/PkTime/PkDateTime + Pk::DateFormat
 
 // PkString 的 std::hash 特化 —— PkVariantHash (= std::unordered_map<PkString, PkVariant>) 需要
@@ -49,7 +50,7 @@ using PkVariantMap = std::map<PkString, PkVariant>;
 
 // ── PkVariant 类定义 ─────────────────────────────────────────────────────
 
-class PkVariant
+class PK_TYPE_VISIBILITY PkVariant
 {
 public:
     // Type 枚举 —— 尽量对齐 Qt 的 QVariant::Type 数值（探针实测）

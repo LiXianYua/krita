@@ -170,7 +170,7 @@ target_link_libraries(test_pkcolor_link PRIVATE pkcolor)
 add_test(NAME test_pkcolor_link COMMAND test_pkcolor_link)
 
 # ---------------------------------------------------------------------------
-# R-53 Task 1 —— 跨镜像回归载体：造出**两个镜像** + 一条覆盖 14 个负载类型的用例。
+# R-53 Task 1 —— 跨镜像回归载体：造出**两个镜像** + 一条覆盖 17 个负载类型的用例。
 #
 # 薄壳原本全是 STATIC + 单个 exe ⇒ 只有一个镜像，`any_cast` 的跨镜像边界**不
 # 存在于薄壳里**（plan §3 第 2 问 / impact-map §2），S-17 的原始红灯只能从主树

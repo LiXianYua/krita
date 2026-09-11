@@ -65,15 +65,57 @@
 // ---- 用在哪 ----
 //
 // **凡是可以当 `PkVariant::m_any` 负载的 pk 类，都要挂这个宏。**
+// 现场枚举出的负载类型全集（17 个）：
+//   * S-17 已挂：`PkString` `PkStringList` `PkByteArray`；
+//   * R-53 挂：`PkPoint` `PkPointF` `PkRect` `PkRectF` `PkSize` `PkSizeF`
+//     `PkLine` `PkLineF`（`pk/geometry`）+ `PkDate` `PkTime` `PkDateTime`（`pk/time`）；
+//   * R-53 裁决 A 挂：**`PkVariant` 自己**（`pk/variant/PkVariant.h`，
+//     `class PkVariant` —— 它自己也是那些 std 容器负载的元素类型，见下）。
+//
 // `PkVariantList` / `PkVariantHash` / `PkVariantMap` 分别是
 // `std::vector<PkVariant>` / `std::unordered_map<PkString, PkVariant>` /
-// `std::map<PkString, PkVariant>` 的 **typedef**（`pk/variant/PkVariant.h:46-48`），
-// **没有 pk 类可挂**——那三个只能靠 `pk/variant` 侧改设计。
+// `std::map<PkString, PkVariant>` 的 **typedef**（`pk/variant/PkVariant.h:46-48`）。
+// 这里原先写着「那三个只能靠 `pk/variant` 侧改设计」——**那句现在假了**：R-53 实测
+// 发现属性会**透过模板实参传播**（见下），于是按裁决 A **给 `class PkVariant` 挂
+// 这一行属性**，三个 typedef 就一起翻开了，**不需要改设计**。原因正是下面这条：
 //
-// ⚠ 这套修法**没有机器防线**：新增一个能当负载的类型而忘了挂宏，就会静默重现
-// 同类段错，而现有测试全绿（`libs/global` 的测试只走 `PkString` 负载，跨镜像
-// 边界不经过 geometry/time/集合那几类）。补挂时请同时补一条**跨镜像 round-trip
-// 测试**——那才是防线。
+// ### 传播规则（R-53 实测）
+//
+// 一个**类模板特化**的 unique 位 = 该特化**全部模板实参**（**含** `std::less<K>` /
+// `std::hash<K>` / `std::allocator<…>` 这类由库推导出来的实参）各自 unique 位的
+// 「**与**」——只要有一个实参是 unique，整个特化就是 unique。成员类**不**传播；
+// `using` / `typedef` 别名**不产生新类型**（它的 unique 位完全由被别名化的那个
+// 特化的实参决定，给别名挂属性改不了它）。
+//
+// **这条有一处会咬人的边界——与上面同段读，别只读一半**：既然「与」覆盖**全部**
+// 实参，那么**若将来把 `PkVariantHash` 的哈希策略换成一个自身 hidden 的 `PkHasher`
+// （或把 `PkVariantMap` 的比较器换成 `PkLess`），这次翻开会重新失效**。那两处的
+// 实测数据在 R-53 plan 的 §7.2、复现脚本在 §7.3（本机跑过、输出逐字一致）。原因：
+// `std::hash<K>` / `std::less<K>` 自身的 unique 位是**从实参 `K` 推出来的**（K 挂了
+// 属性 ⇒ 它们也 non-unique）；而 `PkHasher` / `PkLess` 是**单独的类型**、自身不带
+// 属性 ⇒ unique ⇒ 按「与」把整个特化拉回 unique。**要改这两个容器的哈希/比较器
+// 策略的人，先读这一条。**
+//
+// ### 不在覆盖内：UserType 分支（开放集）
+//
+// `PkVariant::fromValue<T>` / `setValue<T>` 的 **UserType 分支接受任意 `T`** ——
+// 那可能是**调用方自己的类型**，不是 pk 的类型、挂不了属性。它的相等走
+// `m_anyEqualAccessor`（同镜像内成对使用）；**跨镜像读用户类型 = 调用方自己的
+// 责任**（要么别跨镜像传，要么调用方自己给 `T` 挂本宏并保证两侧 include 同一份
+// 声明）。本宏**不**覆盖这一类，也不该覆盖。
+//
+// ⚠ 这套修法**没有机器防线**：新增一个能当负载的类型而忘了挂宏，就会静默重现同类
+// 段错，而单测全绿（`libs/global` 的测试只走 `PkString` 负载）。防线是一条**跨镜像
+// round-trip 测试**，它落在 **`pk/variant/tests/test_cross_image_payload.cpp`**（配套
+// `cross_image_payload.h` / `cross_image_payload.cpp` / `cross_image_case.h`，由
+// `pk/variant/CMakeLists.txt` 注册 SHARED 探针 `pkcrossimage` 与 exe
+// `test_pk_cross_image`）。**两个镜像怎么造**：SHARED 探针 dylib 与测试 exe **各
+// 静态链一份 pk 目标码** = 真镜像边界（薄壳原本没有镜像边界，这是自建的；§1.4 的
+// 目录级 `-fvisibility=hidden` 保证 dylib 不导出 pk 符号、两镜像不被合并）。它
+// **自带一条判别力断言**：对每个类型断言两镜像的 `type_info.__type_name` **互异**
+// （`exeRaw != libRaw`）——若两镜像被 dyld 合并成一个，槽当场翻红，而不是「全绿却
+// 毫无判别力」。**新增负载类型时把 T 加进那个 X-macro 清单即可**
+// （`cross_image_payload.h` 两侧共用一份，不会漂）。
 // ---------------------------------------------------------------------------
 
 #if defined(__clang__) && __has_attribute(type_visibility)

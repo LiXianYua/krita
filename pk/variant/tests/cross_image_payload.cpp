@@ -12,10 +12,11 @@
 //   用的是本 dylib 自己的 &typeid(PkPoint) 等 type_info 副本。
 //   隐藏可见性（见 CMakeLists.txt 顶部的目录变量，出处 plan §1.4）保证 dylib
 //   不导出任何 pk 符号、exe 不会误绑到 dylib 那份——能跨过来的只有下面这
-//   14×3 个显式导出的桥。这就是判据② 要的那条**真·两镜像边界**。
+//   17×3 个显式导出的桥。这就是判据② 要的那条**真·两镜像边界**。
 //
-// Task 1 不挂任何属性：桥体跑的是现状代码，所以这些桥在没挂属性的树上**必然
-// 读不出跨镜像负载**——那正是要跑出来的红。
+// 历史：Task 1 时载体在**未挂属性**的树上先跑出红（那正是判别力的证明）。R-53
+// 裁决 A 之后 `PkVariant` 已挂 `PK_TYPE_VISIBILITY`（`pk/variant/PkVariant.h`），
+// 情形已变——现在这些桥全绿。
 
 #include "cross_image_payload.h"
 
