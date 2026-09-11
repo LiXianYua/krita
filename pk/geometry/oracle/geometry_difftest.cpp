@@ -550,6 +550,33 @@ static std::string shapeOfD(std::initializer_list<double> vs)
     return "finite";
 }
 
+// 坐标守卫的形态分流（R-56 新增）。
+//
+// ⚠ **不能复用 shapeOfD**：它的 `huge` 门槛是 `> 1e300`，而守卫的界是
+// `fabs(c) < 1e128` —— `1e127`（界内）与 `1e128`（界外）在 shapeOfD 里**同为
+// "finite"**，而这一族要看的恰恰就是那条界。用 shapeOfD 的话，
+// 「守卫被删掉」这一整片差异会被贴成 `<api> finite`，一个说不清形态的标签。
+//
+// ⚠ **档位按「有没有分量被守卫拒绝」切，不按「最特殊的那一个分量」切**：
+// 守卫是**逐分量**判的 —— 只要有一个分量落在门外，整条调用就被丢掉。
+// 按 shapeOfD 那种「取最特殊分量」的约定，`quadTo(cp=(1e200, 0), …)` 里的
+// `0.0` 比 `1e200` 更特殊、会把它贴成 `zero`，与根因完全相反。
+static std::string shapeOfCoord(std::initializer_list<double> vs)
+{
+    bool anyNonFinite = false, anyRejected = false;
+    for (double v : vs) {
+        if (nonFinite(v)) anyNonFinite = true;
+        // 非有限也 >= 1e128（inf 的比较为真），所以先判上面那一条、后者只收有限量。
+        if (std::fabs(v) >= 1e128) anyRejected = true;
+    }
+    if (anyNonFinite) return "nonfinite";
+    if (anyRejected) return "guard-rejected";
+    for (double v : vs) if (subnormal(v)) return "subnormal";
+    for (double v : vs) if (signedZero(v)) return "signed-zero";
+    for (double v : vs) if (v == 0.0) return "zero";
+    return "finite";
+}
+
 static std::string shapeOfI(std::initializer_list<int> vs)
 {
     for (int v : vs) if (intExtremum(v)) return "int-extremum";
@@ -4554,6 +4581,147 @@ static const int kTfRectI[][4] = {
 template <typename T, std::size_t N>
 static constexpr int countOf(const T (&)[N]) { return (int)N; }
 
+// ⚠ **位置说明（R-56 Task 2 现场调整）**：本族定义在此（`countOf` 之后、`main` 之前）。
+// `cmp_pp_entries()` 用了 `countOf`，而它定义在 :4555 —— 把本族放在
+// `cmp_tf_map_painterpath` 之后（:2704）会编不过（模板须先声明后用）。
+// 先于驱动、`same_path`/`psum` 已可见这两条要求，此处同样满足。
+// ── PkPainterPath 的七个坐标守卫入口（R-56）────────────────────────────────
+//
+// Qt 用 `isValidCoord`（`qpainterpath.cpp:74-89` = `qIsFinite(c) && fabs(c) < 1e128`）
+// 在**七个**入口把「非有限或过大」的坐标整条丢掉：
+//   moveTo · lineTo · cubicTo · quadTo · arcTo · addRect · addEllipse
+//
+// **为什么单开一族**：R-56 之前这七条**没有一条常驻覆盖** —— `cmp_tf_map_painterpath`
+// 那条语料虽然调了 moveTo/lineTo/cubicTo/addRect，喂的却全是 `(-1,2,3,4)` 这类
+// 小字面量，**守卫的分支一次都进不去**（唯一间接例外是 moveTo/lineTo：它们在
+// `pkMapProjective` 收尾时被喂过投影算出来的值）。另外五条改坏了 `run_oracle.sh`
+// 照样 exit 0。S-18 补 quadTo/arcTo/addEllipse 的守卫时只能靠一支**一次性探针**判
+// （`pk/geometry/README.md` 的「坐标守卫」一节），**而一次性探针不是判据**——
+// 本族就是把那支探针变成常驻 rec()。
+//
+// 输入集：守卫的判据是 `fabs(c) < 1e128`，所以**界内/界外两边都要有代表值**。
+// 七个 token 里 `1e128`（界外，**恰在门槛上**）与 `1e127`（界内，紧贴门槛）
+// 是唯一的一对判别性输入 —— 少任何一个，「守卫的有无」都看不出来。
+// `5e-324`（次正规）**在守卫管辖之外**，它在这里是为了钉住 quadTo 的另一条根因
+// （控制点算式的 1 ulp，见缺口②）—— 别把它当成守卫的输入。
+static const double kPpTok[] = { 1e200, 1e128, 1e127, INFINITY, -INFINITY, NAN, 5e-324 };
+
+static std::string ptok(const char *what, double v)
+{ return std::string(what) + "(" + dstr(v) + ")"; }
+
+// 每个入口各一条 rec()，**两种起点各跑一遍**：
+//   /empty-subpath —— 空路径直接调（压 `isEmpty()` / `maybeMoveTo()` 那几支）
+//   /open-subpath  —— 先 moveTo+lineTo 再调（压 `currentPosition` 那几支：
+//                     quadTo/cubicTo 的控制点从它算、arcTo 会先画一条到起点的 lineTo）
+template <class FQ, class FP>
+static void cmp_pp_entry(const char *api, const std::string &shape, const std::string &in,
+                         FQ onQt, FP onPk)
+{
+    {
+        QPainterPath q; PkPainterPath p;
+        onQt(q); onPk(p);
+        rec(api, same_path(q, p), shape + "/empty-subpath", in, psum(q), psum(p));
+    }
+    {
+        QPainterPath q; PkPainterPath p;
+        q.moveTo(1.0, 2.0); q.lineTo(3.0, 4.0);
+        p.moveTo(1.0, 2.0); p.lineTo(3.0, 4.0);
+        onQt(q); onPk(p);
+        rec(api, same_path(q, p), shape + "/open-subpath", in, psum(q), psum(p));
+    }
+}
+
+static void cmp_pp_entries()
+{
+    const int nTok = countOf(kPpTok);
+
+    // moveTo / lineTo：单分量扫描（另一个分量取界内常数）。
+    for (int i = 0; i < nTok; ++i) {
+        const double x = kPpTok[i];
+        cmp_pp_entry("PP::moveTo", shapeOfCoord({x, 2.0}), ptok("x", x),
+            [x](QPainterPath &q) { q.moveTo(x, 2.0); },
+            [x](PkPainterPath &p) { p.moveTo(x, 2.0); });
+        cmp_pp_entry("PP::lineTo", shapeOfCoord({x, 2.0}), ptok("x", x),
+            [x](QPainterPath &q) { q.lineTo(x, 2.0); },
+            [x](PkPainterPath &p) { p.lineTo(x, 2.0); });
+    }
+
+    // cubicTo：守卫是三个点的**或**，所以三个点各自被扫一遍 —— 只扫第一个的话，
+    // 「守卫只看第一个点」这种半坏的实现照样绿。
+    for (int i = 0; i < nTok; ++i) {
+        const double x = kPpTok[i];
+        cmp_pp_entry("PP::cubicTo", shapeOfCoord({x, 2.0}), "c1" + ptok("x", x),
+            [x](QPainterPath &q) { q.cubicTo(x, 2.0, 3.0, 4.0, 5.0, 6.0); },
+            [x](PkPainterPath &p) { p.cubicTo(x, 2.0, 3.0, 4.0, 5.0, 6.0); });
+        cmp_pp_entry("PP::cubicTo", shapeOfCoord({3.0, 4.0}), "c2" + ptok("x", x),
+            [x](QPainterPath &q) { q.cubicTo(3.0, 4.0, x, 4.0, 5.0, 6.0); },
+            [x](PkPainterPath &p) { p.cubicTo(3.0, 4.0, x, 4.0, 5.0, 6.0); });
+        cmp_pp_entry("PP::cubicTo", shapeOfCoord({5.0, 6.0}), "ep" + ptok("x", x),
+            [x](QPainterPath &q) { q.cubicTo(3.0, 4.0, 5.0, 6.0, x, 6.0); },
+            [x](PkPainterPath &p) { p.cubicTo(3.0, 4.0, 5.0, 6.0, x, 6.0); });
+    }
+
+    // quadTo：`cp` 那一支就是 S-18 探针的四个维度之一，也是缺口② 那一例的落点
+    //（token `5e-324` 配 `ep=(10,0)` 与探针逐字相同）。
+    for (int i = 0; i < nTok; ++i) {
+        const double x = kPpTok[i];
+        cmp_pp_entry("PP::quadTo", shapeOfCoord({x, 0.0, 10.0, 0.0}), "cp" + ptok("x", x),
+            [x](QPainterPath &q) { q.quadTo(x, 0.0, 10.0, 0.0); },
+            [x](PkPainterPath &p) { p.quadTo(x, 0.0, 10.0, 0.0); });
+        cmp_pp_entry("PP::quadTo", shapeOfCoord({2.0, 3.0, x, 6.0}), "ep" + ptok("x", x),
+            [x](QPainterPath &q) { q.quadTo(2.0, 3.0, x, 6.0); },
+            [x](PkPainterPath &p) { p.quadTo(2.0, 3.0, x, 6.0); });
+    }
+
+    // addRect / addEllipse：`pkHasValidCoords(PkRectF)` 判四个分量里的**全部**，
+    // 所以四个分量各扫一遍。
+    for (int i = 0; i < nTok; ++i) {
+        const double x = kPpTok[i];
+        const double r[4] = { 1.0, 2.0, 3.0, 4.0 };
+        static const char *kSlot[4] = { "x", "y", "w", "h" };
+        for (int s = 0; s < 4; ++s) {
+            double a[4] = { r[0], r[1], r[2], r[3] };
+            a[s] = x;
+            const std::string in = std::string(kSlot[s]) + ptok("v", x);
+            // 形态只由**这一组的四个分量**算：被替换的那一个才是根因候选，
+            // 其余三个是常数（都界内）。
+            const std::string sh = shapeOfCoord({a[0], a[1], a[2], a[3]});
+            const double x0 = a[0], y0 = a[1], w0 = a[2], h0 = a[3];
+            cmp_pp_entry("PP::addRect", sh, in,
+                [x0, y0, w0, h0](QPainterPath &q) { q.addRect(QRectF(x0, y0, w0, h0)); },
+                [x0, y0, w0, h0](PkPainterPath &p) { p.addRect(PkRectF(x0, y0, w0, h0)); });
+            cmp_pp_entry("PP::addEllipse", sh, in,
+                [x0, y0, w0, h0](QPainterPath &q) { q.addEllipse(QRectF(x0, y0, w0, h0)); },
+                [x0, y0, w0, h0](PkPainterPath &p) { p.addEllipse(PkRectF(x0, y0, w0, h0)); });
+        }
+    }
+
+    // arcTo：**四个维度** —— rect 的四个分量，加 startAngle / sweepLength 两个标量
+    //（后两个是 S-18 探针的另两个维度：`arcTo` 对 rect 走 pkHasValidCoords、
+    // 对两个角度走 pkIsValidCoord，是两把不同的判据）。
+    for (int i = 0; i < nTok; ++i) {
+        const double x = kPpTok[i];
+        const double r[4] = { 1.0, 2.0, 3.0, 4.0 };
+        static const char *kSlot[4] = { "x", "y", "w", "h" };
+        for (int s = 0; s < 4; ++s) {
+            double a[4] = { r[0], r[1], r[2], r[3] };
+            a[s] = x;
+            const std::string in = std::string("rect.") + kSlot[s] + ptok("v", x);
+            const std::string sh = shapeOfCoord({a[0], a[1], a[2], a[3], 0.0, -90.0});
+            const double x0 = a[0], y0 = a[1], w0 = a[2], h0 = a[3];
+            cmp_pp_entry("PP::arcTo", sh, in,
+                [x0, y0, w0, h0](QPainterPath &q) { q.arcTo(QRectF(x0, y0, w0, h0), 0.0, -90.0); },
+                [x0, y0, w0, h0](PkPainterPath &p) { p.arcTo(PkRectF(x0, y0, w0, h0), 0.0, -90.0); });
+        }
+        cmp_pp_entry("PP::arcTo", shapeOfCoord({1.0, 2.0, 3.0, 4.0, x, -90.0}), "startAngle" + ptok("v", x),
+            [x](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); },
+            [x](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); });
+        cmp_pp_entry("PP::arcTo", shapeOfCoord({1.0, 2.0, 3.0, 4.0, 0.0, x}), "sweepLength" + ptok("v", x),
+            [x](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), 0.0, x); },
+            [x](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), 0.0, x); });
+    }
+}
+
 int main()
 {
     // 把 Qt 的运行期警告吞掉：本对拍**故意**大量喂退化输入，Qt 在某些路径上会
@@ -5672,6 +5840,12 @@ int main()
                                QRect(kRegRectHand[j][0], kRegRectHand[j][1], kRegRectHand[j][2], kRegRectHand[j][3]),
                                kRegPtHand[k][0], kRegPtHand[k][1]);
     }
+
+    // ═══ PkPainterPath 的七个坐标守卫入口（R-56）══════════════════════════════
+    // **在矩阵扫描之外调一次**：这七条的取值不随输入矩阵变，跟着 3 778 个矩阵
+    // 重复跑只是把 total 推高、不增判别力。调用次数 = 294（七个入口 × 各分量 ×
+    // 七个 token × 两种起点），对 `total` 的影响是 **+294**（现场数为准）。
+    cmp_pp_entries();
 
     for (const auto &kv : g_tags)
         std::printf("DIFFTAG %s %ld\n", kv.first.c_str(), kv.second);

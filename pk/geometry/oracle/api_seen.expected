@@ -603,4 +603,11 @@ PGF::translatePoint
 PGF::translateXY
 PGF::translatedPoint
 PGF::translatedXY
+PP::addEllipse
+PP::addRect
+PP::arcTo
+PP::cubicTo
+PP::lineTo
+PP::moveTo
+PP::quadTo
 
