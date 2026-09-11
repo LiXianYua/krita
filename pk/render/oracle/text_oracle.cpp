@@ -20,8 +20,22 @@
 #include <cstdint>
 #include <iostream>
 
-int main()
+#ifdef PK_TEXT_QT_ORACLE
+#include <QGuiApplication>
+#endif
+
+int main(int argc, char **argv)
 {
+#ifdef PK_TEXT_QT_ORACLE
+    // Qt 侧**必须**有 QGuiApplication：`QPainter` 在 `QImage` 上不需要平台插件，
+    // 但默认字体的解析要走 QFontDatabase，没有它进程当场段错误（实测 139）。
+    // 本机冒烟复现过一次，所以这行不是「保险起见」而是必需。Pk 侧无对应物——
+    // Pk 内核没有 application 对象（plan §6 第 3 条）。
+    QGuiApplication app(argc, argv);
+#else
+    (void)argc;
+    (void)argv;
+#endif
     std::cout << "backend " << kBackendName << '\n';
 
     std::uint32_t total = 0;

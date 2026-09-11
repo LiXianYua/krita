@@ -145,7 +145,9 @@ ccache c++ -std=c++17 -fPIC -DPK_TEXT_QT_ORACLE \
     "$render_root/oracle/text_oracle.cpp" \
     $qt_flags "${qt_rpath[@]}" -o "$oracle_build/qt"
 
-"$oracle_build/qt" > "$oracle_build/qt.raw.txt"
+# Qt 侧建 QGuiApplication + 默认字体库 ⇒ 无头环境下必须显式 offscreen
+# （同 pk/font/oracle/CMakeLists.txt 给 font_pixels_qt_comparison 设的那条）。
+QT_QPA_PLATFORM=offscreen "$oracle_build/qt" > "$oracle_build/qt.raw.txt"
 grep -v '^backend ' "$oracle_build/qt.raw.txt" > "$oracle_build/qt.txt"
 
 # mismatch = Qt 侧有、Pk 侧没有的行数（默认 diff 的 `< ` 前缀）。
