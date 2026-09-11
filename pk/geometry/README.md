@@ -49,9 +49,21 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 **已声明 tag 的计数漂移**、**canary 消失**三者任一出现就 FAIL。
 方法论与 tag 的两条硬规则写在 `oracle/geometry_difftest.cpp` 的文件头。
 
-> `geometry.deviation` 是**四列** tab 分隔：`<api>`、`<tag>`、`<期望计数>`、`<≥20 码点理由>`。
+> `geometry.deviation` 是**四列** tab 分隔：`<api>`、`<tag>`、`<平台分档计数>`、`<≥20 码点理由>`。
 > 第三列是**额度闸门**：没有它的话"键在清单里"就等于**无限额度** —— 实测同一个
 > tag 下差异翻 2.1 倍照样 exit=0（见覆盖度缺口）。
+>
+> **第三列自 S-18（2026-09-12，人拍板 A）起是按平台分档的**
+> `<标签>=<计数>[;<标签>=<计数>…]`，标签 = `uname` 归一化（`Darwin`→`macos`、
+> `aarch64`→`arm64`），每档的**实测来源**登记在同文件头部的 `# PLATFORM <标签> = <环境描述>` 行里。
+> ⚠ **缺本机那一档 = FAIL**，不许「没测过就当它一致」、也不许拿别的平台那档顶替。
+> 为什么必须分档：这批计数里有一批是**浮点决策**的产物（`persp-clip` 的档位由对拍 TU 里
+> 编译的 `tfNeedsClip()` 判定），换架构/编译器就会在 tag 之间**搬家** —— 实测
+> x86-64 与 arm64 有 **12 条不同，且双向都有**（`proj-zero/zero-zero` 1757 vs 1537、
+> `proj-finite/span-overflow-span-overflow` 44 vs 109）。把某一个平台的观测值当全局期望，
+> 就是「期望值是某平台 UB 的观测值」那类问题的原样重演 —— 判据是**每档各自实测**。
+> 标签/来源/第三列三样缺一即 FAIL（负向测试：缺档、标签没登记、退回旧的单个整数、
+> 来源描述过短、篡改某档计数 —— 五种都实测过会 FAIL）。
 
 **测试规模的口径**（数字随代码变，改完重跑以实际值为准；下面这一版是 Task 9
 收口时现场重测的）。计数口径：**先去掉 `//` 注释再数**
@@ -1271,6 +1283,20 @@ tag 按输入形态切成了 23 格**——切细是为了让额度可推导，�
   —— 后者对任何平台都成立，不需要为新架构再钉一条机器事实。
   该对拍有注入自证：把 `pkRound` 在 `+inf` 上改坏，`F::toPoint out-of-int-range`
   与 `SF::toSize out-of-int-range` 各 **213** 条当场现身（未声明 → `run_oracle.sh` FAIL）。
+- **`PkTransform::map(const PkPainterPath&)` 在退化矩阵上曾经塌掉路径结构（S-18 修，
+  裁决 B）。** 原实现是**重新构造**一条路径（逐元素 `moveTo`/`lineTo`/`cubicTo`），
+  而那几个构建器自带「退化就跳过」的判据（`lineTo` 的 `p == m_currentPos`、
+  `cubicTo` 的全重合跳过），于是退化矩阵下路径被塌掉：**零矩阵 Qt 得 11 个元素、
+  本实现只得 1 个**；±inf 矩阵 11 vs 9；`1e308` 矩阵 11 vs 10。
+  上游 `QTransform::map(const QPainterPath &)`（qtbase 5.15 `qtransform.cpp`）
+  **是逐元素原地改 `elements[i]`**，元素个数与类型结构原样保留 —— 现在照它的形态走
+  （`setElementPositionAt` 原地改），12 个矩阵族实测**逐位相同**。
+  ⚠ 改的时候有个坑，已经写进 `PkTransform.cpp` 的注释：Qt 自己那两个 TxProject
+  **点**映射不是同一个算术（`map(QPointF)` **没有**近裁剪面夹持、`MAP` 宏**有**），
+  本函数只修结构不动算术，所以逐点仍走 `map(PkPointF)`；换成 `map(x,y,tx,ty)`
+  会连带改掉投影档取值（实测会把 `transformMapRectPerspectiveClipIsADeclaredGap` 打红）。
+  **投影档（`type() >= TxProject`）仍不对齐** —— Qt 走 `mapProjective`（近/远裁剪面
+  上的真裁剪，`lineTo_clipped`/`cubicTo_clipped`），本实现不做裁剪，与偏离 21 同根因。
 - **`PK_COMPARE` 对 `double` 走的是 `pk/test` 的模糊比较（相对 1e-12），不是位相等**
   ——R-11 harness 的能力边界，跨线，R-03 内不修。凡是主张"与 Qt 逐位一致"的断言
   一律用 `PK_VERIFY(sameBits(...))` 或 `std::signbit`，`test_point.cpp` 里已经这么做了。

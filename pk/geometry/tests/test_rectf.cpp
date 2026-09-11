@@ -115,9 +115,9 @@ void PkRectFCase::rectfLayoutIsFourQreal()
     // 提升方向与真 Qt 一致：qrect.h:518 的 `QRectF(const QRect &)` **不是
     // explicit**，整数矩形能隐式变浮点矩形（`QRectF r = someQRect;` 这类调用点
     // 靠它）；反向不行，只能走 toRect/toAlignedRect。
-    // 本断言曾经把「本 fork 有意要求 explicit」当成事实写成 `!is_convertible`
-    // ——那条与真 Qt 相反，与 PkRect.h:583 自己的注释也相反，已按 S线-spec
-    // 「M5 合拢的三条裁决 · C」订正。
+    // 本断言曾写成 `!is_convertible`，跟着当时那条对 PkRectF 构造加的 explicit 走
+    // —— 那条偏离 Qt，已按 S线-spec「M5 合拢的三条裁决 · C」去掉（**基准是真 Qt**，
+    // 判据是「Qt 怎么做」，不是「本 fork 当年怎么拍的」）。
     // ⚠ 外层括号是必需的：`PK_VERIFY` 是可变参宏，模板实参里的逗号会被当成
     // 实参分隔符（原来那条写的是 `!(...)`，外层括号本来就在）。
     PK_VERIFY((std::is_convertible<PkRect, PkRectF>::value));

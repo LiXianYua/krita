@@ -468,8 +468,39 @@ PY
 # LC_ALL=C 下会把 25 字中文数成 75，门槛静默松掉）。
 python3 - "$LOG" "$DEV" <<'PY'
 import sys
+import platform as _platform
 
 log, dev = sys.argv[1], sys.argv[2]
+
+# ── 本机平台标签 ──────────────────────────────────────────────────────────
+# 归一化：Darwin→macos、aarch64→arm64（同一颗芯片在 Linux 上叫 aarch64、
+# 在 macOS 上叫 arm64，不归一化会让「同一台机器换个系统就对不上档」）。
+_PLAT_SYS = _platform.system().lower()
+_PLAT_ARCH = _platform.machine().lower()
+if _PLAT_SYS == 'darwin':
+    _PLAT_SYS = 'macos'
+if _PLAT_ARCH == 'aarch64':
+    _PLAT_ARCH = 'arm64'
+PLATFORM = f'{_PLAT_SYS}-{_PLAT_ARCH}'
+
+# ── `# PLATFORM <标签> = <环境描述>`：每一档的实测来源 ────────────────────
+# 第三列的每个标签都必须在这里登记（登记 = 说清这一档是在哪台机器/哪套工具链
+# 上实测出来的）。没登记的标签直接用会 FAIL；描述太短（<10 码点）也 FAIL
+# ——「实测来源」写成「本地」这类等于没写。
+platforms = {}
+for _n, _line in enumerate(open(dev, encoding='utf-8'), 1):
+    if _line.startswith('# PLATFORM '):
+        _body = _line[len('# PLATFORM '):].split('=', 1)
+        if len(_body) != 2 or not _body[0].strip() or len(_body[1].strip()) < 10:
+            print(f'FAIL: {dev}:{_n} 的 # PLATFORM 行格式不对'
+                  f'（应为 `# PLATFORM <标签> = <环境描述，≥10 码点>`）: {_line.rstrip()}',
+                  file=sys.stderr); sys.exit(1)
+        platforms[_body[0].strip()] = _body[1].strip()
+if PLATFORM not in platforms:
+    print(f'FAIL: 本机平台标签「{PLATFORM}」没有在 {dev} 的 # PLATFORM 行里登记 —— '
+          f'先实测、再登记来源、再补第三列那一档，三步缺一不可', file=sys.stderr)
+    print(f'      已登记的档：{", ".join(sorted(platforms)) or "（无）"}', file=sys.stderr)
+    sys.exit(1)
 
 seen, den, diff_lines = {}, {}, []
 for line in open(log, encoding='utf-8', errors='replace'):
@@ -505,14 +536,32 @@ for n, line in enumerate(open(dev, encoding='utf-8'), 1):
     cols = line.rstrip('\n').split('\t')
     if len(cols) != 4:
         print(f'FAIL: {dev}:{n} 不是四列 tab 分隔'
-              f'（<api> <tag> <期望计数> <理由>）', file=sys.stderr); sys.exit(1)
-    api, tag, want, reason = cols
-    if not want.strip().isdigit():
-        print(f'FAIL: {dev}:{n} 第三列「{want}」不是十进制整数计数', file=sys.stderr)
-        sys.exit(1)
+              f'（<api> <tag> <平台分档计数> <理由>）', file=sys.stderr); sys.exit(1)
+    api, tag, spec, reason = cols
+    # 第三列 = `<标签>=<计数>[;<标签>=<计数>...]`（S-18 起，见文件头部）。
+    tiers = {}
+    for item in spec.split(';'):
+        if item.count('=') != 1:
+            print(f'FAIL: {dev}:{n} 第三列「{spec}」不是 <标签>=<计数>[;...] 形式',
+                  file=sys.stderr); sys.exit(1)
+        lab, val = (s.strip() for s in item.split('=', 1))
+        if lab not in platforms:
+            print(f'FAIL: {dev}:{n} 第三列的平台标签「{lab}」没有对应的 # PLATFORM 行'
+                  f'（每档都要有实测来源登记）', file=sys.stderr); sys.exit(1)
+        if not val.isdigit():
+            print(f'FAIL: {dev}:{n} 第三列「{lab}={val}」不是十进制整数计数',
+                  file=sys.stderr); sys.exit(1)
+        tiers[lab] = int(val)
+    # ⚠ **缺本机那一档 = FAIL，不是「跳过」也不是「拿别档顶替」。** 这条是这次
+    # 分档的**全部意义**所在：它挡住「在 A 平台测的数，被当成 B 平台的期望」
+    # —— 那正是本文件走这一遭的原因（12 条 tag 的计数就是随平台搬家的）。
+    if PLATFORM not in tiers:
+        print(f'FAIL: {dev}:{n} 这条没有本机平台「{PLATFORM}」的一档计数 —— '
+              f'先在本机实测再补，不要拿别的平台那档顶替', file=sys.stderr); sys.exit(1)
+    want = tiers[PLATFORM]
     if len(reason) < 20:                      # str 的长度就是码点数
         print(f'FAIL: {dev}:{n} 理由只有 {len(reason)} 个码点，门槛 20', file=sys.stderr); sys.exit(1)
-    declared[(api, tag)] = (int(want), reason)
+    declared[(api, tag)] = (want, reason, tiers)
 
 undeclared = sorted(k for k in seen if k not in declared)
 # **额度闸门**（Task 4 修复轮，评审 Important 1）：已声明的 tag 曾经是**无限
@@ -545,9 +594,15 @@ missing_canary = [k for k in canaries if k not in seen]
 
 print(f'\n对拍结论：total={total} mismatch={mismatch} '
       f'tag={len(seen)}（其中 canary {len(canaries)}）')
+print(f'本机平台标签：{PLATFORM}  ← {platforms[PLATFORM]}')
 for k, v in sorted(seen.items()):
     kind = 'canary' if k[0] == 'canary' else ('已声明' if k in declared else '**未声明**')
-    want = f'，期望 {declared[k][0]}' if k in declared else ''
+    # 期望值带上**全部档**（不只本机那档）：读的人要能一眼看出这条差异在不同
+    # 平台上是不是同一个数量级，而不是只看到自己被允许用多少。
+    want = ''
+    if k in declared:
+        allt = ';'.join(f'{lab}={c}' for lab, c in sorted(declared[k][2].items()))
+        want = f'，期望[{allt}]'
     # 「命中 N 次里分家 M 次」—— 额度那一列为什么恰好是这么多，靠这个读。
     n = den.get(k)
     ratio = f'（命中 {n} 次{"，命中即分家" if n == v else f"，另 {n - v} 次两侧相同"}）' \

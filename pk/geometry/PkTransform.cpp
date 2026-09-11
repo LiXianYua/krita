@@ -1028,38 +1028,73 @@ static inline bool pkNeedsPerspectiveClipping(const PkRectF &rect, const PkTrans
 // ═══════════════════════════════════════════════════════════════════════════
 
 // R-22 T5: map(PkPainterPath)。关闭偏离 21。
-// 全部元素逐点走 map(PkPointF)（含 TxProject 近裁剪面夹持，与 PK_MAP 一致）。
+//
+// ⚠ **逐元素原地改坐标，不走 moveTo/lineTo/cubicTo 重建** —— 这是 S-18 按
+// `S线-spec.md`「已裁决的岔路」的裁决 B 修的（原实现走构建器重建）。
+//
+// 上游 `QTransform::map(const QPainterPath &path)`（qtbase 5.15
+// `src/gui/painting/qtransform.cpp`）是这么写的：
+//
+//     TransformationType t = inline_type();
+//     if (t == TxNone || path.elementCount() == 0) return path;
+//     if (t >= TxProject) return mapProjective(*this, path);
+//     QPainterPath copy = path;
+//     if (t == TxTranslate) { copy.translate(affine._dx, affine._dy); }
+//     else {
+//         copy.detach();
+//         for (int i = 0; i < path.elementCount(); ++i) {
+//             QPainterPath::Element &e = copy.d_ptr->elements[i];   // ← 原地改
+//             MAP(e.x, e.y, e.x, e.y);
+//         }
+//     }
+//     return copy;
+//
+// **它直接改 `elements[i]`，元素个数与类型结构原样保留。** 走构建器重建时，
+// 构建器自带的「退化就跳过」判据会在**退化矩阵**上把路径塌掉：
+//   · `PkPainterPath::lineTo` 的 `if (p == m_currentPos) return;`
+//   · `PkPainterPath::cubicTo` 的 `if (last == c1 && c1 == c2 && c2 == ep) return;`
+// 实测（S-18）：构造出的 11 元素路径，零矩阵下 Qt 得 **11** 个元素、原实现只得
+// **1** 个；±inf 矩阵 11 vs 9；1e308 矩阵 11 vs 10。普通仿射五族（identity /
+// translate / scale / rotate / shear）与次正规数两侧**逐位相同** —— 偏离只在
+// 退化输入上出现，机制清楚、够得着，所以按裁决 B 修成对齐，不声明成偏离。
+//
+// ⚠ **投影档（t >= TxProject）仍不对齐**：Qt 走 `mapProjective(*this, path)`，
+// 含透视除法与**裁剪**。本实现不做裁剪 —— 与 `mapRect` / `map(const PkPolygonF&)`
+// 已声明的那条偏离**同根因**（见本文件上方 mapRect 那段长注释与 README 的偏离
+// 清单），这里保持与那两处一致，不假装对齐。
 PkPainterPath PkTransform::map(const PkPainterPath &path) const
 {
     TransformationType t = inline_type();
-    if (t <= TxTranslate) {
-        PkPainterPath result = path;
-        result.translate(m_dx, m_dy);
-        return result;
+    if (t == TxNone || path.elementCount() == 0) {
+        return path;
     }
 
-    PkPainterPath result;
-    result.setFillRule(path.fillRule());
+    PkPainterPath copy = path;
 
-    for (int i = 0; i < path.elementCount(); ++i) {
-        PkPainterPath::Element e = path.elementAt(i);
-        PkPointF pt = map(PkPointF(e.x, e.y));
-
-        switch (e.type) {
-        case PkPainterPath::MoveToElement: result.moveTo(pt); break;
-        case PkPainterPath::LineToElement: result.lineTo(pt); break;
-        case PkPainterPath::CurveToElement: {
-            PkPainterPath::Element e2 = path.elementAt(i + 1);
-            PkPainterPath::Element e3 = path.elementAt(i + 2);
-            result.cubicTo(pt,
-                           map(PkPointF(e2.x, e2.y)),
-                           map(PkPointF(e3.x, e3.y)));
-            i += 2; break;
-        }
-        default: break;
+    if (t == TxTranslate) {
+        copy.translate(m_dx, m_dy);
+    } else {
+        // 从 `path` 读、往 `copy` 写：第一次 setElementPositionAt 就把 copy 从
+        // path 上 detach 掉（COW），所以读源是稳的。
+        //
+        // ⚠ **逐点用 `map(PkPointF)`，不要换成 `map(x, y, &tx, &ty)`。**
+        // Qt 自己那两个 TxProject 点映射**不是同一个算术**：
+        //   · `QTransform::map(const QPointF&)`：`w = 1./(m13*fx + m23*fy + m33)`
+        //     —— **没有**近裁剪面夹持；
+        //   · `MAP` 宏（`map(x,y,tx,ty)` 用的那个）：`if (w < Q_NEAR_CLIP)
+        //     w = Q_NEAR_CLIP;` —— **有**夹持。
+        // 本文件两个都照抄了（`map(const PkPointF&)` 与 `PK_MAP`）。原实现走的是
+        // 前者，本函数**只修结构、不动算术** —— 换成后者会连带改掉投影档的取值，
+        // 实测会把 `transformMapRectPerspectiveClipIsADeclaredGap` 打红
+        //（mapRect 的投影支就是 `map(path).boundingRect()`）。
+        for (int i = 0; i < path.elementCount(); ++i) {
+            const PkPainterPath::Element e = path.elementAt(i);
+            const PkPointF pt = map(PkPointF(e.x, e.y));
+            copy.setElementPositionAt(i, pt.x(), pt.y());
         }
     }
-    return result;
+
+    return copy;
 }
 
 // qtransform.cpp:1963-1985 的四角包围盒。抽成成员的理由见 PkTransform.h 的私有段：
