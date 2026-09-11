@@ -65,12 +65,19 @@ XIMG_PAYLOAD_TYPES(XIMG_DEFINE_SLOT)
 #undef XIMG_DEFINE_SLOT
 #undef XIMG_CASE_BODY
 
-// ── 证据槽：unique 位的运行期实测（plan §1.3 的方法 / §5 Task 1 的验收项）──
-// 只打印、不断言，恒过——红段与绿段都要有这一份读数，红证据里引用的就是它。
+// ── 证据槽 + 判别力断言：unique 位的运行期实测（plan §1.3 的方法 / §5 Task 1 的验收项）──
+// 先打印（红段与绿段都要有这一份读数，红证据里引用的就是它），再对「两个镜像真的
+// 分离、没有被 dyld 合并」下断言——见槽尾的 XIMG_ASSERT_MIRRORS_SEPARATED。
 // 口径：**不读 nm 的分类**（实测 nm -m 对加不加 -fvisibility=hidden 输出逐字相同，
-// 没有判别力），只读运行期 type_info.__type_name 的最高位。
+// 没有判别力），只读运行期 type_info.__type_name 的最高位与两侧地址。
 void CrossImageCase::typeInfoUniqueBit()
 {
+    // 平台门（与上方类型槽同形制）：非 Apple arm64 上这枚 unique 位的语义不同，
+    // 此处打印出来的读数没有判别意义、会误导人（评审 次要-2）⇒ SKIP 并**通过**。
+    if (!ximgPlatformSupported()) {
+        return;
+    }
+
     std::printf("R-53 Task 1 —— libc++ type_info unique 位实测（运行期读数）\n");
     std::printf("口径: type_info 布局 [vptr][__type_name]，读 ((uintptr_t*)&typeid(T))[1]；\n");
     std::printf("      最高位 1 = non-unique（属性生效，any_cast 走 strcmp 回退）；0 = unique（只比地址）\n");
@@ -90,6 +97,32 @@ void CrossImageCase::typeInfoUniqueBit()
 #undef XIMG_DUMP_ROW
 
     std::fflush(stdout);
+
+    // ── 判别力断言：两镜像**没有被 dyld 合并**（评审 重要-1）───────────────────
+    // 判据② 的判别力同时依赖两件事：
+    //   (a) 类型挂上 PK_TYPE_VISIBILITY —— 由上面 14 个类型槽的 `dirA && dirB` 自动守住；
+    //   (b) 两个镜像真的分离（pk/variant/CMakeLists.txt:22-23 的 hidden visibility）——
+    //       **在此之前没有任何断言**。删掉那两行，类型退回 default visibility，
+    //       pkcrossimage 会把 pk 符号导出去、与 exe 那份被 dyld 介入合并成一个，
+    //       两个「镜像」退化成一个，而上面 14 个槽**依然全绿**：判别力归零却无人见红。
+    //       这正是本任务最贵的一种失败（任务行：这套修法没有机器防线）。
+    //
+    // 断言本体：同一个类型在两侧的 __type_name 值必**互异**。
+    //   · 分离时：两侧 type_info 各是局部符号（`nm -a` 为 `s`）、各自指向本镜像里的
+    //     类型名字面量 ⇒ 地址必异（本机实测全 14 个双侧地址互异）。
+    //   · 合并时：两侧指向同一个被介入的 type_info 对象 ⇒ 值相等 ⇒ 这里当场翻红。
+    // 对清单里**每一个**类型都断（不是只抽一个）：介入若只发生在部分类型上也漏不掉。
+    // 这一断言与上面打印同槽：打印给证据、断言给机器防线，两者都不放松。
+#define XIMG_ASSERT_MIRRORS_SEPARATED(T, V)                                       \
+    do {                                                                          \
+        const std::uintptr_t exeRaw = ximg_rawname_##T();                         \
+        const std::uintptr_t libRaw = ximg_lib_rawname_##T();                     \
+        PK_VERIFY2(exeRaw != libRaw,                                              \
+                   "两镜像被合并了：" #T " 的 __type_name 在 exe/lib 两侧相等 "   \
+                   "⇒ pk/variant/CMakeLists.txt:22-23 的 hidden visibility 失效"); \
+    } while (false);
+    XIMG_PAYLOAD_TYPES(XIMG_ASSERT_MIRRORS_SEPARATED)
+#undef XIMG_ASSERT_MIRRORS_SEPARATED
 }
 
 PK_TEST_MAIN(CrossImageCase)
