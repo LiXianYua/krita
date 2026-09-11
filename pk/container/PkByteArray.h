@@ -1,4 +1,5 @@
 #pragma once
+#include "PkTypeVisibility.h"
 #include <algorithm>
 
 #include <cstdint>
@@ -9,7 +10,7 @@
 // API 面与语义对齐 Qt 5.15（resize/number/data/constData 均由探针实测钉住，
 // 见 pk/variant/oracle/ 下的对拍 ba_oracle）。
 // ---------------------------------------------------------------------------
-class PkByteArray
+class PK_TYPE_VISIBILITY PkByteArray
 {
 public:
     PkByteArray();

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../container/PkArrayData.h"
+#include "../container/PkTypeVisibility.h"
 #include "../container/PkByteArray.h"
 #include "../container/PkList.h"
 #include "../namespace/PkNamespace.h"
@@ -17,7 +18,7 @@
 //
 // 本头文件只写声明，实现全在 .cpp：验收脚本 replacement.sh ⑤ 会把头文件按
 // `;{}` 切片后 grep `标识符(`，头文件里的内联函数体会被误算成「清单外的公开 API」。
-class PkString
+class PK_TYPE_VISIBILITY PkString
 {
 public:
     PkString();

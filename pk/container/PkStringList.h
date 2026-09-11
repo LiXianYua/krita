@@ -1,4 +1,5 @@
 #pragma once
+#include "PkTypeVisibility.h"
 
 #include "PkList.h"
 
@@ -216,7 +217,7 @@ inline PkString pkCharToString(char16_t c)
     return PkString::PkFromUtf8(buf, n);
 }
 
-class PkStringList : public PkList<PkString>
+class PK_TYPE_VISIBILITY PkStringList : public PkList<PkString>
 {
     using PkBase = PkList<PkString>;
     using PkInner = PkArrayContainer<PkString, PkList<PkString>>::PkInner;
