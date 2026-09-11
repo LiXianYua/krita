@@ -178,8 +178,14 @@
 # 每档的来源登记在下面的 # PLATFORM 行里；第三列若缺本机那一档，闸门直接 FAIL
 # （不许「没测过就当它一致」，也不许拿别的平台那档顶替）。
 #
-# PLATFORM linux-x86_64 = Ubuntu 24.04 / Intel i9-14900K / GCC 13.3.0（= .exec/baseline/env.json 的 M0 基线环境）
+# PLATFORM linux-x86_64 = Ubuntu 24.04 / Intel i9-14900K / GCC 13.3.0（= .exec/baseline/env.json
+#   的 M0 基线环境）。⚠ 这一档是**从原记录原样搬过来的、S-18 没有在 x86 上重测** ——
+#   S-18 只在本机（macos-arm64）实测。搬过来的依据：S-18 的两处改动（map(PainterPath)
+#   的结构修复、以及它连带消掉的 affine-general 191 条）**没有搬动任何一条 mapRect tag
+#   的计数**，所以那 24 行的 x86 值仍然有效；但这是**推断，不是实测**。日后在 x86 上
+#   第一次跑红，先怀疑这一档。
 # PLATFORM macos-arm64  = macOS 26 / Apple M4（arm64）/ AppleClang 21 / Qt 5.15.7 framework
+#   （S-18 现场实测；第三列里这一档的全部数字都出自那次运行）
 # ══════════════════════════════════════════════════════════════════════════
 
 canary	int-value	linux-x86_64=1;macos-arm64=1	比较管道自证：故意拿 QPoint(1,2) 与 PkPoint(1,3) 相比，整数分量比较与计数链路活着才会出现这一条，消失即判据失效

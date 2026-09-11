@@ -1033,7 +1033,12 @@ static inline bool pkNeedsPerspectiveClipping(const PkRectF &rect, const PkTrans
 // `S线-spec.md`「已裁决的岔路」的裁决 B 修的（原实现走构建器重建）。
 //
 // 上游 `QTransform::map(const QPainterPath &path)`（qtbase 5.15
-// `src/gui/painting/qtransform.cpp`）是这么写的：
+// `src/gui/painting/qtransform.cpp`）是这么写的（**就元素结构而言本实现与它同形；
+// 副作用层面不是**：上游裸写 `elements[i]` 不动别的，本实现走的
+// `setElementPositionAt` 会连带更新 `m_currentPos`（且只对最后一个元素）与
+// `markDirty()`。那个差在**改前就在**——旧实现走构建器重建，同样把 `m_currentPos`
+// 设成了映射后的最后一点——所以不是本轮引入的；且 `currentPosition()` 不在对拍的
+// `same_path` 比对里、树内也没有消费者。记在这里免得下一个人把它当成新差异去追）：
 //
 //     TransformationType t = inline_type();
 //     if (t == TxNone || path.elementCount() == 0) return path;

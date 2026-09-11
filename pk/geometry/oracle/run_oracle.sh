@@ -548,8 +548,19 @@ for n, line in enumerate(open(dev, encoding='utf-8'), 1):
         if lab not in platforms:
             print(f'FAIL: {dev}:{n} 第三列的平台标签「{lab}」没有对应的 # PLATFORM 行'
                   f'（每档都要有实测来源登记）', file=sys.stderr); sys.exit(1)
-        if not val.isdigit():
+        # ⚠ **不能用 `val.isdigit()`**：它对 Unicode 上标/角标数字（`²`、`٤`）返回
+        # 真，而 `int()` 随即抛 ValueError —— 落成一个 traceback，读的人会以为是
+        # 脚本坏了，而不是「这行写错了」。用 ASCII 白名单 + int() 兜底。
+        if not (val and all('0' <= ch <= '9' for ch in val)):
             print(f'FAIL: {dev}:{n} 第三列「{lab}={val}」不是十进制整数计数',
+                  file=sys.stderr); sys.exit(1)
+        if lab in tiers:
+            # ⚠ 同一档写两次 = 后写覆盖前写，且**打印出来的 `期望[…]` 会把被覆盖
+            # 的那个值也列出来**（评审实测：`linux=999;macos=8;macos=8` 会打出
+            # 一个从没被测过的 999）。混不过闸门（比的是本机那档），但会误导读的
+            # 人，所以直接 FAIL —— 这行的意思是「每档恰好一条实测记录」。
+            print(f'FAIL: {dev}:{n} 第三列里平台标签「{lab}」写了不止一次'
+                  f'（每档恰好一条，否则打印的期望值会带上被覆盖的那条）',
                   file=sys.stderr); sys.exit(1)
         tiers[lab] = int(val)
     # ⚠ **缺本机那一档 = FAIL，不是「跳过」也不是「拿别档顶替」。** 这条是这次
