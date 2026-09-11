@@ -71,7 +71,6 @@ struct KisResourceThumbnailCache::Private {
     PkMap<ResourceKey, ThumbnailCacheT> scaledThumbnailCache;
     PkMap<ResourceKey, PkImage> originalImageCache;
 
-    PkImage getExactMatch(const ResourceKey &key, ImageScalingParameters param) const;
     PkImage getOriginal(const ResourceKey &key) const;
     void insertOriginal(const ResourceKey &key, const PkImage &image);
     bool containsOriginal(const ResourceKey &key) const;
@@ -81,25 +80,6 @@ struct KisResourceThumbnailCache::Private {
     ResourceKey normalizedKey(const ResourceKey &key) const;
     PkString normalizedStorageLocation(const PkString &storageLocation) const;
 };
-
-PkImage KisResourceThumbnailCache::Private::getExactMatch(const ResourceKey &key,
-                                                         ImageScalingParameters param) const
-{
-    const auto thumbnailEntries = scaledThumbnailCache.find(key);
-    if (thumbnailEntries != scaledThumbnailCache.end()) {
-        const auto scaledThumbnail = thumbnailEntries->find(param);
-        if (scaledThumbnail != thumbnailEntries->end()) {
-            return *scaledThumbnail;
-        }
-    }
-
-    const auto originalImage = originalImageCache.find(key);
-    if (originalImage != originalImageCache.end() && originalImage->size() == param.size) {
-        return *originalImage;
-    }
-
-    return PkImage();
-}
 
 PkImage KisResourceThumbnailCache::Private::getOriginal(const ResourceKey &key) const
 {
@@ -251,44 +231,5 @@ void KisResourceThumbnailCache::remove(const std::pair<PkString, PkString> &key)
         // Something must have gone wrong for thumbnail to exist in scaledThumbnailCache but not be in
         // original.
         KIS_ASSERT(!m_d->scaledThumbnailCache.contains(normalizedKey));
-    }
-}
-
-PkImage KisResourceThumbnailCache::getImage(const PkString &storageLocation,
-                                            const PkString &resourceType,
-                                            const PkString &filename,
-                                            const PkImage &source,
-                                            const PkSize size,
-                                           Pk::AspectRatioMode aspectMode,
-                                           Pk::TransformationMode transformMode)
-{
-    const ImageScalingParameters param = {size, aspectMode, transformMode};
-
-    ResourceKey key = m_d->key(storageLocation, resourceType, filename);
-
-    PkImage result = m_d->getExactMatch(key, param);
-    if (!result.isNull()) {
-        return result;
-    } else if (m_d->containsOriginal(key)) {
-        result = m_d->getOriginal(key);
-    } else {
-        result = source;
-        if (!result.isNull()) {
-            m_d->insertOriginal(key, result);
-        }
-    }
-    // if the size that the has been demanded, we will then cache the size and then pass it.
-    if (!result.isNull() && param.size.isValid()) {
-        const PkImage scaledImage = result.scaled(param.size, param.aspectRatioMode, param.transformationMode);
-        if (m_d->scaledThumbnailCache.contains(key)) {
-            m_d->scaledThumbnailCache[key].insert(param, scaledImage);
-        } else {
-            ThumbnailCacheT scaledCacheMap;
-            scaledCacheMap.insert(param, scaledImage);
-            m_d->scaledThumbnailCache.insert(key, scaledCacheMap);
-        }
-        return scaledImage;
-    } else {
-        return result;
     }
 }

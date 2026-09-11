@@ -37,21 +37,6 @@ public:
      */
     static void shutdown();
 
-    /**
-     * Return a cached/scaled thumbnail. storageLocation may use the locator's
-     * relative storage spelling. When an initialized locator already exists,
-     * cache keys store the absolute spelling so relative and absolute calls
-     * share one entry and invalidation path. This lookup never creates or
-     * revives the locator; without an initialized locator the spelling is kept.
-     */
-    PkImage getImage(const PkString &storageLocation,
-                     const PkString &resourceType,
-                     const PkString &filename,
-                     const PkImage &source = PkImage(),
-                     const PkSize size = PkSize(),
-                     Pk::AspectRatioMode aspectMode = Pk::IgnoreAspectRatio,
-                     Pk::TransformationMode transformMode = Pk::FastTransformation);
-
 private:
     friend class KisResourceQueryMapper;
     friend class KisResourceLocator;
