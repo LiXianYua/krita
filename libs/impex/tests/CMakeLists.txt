@@ -1,3 +1,12 @@
+# KisDocumentReplaceTest.cpp:93 无条件 #include 了同 TU 的 binder（pk/test/CMakeLists.txt
+# 的 ODR 硬规则），而 KisDocumentReplaceTest 在主树里仍是真 QObject + Q_OBJECT，靠
+# Qt AUTOMOC + QTest 做槽发现。历史遗留的同 TU binder include 必须解析成一个 no-op。
+# 形制照 sdk/tests/CMakeLists.txt:20-23。
+file(GENERATE
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_kisdocumentreplacetest.inc"
+    CONTENT "// Main-tree QObject branch: QTest discovers slots through moc.\n"
+)
+
 kis_add_test(
     KisDocumentReplaceTest.cpp
     LINK_LIBRARIES kritaimpex kritatestsdk

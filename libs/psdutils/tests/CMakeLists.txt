@@ -30,5 +30,7 @@ endfunction()
 
 psdutils_add_pk_test_binder(psd_utils_test psd_utils_test.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/psd_utils_test.h")
+psdutils_add_pk_test_binder(compression_test compression_test.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/compression_test.h")
 psdutils_add_pk_test_binder(psd_cos_parser_test psd_cos_parser_test.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/psd_cos_parser_test.h")
