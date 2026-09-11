@@ -193,8 +193,13 @@ namespace pkoracle {
 // translate/boundingRect/detachForMutation…）。libpkgeometry.a 里那份定义的是
 // `::PkPainterPath::x`，本 TU 需要的是 `pkoracle::PkPainterPath::x`——两个不同的
 // 符号，链不上（本族是 Task 7 加进来的，当时没同步补这一条）。纪律同上：
-// PkPainterPath.cpp 的系统头必须在上面的系统头区里已经出现过（它只
-// #include <cstdint> 与 <cmath>，两个都有）。
+// PkPainterPath.cpp 的系统头必须在上面的系统头区里已经出现过。**要核的集合是
+// 它实际 include 的那几个**（`<cmath> <cfloat> <algorithm> <math.h> <cassert>
+// <type_traits>`，见该文件 20-25 行）—— 上面 75-92 行的系统头区全部覆盖，
+// 且 `<math.h>` 会被先到的 `<cmath>` 连带落地（两者共用同一个 include guard），
+// 所以不会造出 `pkoracle::std`。
+// ⚠ 这条注释第一版只写了「它只 #include <cstdint> 与 <cmath>」——把要核的集合
+// 写少了，照它核会漏项（评审 S-18 指出）。
 #include "PkPainterPath.cpp"
 }
 
@@ -2826,12 +2831,26 @@ static void cmp_line_ctors(int x1, int y1, int x2, int y2)
     rec("L::y1", q.y1() == p.y1(), sh, in, istr(q.y1()), istr(p.y1()));
     rec("L::x2", q.x2() == p.x2(), sh, in, istr(q.x2()), istr(p.x2()));
     rec("L::y2", q.y2() == p.y2(), sh, in, istr(q.y2()), istr(p.y2()));
-    // 拿同一批输入构造的第二条线做比较对象（与 ctorPoints 那条同一形态），
-    // 顺带把"与自己相等"这条也压进去。
-    rec("L::operatorEq", (q == q) == (p == p) && (q == q2) == (p == p2), sh, in,
-        bstr(q == q) + "/" + bstr(q == q2), bstr(p == p) + "/" + bstr(p == p2));
-    rec("L::operatorNe", (q != q) == (p != p) && (q != q2) == (p != p2), sh, in,
-        bstr(q != q) + "/" + bstr(q != q2), bstr(p != p) + "/" + bstr(p != p2));
+    // ⚠ **比较对象必须含一组"不相等"的线，否则这两条 rec 有单向盲区。**
+    // 第一版只拿 `q`（自己）与 `q2`（**同一批 x1,y1,x2,y2 构造的**）比 —— 两条
+    // 都恒等，于是 `PkLine::operator==` 若坏成**恒返回 true**，两条 rec 全绿通过、
+    // 整条对拍抓不到（评审 S-18 发现）。对照同族口径：`S::operator==` /
+    // `R::operator==` / `EQ::operator==` 都是拿**两个不同输入**比，
+    // 扫起来同时覆盖"相等对"与"不等对"。
+    // 这里补第三条 `q3 = (x1+1, y1, x2, y2)`：只要 x1+1 不溢出，它必然与 `q` 不等
+    //（`x1+1` 溢出时可能撞回原值，那一档两侧仍然一致地比，不产生假差异）。
+    const QLine  q3(x1 + 1, y1, x2, y2);
+    const PkLine p3(x1 + 1, y1, x2, y2);
+    rec("L::operatorEq",
+        (q == q) == (p == p) && (q == q2) == (p == p2) && (q == q3) == (p == p3),
+        sh, in,
+        bstr(q == q) + "/" + bstr(q == q2) + "/" + bstr(q == q3),
+        bstr(p == p) + "/" + bstr(p == p2) + "/" + bstr(p == p3));
+    rec("L::operatorNe",
+        (q != q) == (p != p) && (q != q2) == (p != p2) && (q != q3) == (p != p3),
+        sh, in,
+        bstr(q != q) + "/" + bstr(q != q2) + "/" + bstr(q != q3),
+        bstr(p != p) + "/" + bstr(p != p2) + "/" + bstr(p != p3));
 }
 
 // 无输入的 API（默认构造）：只有一种输入形态，只跑一次（与 Point/Size 族

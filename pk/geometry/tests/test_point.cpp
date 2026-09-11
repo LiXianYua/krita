@@ -486,12 +486,17 @@ void PkPointCase::pointfToPointMatchesQt()
     PK_VERIFY(PkPointF(0.49999999999999994, 0.0).toPoint() == PkPoint(1, 0));
     PK_VERIFY(PkPointF(-0.49999999999999994, 0.0).toPoint() == PkPoint(0, 0));
 
-    // ⚠ **越界与非有限那一整块已移出本套单测**（S-18，按 `S线-spec.md`
-    //「平台相关的测试期望值：改成与真 Qt 运行期对拍」人拍板 C）。
-    // 原来这里钉的是 `int(d)` 越界（`[conv.fpint]` UB）在 **x86 `cvttsd2si`** 上的
-    // 观测值 —— +inf/2147483648.0 → INT_MIN。arm64 的 `FCVTZS` 是**饱和**转换，
-    // 同一份源码给 INT_MAX，于是这 9 条在本机基线即红，而 pk 并没有错：
-    // 实测真 Qt 5.15.7(arm64) 与本树的 libpkgeometry.a 在同一批输入上**逐行相同**。
+    // ⚠ **「转换后越界」与「非有限」那几条已移出本套单测**（S-18，按
+    // `S线-spec.md`「平台相关的测试期望值：改成与真 Qt 运行期对拍」人拍板 C）。
+    // 移出的是 `int(d)` / `int(d±1)` 的**截断值落在 int 之外**、或 `d` 非有限
+    // 的那些（`[conv.fpint]`：截断后的值不能表示在目标类型里才是 UB）——
+    // 原来钉的是它们在 **x86 `cvttsd2si`** 上的观测值（+inf/2147483648.0 → INT_MIN）。
+    // arm64 的 `FCVTZS` 是**饱和**转换，同一份源码给 INT_MAX，于是这批在本机基线
+    // 即红，而 pk 并没有错：实测真 Qt 5.15.7(arm64) 与本树的 libpkgeometry.a
+    // 在同一批输入上**逐行相同**。
+    // ⚠ **判据是「截断值是否可表示」，不是「输入是不是大数」**：`2147483647.0`
+    // 这一条截断后得 2147483647（可表示）⇒ 定义良好，**不在这批里，已保留**
+    //（见下面那一行；第一版误删过，评审指出）。
     //
     // 覆盖没有丢，换了地方：`pk/geometry/oracle/geometry_difftest.cpp` 的
     // `F::toPoint` / `SF::toSize` 两条 rec() 拿**同一批输入**（kTfHandD 里的
@@ -503,6 +508,13 @@ void PkPointCase::pointfToPointMatchesQt()
     // 与 `SF::toSize out-of-int-range` 各 213 条当场现身（未声明 → FAIL）。
     //
     // 值域内、非 UB 的那些断言全部保留在上面。
+    //
+    // ⚠ **这一条也保留**：`int(2147483647.0 + 0.5)` = `int(2147483647.5)`，
+    // 截断得 2147483647 —— **可表示在 int 内**，所以按 `[conv.fpint]`
+    //（「截断后的值不能表示在目标类型里」才是 UB）它是**定义良好**的，跨平台一致。
+    // 它曾经被 S-18 第一版连同那一块一起删掉，理由是"也是越界"——**不准确**：
+    // 越界的是加完 0.5 的那个 double，不是截断后的整数值。评审指出后已恢复。
+    PK_VERIFY(PkPointF(noFold(2147483647.0), noFold(2147483647.0)).toPoint() == PkPoint(INT_MAX, INT_MAX));
     // 次正规数向零收（在 int 值域内，不是 UB）
     PK_VERIFY(PkPointF(5e-324, -5e-324).toPoint() == PkPoint(0, 0));
 }

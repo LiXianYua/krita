@@ -108,9 +108,22 @@ done
 # ⚠ `pk/global` 是 R-18 折叠后新加的一项，**不是可选**：`geometry_difftest.cpp`
 # 要 `#include "PkGlobal.cpp"`，而该文件 R-18 从 `pk/geometry/` 搬到了 `pk/global/`
 #（`pk/geometry/PkGlobal.h` 只剩一个转发头）。少了这一项直接编不过
-#（`'PkGlobal.cpp' file not found`）。加上它**同时修好 Linux 支**——那边自 R-18 起
-# 同样编不过，只是没人在这台机器上跑过这个脚本。
-INCS=("${QT_HDRS[0]}" "${QT_HDRS[1]}" "pk/geometry" "pk/global")
+#（`'PkGlobal.cpp' file not found`）。**这一项对 Linux 支同样是修复**——那边自
+# R-18 起同样编不过，只是没人在这台机器上跑过这个脚本。
+#
+# ⚠ **模块根 `$QT/include` 只有 Linux 支需要，但绝不能少**：Qt 自己的头用**模块
+# 前缀**互相引用（`qpoint.h:43` 就是 `#include <QtCore/qnamespace.h>`），这个
+# include 靠 `-I$QT/include` 解析（那里有 `QtCore/` 子目录）。macOS 靠 `-F` 把它们
+# 兜住，**而 Linux 没有 `-F`** —— 少了这一项会在第一个 Qt 头处就
+# `fatal error: 'QtCore/qnamespace.h' file not found`。
+#（S-18 第一版把 INCS 统一成 `QT_HDRS` 两项，**恰好把 Linux 支改坏了**；评审发现，
+#   已修。macOS 支不需要它，给了也无害，但这里仍按平台分开写，免得以后有人以为
+#   两边完全等价。）
+if [ "$UNAME_S" = "Darwin" ]; then
+    INCS=("${QT_HDRS[0]}" "${QT_HDRS[1]}" "pk/geometry" "pk/global")
+else
+    INCS=("$QT/include" "${QT_HDRS[0]}" "${QT_HDRS[1]}" "pk/geometry" "pk/global")
+fi
 for i in "${INCS[@]}"; do
     case "$i" in
         *compat*) echo "run_oracle.sh: -I 里出现了 compat 垫片目录：$i" >&2; exit 1;;
