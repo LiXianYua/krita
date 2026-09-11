@@ -618,9 +618,8 @@ PkString configuredResourceLocation(PkConfigGroup &config)
 
     // A pending write means a caller explicitly modified the in-memory value.
     // Persist only when the disk value actually differs.
-    if ((!hasPersistedValue || persistedValue != memoryValue) &&
-        !writePersistentResourceLocationUnlocked(configPath, memoryValue)) {
-        return memoryValue;
+    if (!hasPersistedValue || persistedValue != memoryValue) {
+        writePersistentResourceLocationUnlocked(configPath, memoryValue);
     }
     return memoryValue;
 }

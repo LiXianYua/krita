@@ -328,6 +328,54 @@ void TestConfigGroup::deleteGroupClearsEveryKeyAndPreservesOtherGroups()
     other.deleteGroup();
 }
 
+void TestConfigGroup::clearGroupMakesEveryKeyPendingWithoutMirroringBack()
+{
+    // deleteGroup() journals a ClearGroup, and that journal entry makes every
+    // key under the group count as process-owned — not just the ones this
+    // process happened to write. Read-side mirroring (adoptPersistedValue) must
+    // therefore leave the group empty instead of copying a disk value back in,
+    // which would silently undo the clear. KisImageConfig::resetConfig() relies
+    // on this for groups it clears without ever writing a key.
+    PkConfigGroup group = PkSharedConfig::openConfig()->group("pending-clear-probe");
+    group.deleteGroup();
+    group.writeEntry("written-key", PkString("written"));
+
+    PK_VERIFY(group.hasKey("written-key"));
+    PK_VERIFY(group.hasPendingWrite("written-key"));
+
+    group.deleteGroup();
+
+    PK_VERIFY(!group.hasKey("written-key"));
+    PK_VERIFY(group.hasPendingWrite("written-key"));
+    // The assertion that pins the ClearGroup branch: a per-key comparison of
+    // the journal would report false here, because nothing ever wrote this key.
+    PK_VERIFY(group.hasPendingWrite("never-written-key"));
+
+    group.adoptPersistedValue("never-written-key", PkString("from-disk"));
+    PK_VERIFY(!group.hasKey("never-written-key"));
+
+    group.adoptPersistedValue("written-key", PkString("from-disk"));
+    PK_VERIFY(!group.hasKey("written-key"));
+
+    group.dropPersistedValue("never-written-key");
+    PK_VERIFY(!group.hasKey("never-written-key"));
+    group.dropPersistedValue("written-key");
+    PK_VERIFY(!group.hasKey("written-key"));
+
+    // The ClearGroup journal entry must reach the shared file, not just this
+    // process's memory: a fresh process reading the key afterwards sees the
+    // default, so the group really is gone from disk.
+    TemporaryConfigRoot root;
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"write", "ClearGroupProbe", "gone", "present"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read", "ClearGroupProbe", "gone", "present"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"clear-group", "ClearGroupProbe", "gone", "unused"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read-default", "ClearGroupProbe", "gone", "fallback"}), 0);
+}
+
 void TestConfigGroup::concurrentReadsAndGroupClearsAreSafe()
 {
     PkConfigGroup group = PkSharedConfig::openConfig()->group("concurrent-clear");

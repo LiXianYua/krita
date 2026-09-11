@@ -586,6 +586,12 @@ PkConfigStore::PkConfigStore()
     // lock, so a lock we could not take says nothing about whether the file is
     // readable — treating the two as one silently discarded the whole
     // configuration whenever the config directory was read-only.
+    //
+    // The object's own result is deliberately never read: isLocked() says
+    // nothing about readability, by the argument above. It stays because of its
+    // side effect — holding the exclusive lock against writers for the duration
+    // of the read below. Deleting it as an "unused variable" silently gives up
+    // that read-time mutual exclusion.
     ConfigFileLock lock(m_configPath, /*createIfMissing=*/false);
     ParsedConfig parsed;
     m_persistentStateValid = readConfig(m_configPath, &parsed);

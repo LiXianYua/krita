@@ -18,6 +18,7 @@ private Q_SLOTS:
     void twoArgConstructorFromSharedConfigHandle();
     void colorReadEntryRejectsOutOfRangeSegments();
     void deleteGroupClearsEveryKeyAndPreservesOtherGroups();
+    void clearGroupMakesEveryKeyPendingWithoutMirroringBack();
     void concurrentReadsAndGroupClearsAreSafe();
     void persistsAcrossFreshProcessesAndPreservesForeignKritarcData();
     void concurrentProcessWritersDoNotLoseKeys();
