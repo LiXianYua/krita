@@ -1,15 +1,57 @@
 #!/usr/bin/env bash
-# pk/geometry 与真 Qt5 的逐输入对拍：定位真 Qt → 编译 → ldd 确认真链上了 Qt →
+# pk/geometry 与真 Qt5 的逐输入对拍：定位真 Qt → 编译 → 确认真链上了 Qt →
 # 跑 → 把 DIFFTAG 与 geometry.deviation 双向核对 → 打结论。
 #
 # **判据自己编译、自己执行**：这样「这份输出是不是它产生的」不需要推断，
-# 一条 g++ 加一条 timeout 就把整类 attestation 问题关死了。
+# 一条编译器调用加一条超时就把整类 attestation 问题关死了。
 #
 # 退出码：0 = 全部差异都已声明且 canary 齐全；非 0 = FAIL（原因打在 stderr）。
+#
+# ── 两栖（S-18 加 macOS 支）─────────────────────────────────────────────
+# 本机是 macOS arm64，Qt 的落地形态与 Linux 不同，四处必须分叉：
+#   ① 头文件位置：Linux `$QT/include/QtCore/qpoint.h`；macOS 在 framework 里
+#      `$QT/lib/QtCore.framework/Headers/qpoint.h`。
+#   ② 库的位置 + 链接旗标：Linux `-L$QT/lib -lQt5Core -lQt5Gui`；
+#      macOS `-F$QT/lib -framework QtCore -framework QtGui`。
+#   ③ 运行时依赖检查：Linux `ldd` + `LD_LIBRARY_PATH`；macOS `otool -L` +
+#      `DYLD_FRAMEWORK_PATH`/`DYLD_LIBRARY_PATH`（macOS 的 dyld 不认 LD_*）。
+#   ④ 超时：macOS 没有 GNU `timeout`（也不是 coreutils 默认装的），用本脚本
+#      自带的 kill-after 包装。
+# **判据本身两边逐字相同**（同一份 geometry_difftest.cpp、同一套 DIFFTAG ↔
+# geometry.deviation 核对），分叉只在「怎么把真 Qt 编进来、怎么确认编进来了」。
+# 「平台相关的测试期望值」这条口径见 `$PK/docs/superpowers/specs/S线-spec.md`
+#「平台相关的测试期望值：改成与真 Qt 运行期对拍」：**判据是「真 Qt 与 pk 当场
+# 对拍是否一致」，不是「两边各自跑出来的数是否相同」** —— 本脚本就是那个判据，
+# 所以它必须能在这台机器上跑起来（在此之前它自 R-18 起就编不过，见下）。
 set -euo pipefail
 cd "$(dirname "$0")/../../.." || exit 1     # → fork 仓库根
 
-QT=${PK_QT_PREFIX:-/mnt/ssd-disk/liyang/projects/krita-ci-env/_install}
+UNAME_S=$(uname -s)
+
+# 依赖前缀。优先 PK_QT_PREFIX（原本就有）→ Darwin 上再退到 CMAKE_PREFIX_PATH
+# （`source <prefix>/env` 会设它）→ Darwin 上按约定默认找「工作空间上层」的
+# krita-ci-env/_install → 最后是 Linux 的既有默认（**原值，一字未改**）。
+if [ -n "${PK_QT_PREFIX:-}" ]; then
+    QT=$PK_QT_PREFIX
+elif [ "$UNAME_S" = "Darwin" ]; then
+    QT=""
+    if [ -n "${CMAKE_PREFIX_PATH:-}" ]; then
+        _p=$(printf '%s' "$CMAKE_PREFIX_PATH" | cut -d: -f1)
+        [ -d "$_p" ] && QT=$_p
+    fi
+    if [ -z "$QT" ]; then
+        # fork 根是 <工作空间>/krita 或 <工作空间>/krita-worktrees/<ID>，
+        # 两种层级都要试；命中哪个用哪个。
+        for _c in "$PWD/../krita-ci-env/_install" "$PWD/../../krita-ci-env/_install"; do
+            if [ -d "$_c" ]; then QT=$(cd "$_c" && pwd); break; fi
+        done
+    fi
+    [ -n "$QT" ] || { echo "找不到 Qt 依赖前缀：既没有 PK_QT_PREFIX，也没 source 过 env，" >&2
+                      echo "  工作空间上层也没有 krita-ci-env/_install。见 MACOS-SHELL-NOTES.md §1。" >&2
+                      exit 1; }
+else
+    QT=/mnt/ssd-disk/liyang/projects/krita-ci-env/_install
+fi
 SRC=pk/geometry/oracle/geometry_difftest.cpp
 DEV=pk/geometry/oracle/geometry.deviation
 OUT=pk/geometry/build/geometry_difftest
@@ -36,20 +78,39 @@ API_GROUPS=(
     "pk/geometry/PkRegion.h|PkRegion|pk/geometry/oracle/region_api.map"
 )
 
-[ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }
-[ -f "$QT/lib/libQt5Core.so" ]       || { echo "找不到真 Qt5 的库：$QT/lib/libQt5Core.so" >&2; exit 1; }
+if [ "$UNAME_S" = "Darwin" ]; then
+    QT_HDRS=("$QT/lib/QtCore.framework/Headers" "$QT/lib/QtGui.framework/Headers")
+    QT_ARTIFACTS=("$QT/lib/QtCore.framework/QtCore" "$QT/lib/QtGui.framework/QtGui")
+    # QTransform 住在 QtGui 里（QPoint/QSize/QRect 在 QtCore）——两边都要链、
+    # 两边都要查，理由与 Linux 支一字不差（见下面 Linux 支的注释）。
+    QT_LINK=(-F"$QT/lib" -Wl,-rpath,"$QT/lib" -framework QtCore -framework QtGui)
+    QT_RUNLIBS=("DYLD_FRAMEWORK_PATH=$QT/lib" "DYLD_LIBRARY_PATH=$QT/lib")
+    SHARED_DEP_TOOL="otool -L"
+    LDD_REQUIRE="QtCore QtGui"
+else
+    QT_HDRS=("$QT/include/QtCore" "$QT/include/QtGui")
+    QT_ARTIFACTS=("$QT/include/QtCore/qpoint.h" "$QT/lib/libQt5Core.so")
+    QT_LINK=(-L"$QT/lib" -Wl,-rpath-link,"$QT/lib" -Wl,-rpath,"$QT/lib" -lQt5Core -lQt5Gui)
+    QT_RUNLIBS=("LD_LIBRARY_PATH=$QT/lib")
+    SHARED_DEP_TOOL="ldd"
+    LDD_REQUIRE="libQt5Core libQt5Gui"
+fi
 
-# ⚠ **QTransform 住在 libQt5Gui 里**（QPoint/QSize/QRect 在 libQt5Core），
-# 所以 Task 6 起两个库都要链、两个库都要查。**两个都查**这一点要紧：只查
-# Core 的话，Gui 没链上时 Transform 那一整节会在链接期就炸（不是静默放行），
-# 但万一哪天 Transform 的符号被别的库满足了，只查 Core 就成了空判据。
-QT_LIBS="-lQt5Core -lQt5Gui"
-LDD_REQUIRE="libQt5Core libQt5Gui"
+[ -f "${QT_HDRS[0]}/qpoint.h" ] || {
+    echo "找不到真 Qt5 的头：${QT_HDRS[0]}/qpoint.h" >&2; exit 1; }
+for a in "${QT_ARTIFACTS[@]}"; do
+    [ -f "$a" ] || { echo "找不到真 Qt5 的库：$a" >&2; exit 1; }
+done
 
 # ⚠ **-I 里绝不能出现 compat**：垫片一旦被拉进来，<QPoint> 会解析到
 # compat/QPoint（两个 #define），两侧变成同一个类型，跑出来必然零差异且看不出
 # 破绽。difftest 源里有 #error 与 static_assert 两道兜底，但一开始就别写。
-INCS=("$QT/include" "$QT/include/QtCore" "$QT/include/QtGui" "pk/geometry")
+# ⚠ `pk/global` 是 R-18 折叠后新加的一项，**不是可选**：`geometry_difftest.cpp`
+# 要 `#include "PkGlobal.cpp"`，而该文件 R-18 从 `pk/geometry/` 搬到了 `pk/global/`
+#（`pk/geometry/PkGlobal.h` 只剩一个转发头）。少了这一项直接编不过
+#（`'PkGlobal.cpp' file not found`）。加上它**同时修好 Linux 支**——那边自 R-18 起
+# 同样编不过，只是没人在这台机器上跑过这个脚本。
+INCS=("${QT_HDRS[0]}" "${QT_HDRS[1]}" "pk/geometry" "pk/global")
 for i in "${INCS[@]}"; do
     case "$i" in
         *compat*) echo "run_oracle.sh: -I 里出现了 compat 垫片目录：$i" >&2; exit 1;;
@@ -100,9 +161,9 @@ for i in "${INCS[@]}"; do INCFLAGS+=("-I$i"); done
 CXXFLAGS_ORACLE=(-std=c++17 -O2 -fPIC -DQT_NO_DEBUG)
 
 mkdir -p pk/geometry/build
-printf '编译：g++ %s %s %s\n' "${CXXFLAGS_ORACLE[*]}" "${INCFLAGS[*]}" "$SRC"
-g++ "${CXXFLAGS_ORACLE[@]}" "${INCFLAGS[@]}" -o "$OUT" "$SRC" \
-    -L"$QT/lib" -Wl,-rpath-link,"$QT/lib" -Wl,-rpath,"$QT/lib" $QT_LIBS
+CXXBIN=${CXX:-c++}
+printf '编译：%s %s %s %s\n' "$CXXBIN" "${CXXFLAGS_ORACLE[*]}" "${INCFLAGS[*]}" "$SRC"
+"$CXXBIN" "${CXXFLAGS_ORACLE[@]}" "${INCFLAGS[@]}" -o "$OUT" "$SRC" "${QT_LINK[@]}"
 
 # ── §CONSTEXPR：PkTransform.h 不得出现 constexpr ─────────────────────────
 #
@@ -127,28 +188,38 @@ fi
 printf 'PkTransform.h 去注释后无 constexpr：与 qtransform.h 的能力面一致\n'
 
 # 判据：**真的链上了 Qt**。链不上说明两侧都编到了替代品，零差异是假的。
-printf '\nldd %s | grep -i qt:\n' "$OUT"
-LD_LIBRARY_PATH="$QT/lib" ldd "$OUT" | grep -i qt || true
+printf '\n%s %s | grep -i qt:\n' "$SHARED_DEP_TOOL" "$OUT"
+env "${QT_RUNLIBS[@]}" $SHARED_DEP_TOOL "$OUT" | grep -i qt || true
 for lib in $LDD_REQUIRE; do
-    if ! LD_LIBRARY_PATH="$QT/lib" ldd "$OUT" | grep -q "$lib"; then
-        echo "run_oracle.sh: ldd 里看不到 $lib —— 没有真的链上 Qt" >&2
+    if ! env "${QT_RUNLIBS[@]}" $SHARED_DEP_TOOL "$OUT" | grep -q "$lib"; then
+        echo "run_oracle.sh: $SHARED_DEP_TOOL 里看不到 $lib —— 没有真的链上 Qt" >&2
         exit 1
     fi
 done
 
 printf '\n跑对拍：\n'
+# 超时用 kill-after 包装，**不用 GNU `timeout`**：macOS 上它不存在（也不是
+# coreutils 默认装的），而这一条判据要能在本机跑。语义与 `timeout 600` 对齐：
+# 到点 SIGKILL、把 128+9=137 交回去（Linux 上 timeout 交的是 124，所以下面
+# 那句诊断两种码都要认）。
+#
 # ⚠ **`|| rc=$?` 不是可有可无的写法。** `set -e` 之下 `cmd > log` 一旦非零就
 # 立刻终止整个脚本，下面的 `rc=$?` 与 `tail` 是**死代码** —— 对拍程序崩溃时
 # 一行诊断都打不出来（复评注入时实测撞上：SIGFPE、退出码 136、无任何输出）。
 # `|| rc=$?` 让非零退出被消费掉，控制权才走得到诊断分支。
 rc=0
-LD_LIBRARY_PATH="$QT/lib" timeout 600 "$OUT" > "$LOG" 2>&1 || rc=$?
+env "${QT_RUNLIBS[@]}" "$OUT" > "$LOG" 2>&1 &
+ORACLE_PID=$!
+( sleep 600; kill -9 "$ORACLE_PID" 2>/dev/null ) & ORACLE_KILLER=$!
+wait "$ORACLE_PID" || rc=$?
+kill -9 "$ORACLE_KILLER" 2>/dev/null || true
+wait "$ORACLE_KILLER" 2>/dev/null || true
 if [ "$rc" -ne 0 ]; then
     echo "run_oracle.sh: 对拍程序退出码 $rc（契约要求 0，即使 mismatch>0）" >&2
     # ⚠ 写成 `[ ... ] && echo ...` 会再犯同一个错：条件为假时整条语句返回 1，
     # `set -e` 当场退出，下面的 tail 又变成死代码。用 if/fi。
     if [ "$rc" -gt 128 ]; then
-        echo "  （>128：被信号 $((rc - 128)) 杀掉；124 = timeout 超时）" >&2
+        echo "  （>128：被信号 $((rc - 128)) 杀掉；124 = Linux timeout 超时、137 = 本脚本 kill-after 超时）" >&2
     fi
     echo "  $LOG 末 20 行：" >&2
     tail -20 "$LOG" >&2

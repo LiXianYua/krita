@@ -55,8 +55,8 @@ PkTransform::transposed()	T::transposed
 PkTransform::translate(qreal,qreal)	T::translate
 PkTransform::scale(qreal,qreal)	T::scale
 PkTransform::shear(qreal,qreal)	T::shear
-PkTransform::rotate(qreal,Qt::Axis)	T::rotate;T::rotate(axis);T::rotate(roundtrip);T::rotate(roundtrip-asked)
-PkTransform::rotateRadians(qreal,Qt::Axis)	T::rotateRadians;T::rotateRadians(axis)
+PkTransform::rotate(qreal,Pk::Axis)	T::rotate;T::rotate(axis);T::rotate(roundtrip);T::rotate(roundtrip-asked)
+PkTransform::rotateRadians(qreal,Pk::Axis)	T::rotateRadians;T::rotateRadians(axis)
 PkTransform::operator==(const PkTransform&)	T::operator==
 PkTransform::operator!=(const PkTransform&)	T::operator!=
 PkTransform::operator*=(const PkTransform&)	T::operator*=
@@ -77,5 +77,8 @@ PkTransform::fromTranslate(qreal,qreal)	T::fromTranslate
 PkTransform::fromScale(qreal,qreal)	T::fromScale
 # R-21 T2：PkPolygonF 交付后顺带解开的三个重载。
 PkTransform::map(const PkPolygonF&)	T::map(PolygonF)
+# R-22 T5 新增（关掉「不支持 map(PkPainterPath)」那条偏离）。加进来时这里没同步
+# 加行 —— 闸门②在 S-18 首次把对拍跑起来时报出来。rec() 也是 S-18 补的。
+PkTransform::map(const PkPainterPath&)	T::map(PainterPath)
 PkTransform::squareToQuad(const PkPolygonF&,PkTransform&)	T::squareToQuad
 PkTransform::quadToSquare(const PkPolygonF&,PkTransform&)	T::quadToSquare

@@ -226,22 +226,18 @@ void PkPointCase::pointIntegerScaling()
     PK_VERIFY(PkPoint(1000000, 1) * 3 == PkPoint(3000000, 3));
 }
 
-void PkPointCase::pointDivisionByZeroMatchesQt()
-{
-    // 除以 0 在 C++ 层面是 int(inf) 这类未定义行为，但 Qt 就是这么写的，
-    // 调用点撞上时两侧必须给同一个答案。下面是真 Qt 5.15.7 在本机
-    // （x86-64 / g++ / cvttsd2si）的实测取值，不是"数学上对的值"：
-    //   QPoint(1,1)/0.0   → (INT_MIN, INT_MIN)     1/0.0 = +inf
-    //   QPoint(-1,-1)/0.0 → (0, 0)                -1/0.0 = -inf 走 qRound 负分支
-    //   QPoint(0,0)/0.0   → (0, 0)                 0/0.0 = nan
-    //   QPoint(1,1)/-0.0  → (0, 0)                 1/-0.0 = -inf
-    // 除数经 noFold 送进去：`int(±inf)` 是 UB，全字面量的表达式在 -O1 及以上会被
-    // 编译期折叠成另一个答案（见 noFold 上方注释）。
-    PK_VERIFY(PkPoint(1, 1) / noFold(0.0) == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPoint(-1, -1) / noFold(0.0) == PkPoint(0, 0));
-    PK_VERIFY(PkPoint(0, 0) / noFold(0.0) == PkPoint(0, 0));
-    PK_VERIFY(PkPoint(1, 1) / noFold(-0.0) == PkPoint(0, 0));
-}
+// void PkPointCase::pointDivisionByZeroMatchesQt() —— **S-18 整条移除**，按
+// `S线-spec.md`「平台相关的测试期望值：改成与真 Qt 运行期对拍」（人拍板 C）。
+//
+// 它钉的四条全是 `x / 0.0` → ±inf / nan → `int(±inf)`（`[conv.fpint]` UB）在
+// **x86 `cvttsd2si`** 上的观测值：QPoint(1,1)/0.0 → INT_MIN。arm64 的 `FCVTZS`
+// 是**饱和**转换，同一份源码给 INT_MAX。pk 并没有错 —— 实测真 Qt 5.15.7(arm64)
+// 与本树的 libpkgeometry.a 在同一批输入上逐行相同（`+inf` 两侧都 2147483647）。
+// 偏离的只是写死在断言里的那个数，而它是某平台 UB 的观测值，不是规格。
+//
+// 覆盖换到对拍：`pk/geometry/oracle/geometry_difftest.cpp` 里 PkPoint 的
+// `operator/(qreal)` 与 PkPointF 的 `operator/(qreal)` 两条 rec() 用同一批
+// 除数（含 0.0 / -0.0）与**真 Qt 当场对拍**。跑 `pk/geometry/oracle/run_oracle.sh`。
 
 void PkPointCase::pointEquality()
 {
@@ -490,24 +486,24 @@ void PkPointCase::pointfToPointMatchesQt()
     PK_VERIFY(PkPointF(0.49999999999999994, 0.0).toPoint() == PkPoint(1, 0));
     PK_VERIFY(PkPointF(-0.49999999999999994, 0.0).toPoint() == PkPoint(0, 0));
 
-    // 越界与特值上的实测取值（C++ 层面是 UB，但两侧必须给同一个答案）。
-    // ⚠ 全部经 noFold 送进去：越界的 double→int 是 UB，编译期折叠与运行期
-    // cvttsd2si 的答案不一样，不加屏障时 -O1 及以上会红（见 noFold 上方注释）。
-    // 探针实测真 Qt 5.15.7（同一屏障，-O0/-O2 逐字一致）：
-    //   2147483647.0 → INT_MAX；2147483648.0 / 4294967296.0 → INT_MIN；
-    //   -2147483648.0 / -2147483649.0 → INT_MIN；+1e308 / +inf → INT_MIN；
-    //   -1e308 / -inf / nan → 0
-    PK_VERIFY(PkPointF(noFold(2147483647.0), noFold(2147483647.0)).toPoint() == PkPoint(INT_MAX, INT_MAX));
-    PK_VERIFY(PkPointF(noFold(2147483648.0), noFold(2147483648.0)).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(noFold(4294967296.0), noFold(4294967296.0)).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(noFold(-2147483648.0), noFold(-2147483648.0)).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(noFold(-2147483649.0), noFold(-2147483649.0)).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(noFold(1e308), noFold(1e308)).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(noFold(-1e308), noFold(-1e308)).toPoint() == PkPoint(0, 0));
-    PK_VERIFY(PkPointF(noFold(kInf), noFold(kInf)).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(noFold(-kInf), noFold(-kInf)).toPoint() == PkPoint(0, 0));
-    PK_VERIFY(PkPointF(noFold(kNaN), noFold(kNaN)).toPoint() == PkPoint(0, 0));
-    // 次正规数向零收（这一条在 int 值域内，不是 UB，不需要屏障）
+    // ⚠ **越界与非有限那一整块已移出本套单测**（S-18，按 `S线-spec.md`
+    //「平台相关的测试期望值：改成与真 Qt 运行期对拍」人拍板 C）。
+    // 原来这里钉的是 `int(d)` 越界（`[conv.fpint]` UB）在 **x86 `cvttsd2si`** 上的
+    // 观测值 —— +inf/2147483648.0 → INT_MIN。arm64 的 `FCVTZS` 是**饱和**转换，
+    // 同一份源码给 INT_MAX，于是这 9 条在本机基线即红，而 pk 并没有错：
+    // 实测真 Qt 5.15.7(arm64) 与本树的 libpkgeometry.a 在同一批输入上**逐行相同**。
+    //
+    // 覆盖没有丢，换了地方：`pk/geometry/oracle/geometry_difftest.cpp` 的
+    // `F::toPoint` / `SF::toSize` 两条 rec() 拿**同一批输入**（kTfHandD 里的
+    // `2147483647.0 / 2147483648.0 / 4294967296.0 / -2147483648.0 /
+    // -2147483649.0 / ±1e308 / ±INFINITY / NAN`，tag 档位 `out-of-int-range`）
+    // 与**真 Qt 当场对拍** —— 判据是「真 Qt 与 pk 当场对拍是否一致」，
+    // 不是「两边各自跑出来的数是否相同」。跑 `pk/geometry/oracle/run_oracle.sh`。
+    // 该对拍有注入自证：把 pkRound 在 +inf 上改坏，`F::toPoint out-of-int-range`
+    // 与 `SF::toSize out-of-int-range` 各 213 条当场现身（未声明 → FAIL）。
+    //
+    // 值域内、非 UB 的那些断言全部保留在上面。
+    // 次正规数向零收（在 int 值域内，不是 UB）
     PK_VERIFY(PkPointF(5e-324, -5e-324).toPoint() == PkPoint(0, 0));
 }
 

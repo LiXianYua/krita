@@ -19,10 +19,10 @@ PkSize::width()	S::width
 PkSize::height()	S::height
 PkSize::setWidth(int)	S::setWidth
 PkSize::setHeight(int)	S::setHeight
-PkSize::scale(int,int,Qt::AspectRatioMode)	S::scale(w,h)
-PkSize::scale(const PkSize&,Qt::AspectRatioMode)	S::scale(size)
-PkSize::scaled(int,int,Qt::AspectRatioMode)	S::scaled(w,h)
-PkSize::scaled(const PkSize&,Qt::AspectRatioMode)	S::scaled(size)
+PkSize::scale(int,int,Pk::AspectRatioMode)	S::scale(w,h)
+PkSize::scale(const PkSize&,Pk::AspectRatioMode)	S::scale(size)
+PkSize::scaled(int,int,Pk::AspectRatioMode)	S::scaled(w,h)
+PkSize::scaled(const PkSize&,Pk::AspectRatioMode)	S::scaled(size)
 PkSize::expandedTo(const PkSize&)	S::expandedTo
 PkSize::rwidth()	S::rwidth
 PkSize::rheight()	S::rheight
@@ -48,10 +48,10 @@ PkSizeF::width()	SF::width
 PkSizeF::height()	SF::height
 PkSizeF::setWidth(qreal)	SF::setWidth
 PkSizeF::setHeight(qreal)	SF::setHeight
-PkSizeF::scale(qreal,qreal,Qt::AspectRatioMode)	SF::scale(w,h)
-PkSizeF::scale(const PkSizeF&,Qt::AspectRatioMode)	SF::scale(size)
-PkSizeF::scaled(qreal,qreal,Qt::AspectRatioMode)	SF::scaled(w,h)
-PkSizeF::scaled(const PkSizeF&,Qt::AspectRatioMode)	SF::scaled(size)
+PkSizeF::scale(qreal,qreal,Pk::AspectRatioMode)	SF::scale(w,h)
+PkSizeF::scale(const PkSizeF&,Pk::AspectRatioMode)	SF::scale(size)
+PkSizeF::scaled(qreal,qreal,Pk::AspectRatioMode)	SF::scaled(w,h)
+PkSizeF::scaled(const PkSizeF&,Pk::AspectRatioMode)	SF::scaled(size)
 PkSizeF::expandedTo(const PkSizeF&)	SF::expandedTo;SF::mixedExpandedTo
 PkSizeF::rwidth()	SF::rwidth
 PkSizeF::rheight()	SF::rheight

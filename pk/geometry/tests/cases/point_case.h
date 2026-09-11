@@ -24,7 +24,8 @@ private Q_SLOTS:
     void pointScalingRoundsLikeQt();
     void pointFloatOverloadIsReallyFloat();
     void pointIntegerScaling();
-    void pointDivisionByZeroMatchesQt();
+    // pointDivisionByZeroMatchesQt() 已随 S-18 移除（期望值是某平台 UB 的
+    // 观测值）：见 test_point.cpp 里同名注释，覆盖改由 run_oracle.sh 与真 Qt 对拍。
     void pointEquality();
     void pointDotProduct();
 

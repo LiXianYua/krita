@@ -267,6 +267,7 @@ T::m33
 T::map(LineF)
 T::map(PkPoint)
 T::map(PkPointF)
+T::map(PainterPath)
 T::map(PolygonF)
 T::map(int*)
 T::map(qreal*)
@@ -480,6 +481,12 @@ L::ctorPoints
 L::defaultCtor
 L::p1
 L::p2
+L::x1
+L::y1
+L::x2
+L::y2
+L::operatorEq
+L::operatorNe
 LF::angle
 LF::angleTo
 LF::center
@@ -596,3 +603,4 @@ PGF::translatePoint
 PGF::translateXY
 PGF::translatedPoint
 PGF::translatedXY
+

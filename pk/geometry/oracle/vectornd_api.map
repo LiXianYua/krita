@@ -43,7 +43,7 @@ PkVector2D::operator*(const PkVector2D&,const PkVector2D&)	V2::operator*(v)
 PkVector2D::operator-(const PkVector2D&)	V2::operator-unary
 PkVector2D::operator/(const PkVector2D&,float)	V2::operator/(f)
 PkVector2D::operator/(const PkVector2D&,const PkVector2D&)	V2::operator/(v)
-PkVector2D::qFuzzyCompare(const PkVector2D&,const PkVector2D&)	V2::qFuzzyCompare
+PkVector2D::pkQtFuzzyCompare(const PkVector2D&,const PkVector2D&)	V2::qFuzzyCompare
 PkVector2D::toVector3D()	V2::toVector3D
 PkVector2D::toVector4D()	V2::toVector4D
 PkVector2D::toPoint()	V2::toPoint
@@ -93,7 +93,7 @@ PkVector3D::operator*(const PkVector3D&,const PkVector3D&)	V3::operator*(v)
 PkVector3D::operator-(const PkVector3D&)	V3::operator-unary
 PkVector3D::operator/(const PkVector3D&,float)	V3::operator/(f)
 PkVector3D::operator/(const PkVector3D&,const PkVector3D&)	V3::operator/(v)
-PkVector3D::qFuzzyCompare(const PkVector3D&,const PkVector3D&)	V3::qFuzzyCompare
+PkVector3D::pkQtFuzzyCompare(const PkVector3D&,const PkVector3D&)	V3::qFuzzyCompare
 PkVector3D::toVector2D()	V3::toVector2D
 PkVector3D::toVector4D()	V3::toVector4D
 PkVector3D::toPoint()	V3::toPoint
@@ -139,7 +139,7 @@ PkVector4D::operator*(const PkVector4D&,const PkVector4D&)	V4::operator*(v)
 PkVector4D::operator-(const PkVector4D&)	V4::operator-unary
 PkVector4D::operator/(const PkVector4D&,float)	V4::operator/(f)
 PkVector4D::operator/(const PkVector4D&,const PkVector4D&)	V4::operator/(v)
-PkVector4D::qFuzzyCompare(const PkVector4D&,const PkVector4D&)	V4::qFuzzyCompare
+PkVector4D::pkQtFuzzyCompare(const PkVector4D&,const PkVector4D&)	V4::qFuzzyCompare
 PkVector4D::toVector2D()	V4::toVector2D
 PkVector4D::toVector2DAffine()	V4::toVector2DAffine
 PkVector4D::toVector3D()	V4::toVector3D

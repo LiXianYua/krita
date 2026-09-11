@@ -9,6 +9,15 @@ PkLine::PkLine(const PkPoint&,const PkPoint&)	L::ctorPoints
 PkLine::PkLine(int,int,int,int)	L::ctorInts
 PkLine::p1()	L::p1
 PkLine::p2()	L::p2
+# R-29 折叠 variant 后补的 6 条（PkVariant 的 toLine().x1() 调用点与
+# PkVariant::operator== 的 Line 分支）。它们加进来时这里没同步加行 —— 闸门②在
+# S-18 首次把对拍跑起来时才报出来（本脚本自 R-18 起就编不过，没人跑到这一步）。
+PkLine::x1()	L::x1
+PkLine::y1()	L::y1
+PkLine::x2()	L::x2
+PkLine::y2()	L::y2
+PkLine::operator==(const PkLine&)	L::operatorEq
+PkLine::operator!=(const PkLine&)	L::operatorNe
 PkLineF::PkLineF()	LF::defaultCtor
 PkLineF::PkLineF(const PkPointF&,const PkPointF&)	LF::ctorPoints
 PkLineF::PkLineF(qreal,qreal,qreal,qreal)	LF::ctorReals

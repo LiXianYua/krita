@@ -58,6 +58,7 @@
 #include <QSize>
 #include <QRect>
 #include <QTransform>
+#include <QPainterPath>
 #include <QLine>
 #include <QMargins>
 #include <QPolygon>
@@ -186,6 +187,15 @@ namespace pkoracle {
 // `pkoracle::PkRegion::operator|=`——两个不同的符号，链不上。纪律同上：
 // PkRegion.cpp 只 #include <algorithm>（上面的系统头区已有）。
 #include "PkRegion.cpp"
+// ⚠ 同理 **PkPainterPath.cpp 也要进来**：PkTransform::map(PkPainterPath) /
+// mapRect(PkRect) 这两条（S-09-g 起 PkTransform 真的消费 PkPainterPath 了）
+// 会调到 PkPainterPath 的 out-of-line 成员（moveTo/lineTo/cubicTo/addRect/
+// translate/boundingRect/detachForMutation…）。libpkgeometry.a 里那份定义的是
+// `::PkPainterPath::x`，本 TU 需要的是 `pkoracle::PkPainterPath::x`——两个不同的
+// 符号，链不上（本族是 Task 7 加进来的，当时没同步补这一条）。纪律同上：
+// PkPainterPath.cpp 的系统头必须在上面的系统头区里已经出现过（它只
+// #include <cstdint> 与 <cmath>，两个都有）。
+#include "PkPainterPath.cpp"
 }
 
 using PkPoint  = pkoracle::PkPoint;
@@ -206,6 +216,8 @@ using PkVector3D = pkoracle::PkVector3D;
 using PkVector4D = pkoracle::PkVector4D;
 using PkMatrix4x4 = pkoracle::PkMatrix4x4;
 using PkRegion = pkoracle::PkRegion;
+// S-18：T::map(PainterPath) 那条 rec 要用它（R-22 T5 加的实现，别名表一直没补）。
+using PkPainterPath = pkoracle::PkPainterPath;
 // PkPolygon(const PkVector<PkPoint>&) 的真实调用点需要在 pkoracle:: 之外也
 // 拼得出 `PkVector<T>` 这个名字——别名模板，不是新类型，等价于
 // `pkoracle::PkVector<T>`。
@@ -222,15 +234,20 @@ static_assert(!std::is_same<QSize,  PkSize >::value,
 static_assert(!std::is_same<QSizeF, PkSizeF>::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
 static_assert(sizeof(QSizeF) == sizeof(PkSizeF), "两侧布局不一致");
-// ⚠ 枚举也必须是两个不同的类型（替代品那份落在 pkoracle::Qt 里）。若哪天
-// 替代品改成 `using Pk::AspectRatioMode = ::Pk::AspectRatioMode` 之类的转发，
-// 下面这条会立刻炸 —— 那种写法等于把对拍的 mode 一侧接到真 Qt 上，白比。
-static_assert(!std::is_same<Pk::AspectRatioMode,
+// ⚠ 枚举也必须是两个不同的类型（替代品那份落在 pkoracle::Pk 里）。
+// 这里比的是 `pkoracle::Pk::` 与**真 Qt 的 `Qt::`** —— 若哪天替代品改成
+// `namespace Pk = Qt` 之类的转发（把 mode 一侧接到真 Qt 上），下面第一条会立刻炸。
+// ⚠ R-18 把枚举从 `namespace Qt` 改名成 `namespace Pk` 之后，这段原本写的是全局
+// `Pk::AspectRatioMode`；而全局 `::Pk` 在对拍 TU 里**根本不存在**（PkGlobal.h 与
+// qglobal.h 同名同签名，只能整包塞进 pkoracle::，见文件头）。原写法因此自 R-18
+// 起编不过。订正为与真 Qt 的 `Qt::` 对比：意图（两侧必须是不同类型 + 取值一致）
+// 一字未改，只是把「两侧」写成了本来就存在的两个限定名。
+static_assert(!std::is_same<Qt::AspectRatioMode,
                             pkoracle::Pk::AspectRatioMode>::value,
               "AspectRatioMode 两侧解析成了同一个类型");
-static_assert((int)Pk::IgnoreAspectRatio == (int)pkoracle::Pk::IgnoreAspectRatio
-              && (int)Pk::KeepAspectRatio == (int)pkoracle::Pk::KeepAspectRatio
-              && (int)Pk::KeepAspectRatioByExpanding
+static_assert((int)Qt::IgnoreAspectRatio == (int)pkoracle::Pk::IgnoreAspectRatio
+              && (int)Qt::KeepAspectRatio == (int)pkoracle::Pk::KeepAspectRatio
+              && (int)Qt::KeepAspectRatioByExpanding
                      == (int)pkoracle::Pk::KeepAspectRatioByExpanding,
               "AspectRatioMode 的枚举取值两侧不一致");
 static_assert(!std::is_same<QRect, PkRect>::value,
@@ -268,12 +285,12 @@ static_assert((int)QTransform::TxNone      == (int)PkTransform::TxNone
               && (int)QTransform::TxShear     == (int)PkTransform::TxShear
               && (int)QTransform::TxProject   == (int)PkTransform::TxProject,
               "TransformationType 的枚举取值两侧不一致");
-static_assert(!std::is_same<Pk::Axis, pkoracle::Pk::Axis>::value,
-              "Pk::Axis 两侧解析成了同一个类型");
-static_assert((int)Pk::XAxis == (int)pkoracle::Pk::XAxis
-              && (int)Pk::YAxis == (int)pkoracle::Pk::YAxis
-              && (int)Pk::ZAxis == (int)pkoracle::Pk::ZAxis,
-              "Pk::Axis 的枚举取值两侧不一致");
+static_assert(!std::is_same<Qt::Axis, pkoracle::Pk::Axis>::value,
+              "Axis 两侧解析成了同一个类型");
+static_assert((int)Qt::XAxis == (int)pkoracle::Pk::XAxis
+              && (int)Qt::YAxis == (int)pkoracle::Pk::YAxis
+              && (int)Qt::ZAxis == (int)pkoracle::Pk::ZAxis,
+              "Axis 的枚举取值两侧不一致");
 
 // ── R-21 T1：Line / Margins 两族的两侧类型自证 ─────────────────────────────
 static_assert(!std::is_same<QLine, PkLine>::value,
@@ -821,8 +838,8 @@ static void cmp_promotion(int x, int y, double cx, double cy)
 //      必须参与 tag（规则一），否则一种 mode 上的偏离会把另外两种一起罩住。
 //   ③ 整数版 scaled 内部有 **qint64 中间量**再窄回 int，浮点版没有。
 //      "窄化会不会回绕"是整数版独有的根因，单独一档。
-static const Pk::AspectRatioMode kQtModes[3] = {
-    Pk::IgnoreAspectRatio, Pk::KeepAspectRatio, Pk::KeepAspectRatioByExpanding };
+static const Qt::AspectRatioMode kQtModes[3] = {
+    Qt::IgnoreAspectRatio, Qt::KeepAspectRatio, Qt::KeepAspectRatioByExpanding };
 static const pkoracle::Pk::AspectRatioMode kPkModes[3] = {
     pkoracle::Pk::IgnoreAspectRatio, pkoracle::Pk::KeepAspectRatio,
     pkoracle::Pk::KeepAspectRatioByExpanding };
@@ -2407,21 +2424,21 @@ static void cmp_tf_rotate(const double m[9], double ang)
     // 单独一个 label 挂在同一条声明上。
     {
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
-        q.rotate(ang, Pk::YAxis); p.rotate(ang, pkoracle::Pk::YAxis);
+        q.rotate(ang, Qt::YAxis); p.rotate(ang, pkoracle::Pk::YAxis);
         rec("T::rotate(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
             sh + "/y", in, qstr(q) + "|" + istr((int)q.type()),
             qstr(p) + "|" + istr((int)p.type()));
     }
     {
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
-        q.rotate(ang, Pk::XAxis); p.rotate(ang, pkoracle::Pk::XAxis);
+        q.rotate(ang, Qt::XAxis); p.rotate(ang, pkoracle::Pk::XAxis);
         rec("T::rotate(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
             sh + "/x", in, qstr(q) + "|" + istr((int)q.type()),
             qstr(p) + "|" + istr((int)p.type()));
     }
     {
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
-        q.rotateRadians(ang, Pk::YAxis); p.rotateRadians(ang, pkoracle::Pk::YAxis);
+        q.rotateRadians(ang, Qt::YAxis); p.rotateRadians(ang, pkoracle::Pk::YAxis);
         rec("T::rotateRadians(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
             sh + "/y", in, qstr(q) + "|" + istr((int)q.type()),
             qstr(p) + "|" + istr((int)p.type()));
@@ -2600,6 +2617,87 @@ static void cmp_tf_maprect_int(const double m[9], int x1, int y1, int x2, int y2
         qstr(q.mapRect(qr)), qstr(p.mapRect(pr)));
 }
 
+// ── PkTransform::map(const PkPainterPath&) ─────────────────────────────────
+// R-22 T5 新增（关掉「PkTransform 不支持 map(PkPainterPath)」那条偏离）。
+// **S-18 首次给它补 rec()**：它加进来时规则三的闸门没同步加行，闸门②在 S-18
+// 把对拍跑起来时才报出来（本脚本自 R-18 起编不过，没人跑到这一步）。
+//
+// 路径本身用**同一串构造调用**在两侧各建一条（元素逐条对应），再各自 map。
+// 元素比较取 bit 相等（same_double），与其余族同一口径——map 是逐元素仿射，
+// 两侧若分家一定分在具体分量上，模糊比较会把真差异盖掉。
+static bool same_path(const QPainterPath &a, const PkPainterPath &b)
+{
+    if (a.elementCount() != b.elementCount()) return false;
+    for (int i = 0; i < a.elementCount(); ++i) {
+        const QPainterPath::Element ea = a.elementAt(i);
+        const PkPainterPath::Element eb = b.elementAt(i);
+        if (static_cast<int>(ea.type) != static_cast<int>(eb.type)) return false;
+        if (!same_double(ea.x, eb.x) || !same_double(ea.y, eb.y)) return false;
+    }
+    return true;
+}
+
+// 把路径压成一行给人看的摘要（元素数 + 前 3 个元素的分量）。
+static std::string psum(const QPainterPath &p)
+{
+    std::string s = istr(p.elementCount()) + "[";
+    for (int i = 0; i < p.elementCount() && i < 3; ++i) {
+        const QPainterPath::Element e = p.elementAt(i);
+        if (i) s += ";";
+        s += istr(static_cast<int>(e.type)) + ":" + dstr(e.x) + "," + dstr(e.y);
+    }
+    return s + "]";
+}
+static std::string psum(const PkPainterPath &p)
+{
+    std::string s = istr(p.elementCount()) + "[";
+    for (int i = 0; i < p.elementCount() && i < 3; ++i) {
+        const PkPainterPath::Element e = p.elementAt(i);
+        if (i) s += ";";
+        s += istr(static_cast<int>(e.type)) + ":" + dstr(e.x) + "," + dstr(e.y);
+    }
+    return s + "]";
+}
+
+static void cmp_tf_map_painterpath(const double m[9])
+{
+    // 四种元素类型各来一段（MoveTo/LineTo/CurveTo/CurveToData），外加 closeSubpath
+    // 与 addRect（addRect 走的是 moveTo/lineTo×3/closeSubpath 那条路径，顺带把
+    // 「闭合子路径」也压进去）。
+    QPainterPath q;
+    q.moveTo(1.0, 2.0);
+    q.lineTo(3.0, 4.0);
+    q.cubicTo(5.0, 6.0, 7.0, 8.0, 9.0, 10.0);
+    q.closeSubpath();
+    q.addRect(QRectF(-1.0, -2.0, 3.0, 4.0));
+
+    PkPainterPath p;
+    p.moveTo(1.0, 2.0);
+    p.lineTo(3.0, 4.0);
+    p.cubicTo(5.0, 6.0, 7.0, 8.0, 9.0, 10.0);
+    p.closeSubpath();
+    p.addRect(PkRectF(-1.0, -2.0, 3.0, 4.0));
+
+    const QTransform qt = mkQT(m);
+    const PkTransform pt = mkPT(m);
+
+    // 形状按**真 Qt 那侧**的 type() 分档（与 map(PolygonF) 同一约定，理由同那边：
+    // 两侧对同一份分量的 type() 分档已在 Point/Transform 两族钉过一致，这里只借
+    // 它分类，不重复验证那件事）。透视档单独一档 —— 那一档走的是 QPainterPath
+    // 的裁剪路径，与仿射档是两条实现，根因不同，不能共用 tag。
+    std::string sh;
+    if ((int)qt.type() >= (int)QTransform::TxProject) {
+        sh = "txproject";
+    } else if ((int)qt.type() <= (int)QTransform::TxTranslate) {
+        sh = "translate-fastpath";
+    } else {
+        sh = "affine-general";
+    }
+
+    rec("T::map(PainterPath)", same_path(qt.map(q), pt.map(p)), sh, tfin(m),
+        psum(qt.map(q)), psum(pt.map(p)));
+}
+
 // 二元：乘法与相等。
 static void cmp_tf_binary(const double a[9], const double b[9])
 {
@@ -2626,9 +2724,15 @@ static void cmp_tf_binary(const double a[9], const double b[9])
         bstr(mkQT(a) != mkQT(b)), bstr(mkPT(a) != mkPT(b)));
     // 自由函数 pkQtFuzzyCompare(T,T)：不在类体里，规则三的闸门看不见它，
     // 但它是 operator== 的模糊对照物，坏了会静默 —— 给一条自己的 rec。
+    // 两侧各自的名字不同，是 R-18 折叠后的现状：真 Qt 侧是全局 `qFuzzyCompare`，
+    // 替代品侧在 `namespace pkoracle` 里叫 `pkQtFuzzyCompare`（不带 pkQt 前缀会与
+    // 真 Qt 的 qglobal.h 撞名）。原先两边都写 `pkQtFuzzyCompare` —— 那是 R-18 之前
+    // 的形态，改名后编不过（实参 QTransform 无法转 double）。
     rec("T::freeFuzzyCompare",
-        pkQtFuzzyCompare(mkQT(a), mkQT(b)) == pkQtFuzzyCompare(mkPT(a), mkPT(b)), sh, in,
-        bstr(pkQtFuzzyCompare(mkQT(a), mkQT(b))), bstr(pkQtFuzzyCompare(mkPT(a), mkPT(b))));
+        qFuzzyCompare(mkQT(a), mkQT(b))
+            == pkoracle::pkQtFuzzyCompare(mkPT(a), mkPT(b)), sh, in,
+        bstr(qFuzzyCompare(mkQT(a), mkQT(b))),
+        bstr(pkoracle::pkQtFuzzyCompare(mkPT(a), mkPT(b))));
 }
 
 // 两个静态工厂：**它们不走构造那条重算路径**，直接钉档位，所以连 type() 一起比。
@@ -2713,6 +2817,21 @@ static void cmp_line_ctors(int x1, int y1, int x2, int y2)
         qstr(QLine(q.p1(), q.p1())), qstr(PkLine(p.p1(), p.p1())));
     rec("L::p2", q.p2() == QPoint(x2, y2) && p.p2() == PkPoint(x2, y2), sh, in,
         qstr(QLine(q.p2(), q.p2())), qstr(PkLine(p.p2(), p.p2())));
+
+    // R-29 折叠 variant 后补的 6 条（PkVariant 的 toLine().x1() 调用点，与
+    // PkVariant::operator== 的 Line 分支靠 == / !=）。**规则三**：每一条声明都要
+    // 有自己的 rec()，不合并 —— x1/y1/x2/y2 四个各自坏掉的形态不同，挤一条就
+    // 说不清是哪个分的家。
+    rec("L::x1", q.x1() == p.x1(), sh, in, istr(q.x1()), istr(p.x1()));
+    rec("L::y1", q.y1() == p.y1(), sh, in, istr(q.y1()), istr(p.y1()));
+    rec("L::x2", q.x2() == p.x2(), sh, in, istr(q.x2()), istr(p.x2()));
+    rec("L::y2", q.y2() == p.y2(), sh, in, istr(q.y2()), istr(p.y2()));
+    // 拿同一批输入构造的第二条线做比较对象（与 ctorPoints 那条同一形态），
+    // 顺带把"与自己相等"这条也压进去。
+    rec("L::operatorEq", (q == q) == (p == p) && (q == q2) == (p == p2), sh, in,
+        bstr(q == q) + "/" + bstr(q == q2), bstr(p == p) + "/" + bstr(p == p2));
+    rec("L::operatorNe", (q != q) == (p != p) && (q != q2) == (p != p2), sh, in,
+        bstr(q != q) + "/" + bstr(q != q2), bstr(p != p) + "/" + bstr(p != p2));
 }
 
 // 无输入的 API（默认构造）：只有一种输入形态，只跑一次（与 Point/Size 族
@@ -3414,11 +3533,11 @@ static void cmp_polygonf_containspoint(const double (*pts)[2], int n, double qx,
     const std::string in = "n=" + istr(n) + " pt=(" + dstr(qx) + "," + dstr(qy) + ")";
     const std::string sh = n == 0 ? "empty" : shapeOfD({qx, qy});
 
-    const bool qo = q.containsPoint(QPointF(qx, qy), Pk::OddEvenFill);
+    const bool qo = q.containsPoint(QPointF(qx, qy), Qt::OddEvenFill);
     const bool po = p.containsPoint(PkPointF(qx, qy), pkoracle::Pk::OddEvenFill);
     rec("PGF::containsPointOddEven", qo == po, sh, in, bstr(qo), bstr(po));
 
-    const bool qw = q.containsPoint(QPointF(qx, qy), Pk::WindingFill);
+    const bool qw = q.containsPoint(QPointF(qx, qy), Qt::WindingFill);
     const bool pw = p.containsPoint(PkPointF(qx, qy), pkoracle::Pk::WindingFill);
     rec("PGF::containsPointWinding", qw == pw, sh, in, bstr(qw), bstr(pw));
 }
@@ -3678,8 +3797,8 @@ static void cmp_vec2d(float x, float y, float ax, float ay, float f)
     rec("V2::operator-unary", same_v2(-q, -p), sh, in, qstr(-q), qstr(-p));
     rec("V2::operator/(f)", same_v2(q / f, p / f), sh, in, qstr(q / f), qstr(p / f));
     rec("V2::operator/(v)", same_v2(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
-    rec("V2::qFuzzyCompare", pkQtFuzzyCompare(q, qa) == pkQtFuzzyCompare(p, pa), sh, in,
-        bstr(pkQtFuzzyCompare(q, qa)), bstr(pkQtFuzzyCompare(p, pa)));
+    rec("V2::qFuzzyCompare", qFuzzyCompare(q, qa) == pkoracle::pkQtFuzzyCompare(p, pa), sh, in,
+        bstr(qFuzzyCompare(q, qa)), bstr(pkoracle::pkQtFuzzyCompare(p, pa)));
     rec("V2::toVector3D", same_v3(q.toVector3D(), p.toVector3D()), sh, in,
         qstr(q.toVector3D()), qstr(p.toVector3D()));
     rec("V2::toVector4D", same_v4(q.toVector4D(), p.toVector4D()), sh, in,
@@ -3791,8 +3910,8 @@ static void cmp_vec3d(float x, float y, float z, float ax, float ay, float az, f
     rec("V3::operator-unary", same_v3(-q, -p), sh, in, qstr(-q), qstr(-p));
     rec("V3::operator/(f)", same_v3(q / f, p / f), sh, in, qstr(q / f), qstr(p / f));
     rec("V3::operator/(v)", same_v3(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
-    rec("V3::qFuzzyCompare", pkQtFuzzyCompare(q, qa) == pkQtFuzzyCompare(p, pa), sh, in,
-        bstr(pkQtFuzzyCompare(q, qa)), bstr(pkQtFuzzyCompare(p, pa)));
+    rec("V3::qFuzzyCompare", qFuzzyCompare(q, qa) == pkoracle::pkQtFuzzyCompare(p, pa), sh, in,
+        bstr(qFuzzyCompare(q, qa)), bstr(pkoracle::pkQtFuzzyCompare(p, pa)));
     rec("V3::toVector2D", same_v2(q.toVector2D(), p.toVector2D()), sh, in,
         qstr(q.toVector2D()), qstr(p.toVector2D()));
     rec("V3::toVector4D", same_v4(q.toVector4D(), p.toVector4D()), sh, in,
@@ -3883,8 +4002,8 @@ static void cmp_vec4d(float x, float y, float z, float w, float ax, float ay, fl
     rec("V4::operator-unary", same_v4(-q, -p), sh, in, qstr(-q), qstr(-p));
     rec("V4::operator/(f)", same_v4(q / w, p / w), sh, in, qstr(q / w), qstr(p / w));
     rec("V4::operator/(v)", same_v4(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
-    rec("V4::qFuzzyCompare", pkQtFuzzyCompare(q, qa) == pkQtFuzzyCompare(p, pa), sh, in,
-        bstr(pkQtFuzzyCompare(q, qa)), bstr(pkQtFuzzyCompare(p, pa)));
+    rec("V4::qFuzzyCompare", qFuzzyCompare(q, qa) == pkoracle::pkQtFuzzyCompare(p, pa), sh, in,
+        bstr(qFuzzyCompare(q, qa)), bstr(pkoracle::pkQtFuzzyCompare(p, pa)));
     rec("V4::toVector2D", same_v2(q.toVector2D(), p.toVector2D()), sh, in,
         qstr(q.toVector2D()), qstr(p.toVector2D()));
     rec("V4::toVector2DAffine", same_v2(q.toVector2DAffine(), p.toVector2DAffine()), sh, in,
@@ -5062,6 +5181,8 @@ int main()
             for (int r = 0; r < nRI; ++r)
                 cmp_tf_maprect_int(mm, kTfRectI[r][0], kTfRectI[r][1],
                                    kTfRectI[r][2], kTfRectI[r][3]);
+            // 路径不随输入变（固定那一串构造调用），所以每个分量组只跑一次。
+            cmp_tf_map_painterpath(mm);
         }
 
         // 二元：手挑集 × 缩减扫描集，**双向**（手挑值必须能出现在 a 侧和 b 侧）。

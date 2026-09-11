@@ -20,5 +20,5 @@ PkPolygonF::translated(qreal,qreal)	PGF::translatedXY
 PkPolygonF::translated(const PkPointF&)	PGF::translatedPoint
 PkPolygonF::isClosed()	PGF::isClosed
 PkPolygonF::boundingRect()	PGF::boundingRect
-PkPolygonF::containsPoint(const PkPointF&,Qt::FillRule)	PGF::containsPointOddEven;PGF::containsPointWinding
+PkPolygonF::containsPoint(const PkPointF&,Pk::FillRule)	PGF::containsPointOddEven;PGF::containsPointWinding
 PkPolygonF::toPolygon()	PGF::toPolygon

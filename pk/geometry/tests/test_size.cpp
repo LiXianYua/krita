@@ -271,12 +271,14 @@ void PkSizeCase::sizeDivision()
 
     // Qt 在这里有 Q_ASSERT(!pkQtFuzzyIsNull(c))，**Krita 的发布构建里整条编译掉**
     //（Qt5 的 cmake 模块给非 Debug 构建加 -DQT_NO_DEBUG，见 krita/CMakeLists.txt:968
-    // 那条 option 的说明）。pk/geometry 没有断言设施（归 R-08），所以不实现它；
-    // 对齐的是发布构建的形态：除以 0 得 pkRound(±inf)，实测真 Qt(-DQT_NO_DEBUG)
-    // 与本实现都是 INT_MIN。noFold 把越界转换压到运行期（理由见 test_point.cpp）。
-    const PkSize z = PkSize(10, 20) / noFold(0.0);
-    PK_COMPARE(z.width(), INT_MIN);
-    PK_COMPARE(z.height(), INT_MIN);
+    // 那条 option 的说明）。pk/geometry 没有断言设施（归 R-08），所以不实现它。
+    //
+    // ⚠ **「除以 0 得什么」那两条断言已移出本套单测**（S-18，`S线-spec.md`
+    //「平台相关的测试期望值：改成与真 Qt 运行期对拍」，人拍板 C）。
+    // `PkSize(10,20) / 0.0` → ±inf → `pkRound(+inf)` 是 `int(inf)`，`[conv.fpint]`
+    // UB：x86 `cvttsd2si` 给 INT_MIN，arm64 `FCVTZS` 饱和给 INT_MAX。断言写死的
+    // 是前者，于是本机基线即红，而 pk 没有错（真 Qt 5.15.7(arm64) 两侧逐行相同）。
+    // 覆盖换到 `oracle/geometry_difftest.cpp` 里与真 Qt 的当场对拍。
 }
 
 void PkSizeCase::sizeEquality()
@@ -518,12 +520,13 @@ void PkSizeCase::sizefToSizeMatchesQt()
     // int(d+0.5) 的经典边界：0.49999999999999994 进位到 1
     PK_VERIFY(PkSizeF(0.49999999999999994, -0.49999999999999994).toSize() == PkSize(1, 0));
 
-    // 越界与非有限：两侧都是 UB，实机上编成同一条 cvttsd2si。noFold 把转换压到
-    // 运行期（编译期折叠给的是另一个答案，理由见 test_point.cpp 的 noFold）。
-    PK_VERIFY(PkSizeF(noFold(2147483648.0), noFold(-2147483648.0)).toSize()
-              == PkSize(INT_MIN, INT_MIN));
-    PK_VERIFY(PkSizeF(noFold(kInf), noFold(-kInf)).toSize() == PkSize(INT_MIN, 0));
-    PK_VERIFY(PkSizeF(noFold(kNaN), noFold(-kNaN)).toSize() == PkSize(0, 0));
+    // ⚠ **越界与非有限那一块已移出本套单测**（S-18，`S线-spec.md`
+    //「平台相关的测试期望值：改成与真 Qt 运行期对拍」，人拍板 C）。
+    // 原来钉的是 `int(d)` 越界（`[conv.fpint]` UB）在 **x86 `cvttsd2si`** 上的
+    // 观测值（→ INT_MIN）；arm64 的 `FCVTZS` 饱和转换给 INT_MAX，于是基线即红，
+    // 而 pk 没有错：实测真 Qt 5.15.7(arm64) 与本树 libpkgeometry.a 逐行相同。
+    // 覆盖换到 `geometry_difftest.cpp` 的 `SF::toSize` rec()（同一批输入 + tag
+    // 档位 `out-of-int-range`，与真 Qt 当场对拍）。跑 `oracle/run_oracle.sh`。
 }
 
 void PkSizeCase::sizefDivision()
