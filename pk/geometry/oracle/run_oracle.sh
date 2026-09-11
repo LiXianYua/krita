@@ -329,7 +329,18 @@ def strip_bodies(s):
 # 子句，这条可选分支在它们身上匹配空串，闸门行为逐字不变。
 def parse_decls(hdr_path, cls):
     src = re.sub(r'//[^\n]*', '', open(hdr_path, encoding='utf-8').read())
-    m = re.search(r'class %s(?:\s*:\s*[^{]*)?\s*\{(.*?)\n\s*private:' % re.escape(cls), src, re.S)
+    # ⚠ **类名前允许一个导出/可见性宏**（R-56 修）。R-53 之后本目录八个头是
+    # `class PK_TYPE_VISIBILITY PkRect`（宏定义在 pk/container/PkTypeVisibility.h），
+    # 而下面这条正则写死 `class <名字>` —— 八个类**全解析不出**，decls 为空，
+    # 闸门②③同时失守，run_oracle.sh 恒 exit 1（实测 13 条 FAIL）。
+    #
+    # ⚠ **只放行「全大写 + 数字/下划线」的单个标识符**，不放 `[A-Za-z_]\w*`：
+    # 放宽到后者会让 `class PkRectF` 之类在取名不同时也能被吃掉，
+    # `class X final {` / `template<class T> class X {` 这些形态也会漏进来，
+    # 闸门就不再守它本来守的那件事（「解析出的声明集是不是这个类的全集」）。
+    # 若将来出现小写的导出宏，改的是这条正则**加白名单**，不是放宽这里。
+    m = re.search(r'class\s+(?:[A-Z_][A-Z0-9_]*\s+)?%s(?:\s*:\s*[^{]*)?\s*\{(.*?)\n\s*private:'
+                  % re.escape(cls), src, re.S)
     if m is None:
         return None, None
     decls, miss, const_marks = [], [], []
