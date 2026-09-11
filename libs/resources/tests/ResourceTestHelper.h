@@ -58,10 +58,11 @@ inline PkStringList toPkStringList(const QStringList &values)
 }
 
 // 让本测试进程的 kritarc 落在进程私有的临时目录里，不碰用户的
-// ~/.config/kritarc。PkConfigStore 是进程级单例且析构时无条件 sync()
-// （pk/config/PkConfigStore.cpp），不隔离的话测试进程一退出就把
-// ResourceDirectory=<测试 dst 目录> 落进用户的全局配置，静默改道同机后续
-// 所有进程的资源解析。
+// ~/.config/kritarc。PkConfigStore 是进程级单例，析构时调 sync()
+// （pk/config/PkConfigStore.cpp）；sync() 自己没有待写变更时会早退，但只要
+// 本进程写过配置，那份 journal 就会在退出时合并进 kritarc。不隔离的话，
+// 测试写下的 ResourceDirectory=<测试 dst 目录> 就落进用户的全局配置，
+// 静默改道同机后续所有进程的资源解析。
 //
 // PkConfigStore::genericConfigPath() 已经支持 XDG_CONFIG_HOME
 // （pk/config/PkConfigStore.cpp），pk/config 自己的测试也是这么隔离的
