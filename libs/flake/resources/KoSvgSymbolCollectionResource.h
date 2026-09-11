@@ -7,12 +7,12 @@
 #ifndef KOSVGSYMBOLCOLLECTIONRESOURCE
 #define KOSVGSYMBOLCOLLECTIONRESOURCE
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkColor.h>
 #include <PkVector.h>
 #include <PkScopedPointer.h>
 #include <PkImage.h>
-#include <PkPainter.h>
+#include <pk/render/PkPainter.h>
 
 #include <KoResource.h>
 #include <KisResourceTypes.h>

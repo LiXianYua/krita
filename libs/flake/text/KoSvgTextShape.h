@@ -16,7 +16,7 @@
 #include <KoShapeBulkActionInterface.h>
 #include <KoSvgText.h>
 #include "html/HtmlSavingContext.h"
-#include <QFlags>
+#include <PkFlags.h>
 
 class KoSvgTextShapeMemento;
 class KoSvgTextNodeIndex;
@@ -54,7 +54,7 @@ public:
         CharBbox = 1 << 0,
         LineBox = 1 << 1,
     };
-    Q_DECLARE_FLAGS(DebugElements, DebugElement);
+    PK_DECLARE_FLAGS(DebugElements, DebugElement);
     void paintDebug(PkPainter &painter, DebugElements elements) const;
 
     /**
@@ -711,7 +711,7 @@ private:
     PkScopedPointer<Private> d;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KoSvgTextShape::DebugElements)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KoSvgTextShape::DebugElements)
 
 class KRITAFLAKE_EXPORT KoSvgTextShapeMemento {
 public:

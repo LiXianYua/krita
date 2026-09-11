@@ -1093,7 +1093,7 @@ KisNodeSP KisKraLoader::loadPaintLayer(const PkXmlElement& element, KisImageSP i
     KisPaintLayer* layer;
 
     layer = new KisPaintLayer(image, name, opacity, cs);
-    Q_CHECK_PTR(layer);
+    Q_ASSERT(layer);
     return layer;
 
 }
@@ -1158,7 +1158,7 @@ KisNodeSP KisKraLoader::loadFileLayer(const PkXmlElement& element, KisImageSP im
     KisLayer *layer = new KisFileLayer(image, basePath, filename,
                                       (KisFileLayer::ScalingMethod)scalingMethod,
                                       scalingFilter, name, opacity, fallbackColorSpace);
-    Q_CHECK_PTR(layer);
+    Q_ASSERT(layer);
 
     return layer;
 }
@@ -1170,7 +1170,7 @@ KisNodeSP KisKraLoader::loadGroupLayer(const PkXmlElement& element, KisImageSP i
     KisGroupLayer* layer;
 
     layer = new KisGroupLayer(image, name, opacity, cs);
-    Q_CHECK_PTR(layer);
+    Q_ASSERT(layer);
 
     return layer;
 
@@ -1220,7 +1220,7 @@ KisNodeSP KisKraLoader::loadAdjustmentLayer(const PkXmlElement& element, KisImag
 
     // We'll load the configuration and the selection later.
     layer = new KisAdjustmentLayer(image, name, kfc, 0);
-    Q_CHECK_PTR(layer);
+    Q_ASSERT(layer);
 
     layer->setOpacity(opacity);
 
@@ -1242,7 +1242,7 @@ KisNodeSP KisKraLoader::loadShapeLayer(const PkXmlElement& element, KisImageSP i
         shapeController = m_d->document->shapeController();
     }
     KisShapeLayer* layer = new KisShapeLayer(shapeController, image, name, opacity);
-    Q_CHECK_PTR(layer);
+    Q_ASSERT(layer);
 
     return layer;
 
@@ -1274,7 +1274,7 @@ KisNodeSP KisKraLoader::loadGeneratorLayer(const PkXmlElement& element, KisImage
 
     // We'll load the configuration and the selection later.
     layer = new KisGeneratorLayer(image, name, kgc, 0);
-    Q_CHECK_PTR(layer);
+    Q_ASSERT(layer);
 
     layer->setOpacity(opacity);
 
@@ -1337,7 +1337,7 @@ KisNodeSP KisKraLoader::loadFilterMask(KisImageSP image, const PkXmlElement& ele
     // We'll load the configuration and the selection later.
     mask = new KisFilterMask(image);
     mask->setFilter(kfc);
-    Q_CHECK_PTR(mask);
+    Q_ASSERT(mask);
 
     return mask;
 }
@@ -1353,7 +1353,7 @@ KisNodeSP KisKraLoader::loadTransformMask(KisImageSP image, const PkXmlElement& 
      * of binary data loading
      */
     mask = new KisTransformMask(image, "");
-    Q_CHECK_PTR(mask);
+    Q_ASSERT(mask);
 
     return mask;
 }
@@ -1362,7 +1362,7 @@ KisNodeSP KisKraLoader::loadTransparencyMask(KisImageSP image, const PkXmlElemen
 {
     (void)element;
     KisTransparencyMask* mask = new KisTransparencyMask(image, "");
-    Q_CHECK_PTR(mask);
+    Q_ASSERT(mask);
 
     return mask;
 }
@@ -1372,7 +1372,7 @@ KisNodeSP KisKraLoader::loadSelectionMask(KisImageSP image, const PkXmlElement& 
     KisSelectionMaskSP mask = new KisSelectionMask(image);
     bool active = element.attribute(ACTIVE, "1") == "0" ? false : true;
     mask->setActive(active);
-    Q_CHECK_PTR(mask);
+    Q_ASSERT(mask);
 
     return mask;
 }

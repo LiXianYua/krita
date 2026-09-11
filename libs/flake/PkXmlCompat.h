@@ -43,7 +43,7 @@
 #include <QtXml/QtXml>
 #include <QtSvg/QtSvg>
 #else
-#include <QtGlobal>
+#include <PkGlobal.h>
 #endif
 
 // ---- 真 Qt 调试宏让位（R-34 守卫的消费方侧）----

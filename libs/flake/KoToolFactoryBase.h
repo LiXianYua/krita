@@ -15,7 +15,7 @@
 #include <PkList.h>
 #include <PkNamespace.h>
 #include <PkKeySequence.h>
-#include <QObject>
+#include <PkObject.h>
 
 class KoCanvasBase;
 class KoToolBase;
@@ -77,7 +77,7 @@ public:
      * objectName (setObjectName(name)) — actions are looked up afterwards via
      * findChild<QAction *>(name)/findChildren<QAction *>() on that objectName.
      */
-    PkList<QAction *> createActions(QObject *actionCollection);
+    PkList<QAction *> createActions(PkObject *actionCollection);
 
     /**
      * Instantiate a new tool

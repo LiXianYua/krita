@@ -7,7 +7,7 @@
 #define KOFONTFAMILY_H
 
 #include <KoResource.h>
-#include <KoFFWWSConverter.h>
+#include <text/KoFFWWSConverter.h>
 #include <PkDateTime.h>
 
 #include <memory>

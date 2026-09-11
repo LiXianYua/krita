@@ -12,7 +12,7 @@
 
 #include "kis_transform_mask_adapter.h"
 #include "kritatooltransform_export.h"
-#include <qmath.h>
+#include <PkGlobal.h>
 
 class KisKeyframeChannel;
 

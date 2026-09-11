@@ -13,7 +13,6 @@
 
 #include "kis_types.h"
 #include <boost/operators.hpp>
-#include <kritapaintop_export.h>
 
 #include <PkImage.h>
 

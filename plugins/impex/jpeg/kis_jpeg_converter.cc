@@ -247,7 +247,7 @@ KisImportExportErrorCode KisJPEGConverter::decode(PkStream *io)
         // Creating the KisImageSP
         if (!m_d->image) {
             m_d->image = new KisImage(m_d->doc->createUndoStore(),  cinfo.image_width,  cinfo.image_height, cs, "built image");
-            Q_CHECK_PTR(m_d->image);
+            Q_ASSERT(m_d->image);
         }
 
         // Set resolution

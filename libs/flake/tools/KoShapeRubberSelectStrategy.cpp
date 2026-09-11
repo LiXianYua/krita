@@ -24,7 +24,7 @@
 KoShapeRubberSelectStrategy::KoShapeRubberSelectStrategy(KoToolBase *tool, const PkPointF &clicked, bool useSnapToGrid)
     : KoInteractionStrategy(*(new KoShapeRubberSelectStrategyPrivate(tool)))
 {
-    Q_D(KoShapeRubberSelectStrategy);
+    auto * const d = d_func();
     d->snapGuide->enableSnapStrategies(KoSnapGuide::GridSnapping);
     d->snapGuide->enableSnapping(useSnapToGrid);
 
@@ -33,7 +33,7 @@ KoShapeRubberSelectStrategy::KoShapeRubberSelectStrategy(KoToolBase *tool, const
 
 void KoShapeRubberSelectStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_D(KoShapeRubberSelectStrategy);
+    auto * const d = d_func();
     painter.setRenderHint(PkPainter::Antialiasing, false);
 
     const PkColor crossingColor(80,130,8);
@@ -59,7 +59,7 @@ void KoShapeRubberSelectStrategy::paint(PkPainter &painter, const KoViewConverte
 
 void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Pk::KeyboardModifiers modifiers)
 {
-    Q_D(KoShapeRubberSelectStrategy);
+    auto * const d = d_func();
     PkPointF point = d->snapGuide->snap(
         p, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
     if (modifiers & Pk::ControlModifier) {
@@ -101,7 +101,7 @@ void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Pk::Keyboar
 
 KoShapeRubberSelectStrategy::SelectionMode KoShapeRubberSelectStrategy::currentMode() const
 {
-    Q_D(const KoShapeRubberSelectStrategy);
+    auto * const d = d_func();
     return d->selectRect.left() < d->selectRect.right() ? CoveringSelection : CrossingSelection;
 }
 
@@ -111,6 +111,6 @@ KUndo2Command *KoShapeRubberSelectStrategy::createCommand()
 }
 
 PkRectF KoShapeRubberSelectStrategy::selectedRectangle() const {
-    Q_D(const KoShapeRubberSelectStrategy);
+    auto * const d = d_func();
     return d->selectedRect();
 }

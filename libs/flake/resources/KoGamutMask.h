@@ -7,7 +7,7 @@
 #ifndef KOGAMUTMASK_H
 #define KOGAMUTMASK_H
 
-#include <PkPainter.h>
+#include <pk/render/PkPainter.h>
 #include <PkString.h>
 #include <PkVector.h>
 #include <cmath>

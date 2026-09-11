@@ -9,7 +9,7 @@
 
 #include "kritaflake_export.h"
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 class KoViewTransformStillPoint;
 class PkPointF;
