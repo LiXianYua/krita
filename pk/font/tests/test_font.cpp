@@ -160,6 +160,45 @@ int main()
         }
     }
 
+    // Regression (R-55 fix): with an identity 2x2 the ink box must land where the
+    // TextCoverage contract says -- cell (col, row) covers device pixel
+    //   (floor(devicePoint.x()) + offsetX + col,
+    //    round(devicePoint.y()) + offsetY + row).
+    // So a non-zero devicePoint has to translate the ink box by exactly that
+    // amount.  The original implementation folded devicePoint into the offsets
+    // and thereby cancelled it, pinning the ink at the device origin regardless.
+    {
+        const PkFontRasterizer::TextCoverage atOrigin =
+            PkFontRasterizer::coverage(PkString("A"), font, PkPointF(0, 0), PkTransform());
+        const PkPointF shifted(30, 60);
+        const PkFontRasterizer::TextCoverage atPoint =
+            PkFontRasterizer::coverage(PkString("A"), font, shifted, PkTransform());
+        if (atPoint.isEmpty() || atPoint.mask != atOrigin.mask ||
+            atPoint.width != atOrigin.width || atPoint.height != atOrigin.height) {
+            std::cerr << "FAIL: identity coverage mask changed with devicePoint\n";
+            return 1;
+        }
+        // Ink origin on the device grid, relative to the dp == (0, 0) case.
+        const int dx = static_cast<int>(std::floor(shifted.x())) + atPoint.offsetX - atOrigin.offsetX;
+        const int dy = static_cast<int>(std::lround(shifted.y())) + atPoint.offsetY - atOrigin.offsetY;
+        if (dx != 30 || dy != 60) {
+            std::cerr << "FAIL: identity coverage does not translate with devicePoint: ("
+                      << dx << ',' << dy << ") vs (30,60)\n";
+            return 1;
+        }
+        // Fractional baseline snaps floor(x) / round(y) (qpaintengine_raster.cpp:2892-2893).
+        const PkPointF fractional(30.5, 60.5);
+        const PkFontRasterizer::TextCoverage atFraction =
+            PkFontRasterizer::coverage(PkString("A"), font, fractional, PkTransform());
+        const int fx = static_cast<int>(std::floor(fractional.x())) + atFraction.offsetX - atOrigin.offsetX;
+        const int fy = static_cast<int>(std::lround(fractional.y())) + atFraction.offsetY - atOrigin.offsetY;
+        if (fx != 30 || fy != 61) {
+            std::cerr << "FAIL: identity coverage snapped wrong: ("
+                      << fx << ',' << fy << ") vs (30,61)\n";
+            return 1;
+        }
+    }
+
     std::vector<std::thread> workers;
     std::vector<std::uint64_t> hashes(8, 0);
     for (std::size_t i = 0; i < hashes.size(); ++i) {

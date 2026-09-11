@@ -44,8 +44,9 @@ public:
     // devicePoint = the text baseline origin in device coordinates; transform =
     // the brush transform (only its 2x2 linear part is passed per glyph; the
     // translation is already baked into devicePoint).  An identity 2x2 -- which
-    // includes a pure translation -- runs the same code path as `render()` and
-    // ignores `devicePoint` beyond the offsets' anchor.
+    // includes a pure translation -- runs the same code path as `render()`; its
+    // mask and offsets are the ink box relative to the text origin, so they do
+    // not depend on `devicePoint` at all.
     static TextCoverage coverage(const PkString &text, const PkFont &font,
                                  const PkPointF &devicePoint, const PkTransform &transform);
 };

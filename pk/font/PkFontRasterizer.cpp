@@ -285,11 +285,14 @@ Raster rasterize(const PkString &text, const PkFont &font,
         const int height = metricsWidth == 0 ? 1 : std::max(1, ascent + descent);
         result.width = width;
         result.height = height;
-        // Offsets are relative to the snapped baseline origin (see `coverage`).
-        // render()/_coverage_ at the origin snap to 0, so `render()`'s own
-        // behavior is unaffected and stays byte-identical.
-        result.offsetX = minimumX - static_cast<int>(std::floor(devicePoint.x()));
-        result.offsetY = -ascent - static_cast<int>(std::lround(devicePoint.y()));
+        // The ink box relative to the text origin is (minimumX, -ascent); the
+        // offsets carry exactly that and nothing of `devicePoint` -- the caller
+        // adds floor(devicePoint.x()) / round(devicePoint.y()) back when placing
+        // the mask (PkFontRasterizer.h TextCoverage: cell (col, row) covers
+        // floor(devicePoint.x())+offsetX+col, round(devicePoint.y())+offsetY+row).
+        // `render()` passes devicePoint == (0, 0), so its output is byte-identical.
+        result.offsetX = minimumX;
+        result.offsetY = -ascent;
         result.stored.assign(static_cast<std::size_t>(width) * static_cast<std::size_t>(height), 255);
         for (const Glyph &glyph : glyphs) {
             for (int row = 0; row < glyph.rows; ++row) {

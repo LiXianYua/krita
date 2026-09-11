@@ -1176,25 +1176,11 @@ void PkImageRasterBackend::drawText(const PkDrawTextAtPointCommand &command)
     // to the font engine per glyph rather than stroking a transformed outline
     // (R-55 plan §2 P5/P7). The translation is already baked into devicePoint.
     const PkPointF devicePoint = m_state.transform.map(command.position);
-    // `coverage()` anchors its offsets differently in its two branches, so the
-    // point it is handed is the *text origin* of the branch it will take:
-    //
-    //  * non-identity 2x2 -- it lays the glyphs out in device space around the
-    //    point, so offsetX == minLeft - floor(point.x()) is an exact delta from
-    //    that point and the mapped baseline origin is the right argument;
-    //  * identity 2x2, which includes a pure translation -- it reproduces
-    //    `render()`'s user-space layout, whose mask does not depend on the point
-    //    at all and whose offsets are the ink box relative to the *text origin*
-    //    (PkFontRasterizer.h: "At `devicePoint == (0, 0)` ... the offsets are the
-    //    ink box relative to the baseline origin itself"). The text origin of
-    //    that branch is (0, 0); handing it the mapped point instead would make
-    //    the offsets subtract it back out and drop the text on the device origin.
-    // The mapped baseline is added back in the placement below, so both branches
-    // land on the same device pixel grid.
-    const bool linear2x2 = m_state.transform.m11() != 1.0 || m_state.transform.m12() != 0.0 ||
-                           m_state.transform.m21() != 0.0 || m_state.transform.m22() != 1.0;
-    const PkPointF textOrigin = linear2x2 ? devicePoint : PkPointF(0.0, 0.0);
-    const auto cov = PkFontRasterizer::coverage(command.text, m_state.font, textOrigin,
+    // `coverage()` returns the mask plus offsets relative to the snapped baseline
+    // origin, in the layout of whichever branch it took (identity or transformed);
+    // the mapped baseline is added back when the mask is placed below, so both
+    // branches land on the same device pixel grid (PkFontRasterizer.h TextCoverage).
+    const auto cov = PkFontRasterizer::coverage(command.text, m_state.font, devicePoint,
                                                m_state.transform);
     if (cov.isEmpty()) return;
     // Anchor the mask on the device pixel grid exactly as the glyph blit does:
