@@ -238,8 +238,8 @@ QVector<Tile> generateTiles(int size,
 #endif
 
     // the 256 are used to make sure that we have a good alignment no matter what build options are used.
-    const size_t pixelAlignment = qMax(size_t(vecSize * sizeof(float)), size_t(256));
-    const size_t maskAlignment = qMax(size_t(vecSize), size_t(256));
+    const size_t pixelAlignment = pkMax(size_t(vecSize * sizeof(float)), size_t(256));
+    const size_t maskAlignment = pkMax(size_t(vecSize), size_t(256));
     for (int i = 0; i < size; i++) {
         void *ptr = 0;
         int error = MEMALIGN_ALLOC(&ptr, pixelAlignment, numPixels * pixelSize + srcAlignmentShift);
@@ -285,7 +285,7 @@ void freeTiles(QVector<Tile> tiles,
 
 template <typename channel_type>
 inline bool fuzzyCompare(channel_type a, channel_type b, channel_type prec) {
-    return qAbs(a - b) <= prec;
+    return pkAbs(a - b) <= prec;
 }
 
 template<typename channel_type>
@@ -1059,9 +1059,9 @@ void KisCompositionBenchmark::benchmarkMemcpy()
 
 #if !defined(XSIMD_NO_SUPPORTED_ARCHITECTURE) && XSIMD_UNIVERSAL_BUILD_PASS
 const int vecSize = float_v::size;
-const size_t uint8VecAlignment = qMax(vecSize * sizeof(quint8), sizeof(void *));
-const size_t uint32VecAlignment = qMax(vecSize * sizeof(quint32), sizeof(void *));
-const size_t floatVecAlignment = qMax(vecSize * sizeof(float), sizeof(void *));
+const size_t uint8VecAlignment = pkMax(vecSize * sizeof(quint8), sizeof(void *));
+const size_t uint32VecAlignment = pkMax(vecSize * sizeof(quint32), sizeof(void *));
+const size_t floatVecAlignment = pkMax(vecSize * sizeof(float), sizeof(void *));
 #endif
 
 void KisCompositionBenchmark::benchmarkUintFloat()
