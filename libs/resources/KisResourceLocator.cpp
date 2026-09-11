@@ -929,7 +929,21 @@ KoResourceSP KisResourceLocator::importResource(const PkString &resourceType, co
         const std::pair<PkString, PkString> key = {absoluteStorageLocation, resourceType + "/" + resource->filename()};
         // Add to the cache
         d->resourceCache[key] = resource;
-        KisResourceThumbnailCache::instance()->insert(key, resource->thumbnail());
+
+        /**
+         * The thumbnail may already be in the thumbnail cache by now: the resource
+         * is visible in the database from the addResource() call above, and
+         * endExternalResourceImport() has already been emitted, so a resource model
+         * instantiated in this process has refreshed itself -- and a refresh fetches
+         * the thumbnails of all its records through KisResourceQueryMapper, which
+         * checks the cache before inserting. KisResourceThumbnailCache::insert()
+         * expects its callers to do the same check (see Private::insertOriginal()),
+         * so only seed the cache when this thumbnail is not there yet.
+         */
+        KisResourceThumbnailCache *thumbnailCache = KisResourceThumbnailCache::instance();
+        if (thumbnailCache->originalImage(absoluteStorageLocation, resourceType, resource->filename()).isNull()) {
+            thumbnailCache->insert(key, resource->thumbnail());
+        }
 
         return resource;
     }
