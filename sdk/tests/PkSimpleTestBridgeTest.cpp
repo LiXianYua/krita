@@ -15,11 +15,16 @@ struct PkTestBinder<PkSimpleTestBridgeCase>
                  static_cast<PkSimpleTestBridgeCase *>(object)->testMainThreadQueueIsReady();
              },
              nullptr},
+            {"testUnpumpedCallStaysPending",
+             [](PkTestObject *object) {
+                 static_cast<PkSimpleTestBridgeCase *>(object)->testUnpumpedCallStaysPending();
+             },
+             nullptr},
         };
         return functions;
     }
 
-    static int count() { return 1; }
+    static int count() { return 2; }
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }
     static const PkTestFunction *initTestCase() { return nullptr; }
@@ -35,6 +40,20 @@ void PkSimpleTestBridgeCase::testMainThreadQueueIsReady()
 
     bool delivered = false;
     PkThreadCallQueue::post(PkThread::mainThreadId(), [&delivered] { delivered = true; });
+
+    PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    PK_VERIFY(delivered);
+}
+
+void PkSimpleTestBridgeCase::testUnpumpedCallStaysPending()
+{
+    // S线-spec「跨线程投递的 pump 是消费方必装件」的契约：post 只排队，
+    // 目标线程不 pump 就静默不执行——不报错、不崩溃、不打日志。
+    bool delivered = false;
+    PkThreadCallQueue::post(PkThread::mainThreadId(), [&delivered] { delivered = true; });
+
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), 1);
+    PK_VERIFY(!delivered);
 
     PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
     PK_VERIFY(delivered);

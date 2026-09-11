@@ -6,4 +6,5 @@ class PkSimpleTestBridgeCase : public PkTestObject
 {
 public:
     void testMainThreadQueueIsReady();
+    void testUnpumpedCallStaysPending();
 };
