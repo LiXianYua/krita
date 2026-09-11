@@ -102,19 +102,26 @@ quads (32x32 ARGB32, per-pixel packed-value compare) and turns 6 of the 36 cases
   `QPainter::drawPolygon(const QPolygonF &, Qt::FillRule)`; `PkPainter::drawPolygon`
   takes only the polygon and `PkDrawPolygonCommand` has no such field, so a
   `WindingFill` polygon is **not expressible from the Pk side at all**. Registered
-  rather than removed: of the 13 retained-range `drawPolygon` call sites, **all 13 are
-  single-argument** — zero live usage of the missing parameter (R-line rule: at zero
+  rather than removed: of the 14 retained-range `drawPolygon` call sites (13 at R-51,
+  +1 added by R-52's lens-blur restore; **all 14 are single-argument**) — zero live
+  usage of the missing parameter (R-line rule: at zero
   measured usage, keep it and register, do not delete). The oracle's `Case::fillRule`
-  field is therefore permanently 0, and the Qt side's winding dispatch is unreachable —
-  noted in `oracle/shape_primitive_cases.h` so nobody mistakes it for an oversight.
+  field is therefore 0 for every case in the shape oracle's set, and the Qt side's
+  winding dispatch is unreachable there — noted in `oracle/shape_primitive_cases.h` so
+  nobody mistakes it for an oversight. (The R-52 blur oracle *does* exercise
+  `Qt::WindingFill`, on the lens-blur iris polygon; it is equivalent there only because
+  that polygon is always convex — measured in R-52 plan §2.1 P2.)
 - **`PkSvgPainterBackend`** (`libs/flake/svg/`, the SVG-export backend) marks any
   command it does not model as unsupported, which invalidates the whole document and
   falls back to raster. Ellipse/arc/polygon are not modelled there either.
-- **Two `[GAP]` regressions in `plugins/filters/blur/`** are not "unimplemented" but
+- **Two `[GAP]` regressions in `plugins/filters/blur/`** were not "unimplemented" but
   **deleted**: `kis_motion_blur_filter.cpp` and `kis_lens_blur_filter.cpp` used to build
   their convolution kernel by filling a polygon into a `PkImage` and reading the pixels
-  back; that was replaced with an identity kernel, so **both filters are currently
-  no-ops**. Restoring them needs polygon fill + readback, i.e. the path this change adds.
+  back; that was replaced with a unit kernel. The unit `1.0` sits at `(h/2, w/2)`, which
+  is the convolution anchor only for the 7x1 motion kernels — **measured**: motion blur
+  stayed byte-identical (a true no-op) while lens blur became a **constant shift** (see
+  R-52 plan §1.1). Restoring them needed polygon fill + readback. **R-52 restores both**
+  (see the R-52 section below).
 
 **Host portability of this directory's scripts** (measured on macOS arm64, 2026-09-11):
 `tests/run_tests.sh` and both `oracle/run_brush_*.sh` cannot run there —
