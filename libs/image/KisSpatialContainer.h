@@ -7,12 +7,10 @@
 #ifndef __KIS_SPATIAL_CONTAINER_H
 #define __KIS_SPATIAL_CONTAINER_H
 
-#include <QPoint>
-#include <QPointF>
-#include <QVector>
-#include <QPolygonF>
-#include <QTransform>
-#include <QDebug>
+#include <PkPoint.h>
+#include <PkVector.h>
+#include <PkRect.h>
+#include <PkString.h>
 #include <cmath>
 #include <kis_global.h>
 #include <kritaimage_export.h>
@@ -33,29 +31,29 @@ public:
 public:
 
 
-    KisSpatialContainer(QRectF startArea, int maxPointsInDict = 100);
-    KisSpatialContainer(QRectF startArea, QVector<QPointF> &points);
+    KisSpatialContainer(PkRectF startArea, int maxPointsInDict = 100);
+    KisSpatialContainer(PkRectF startArea, PkVector<PkPointF> &points);
     KisSpatialContainer(const KisSpatialContainer &rhs);
 
     ~KisSpatialContainer();
 
-    void initializeFor(int numPoints, QRectF startArea);
-    void initializeWith(const QVector<QPointF> &points);
+    void initializeFor(int numPoints, PkRectF startArea);
+    void initializeWith(const PkVector<PkPointF> &points);
 
-    void initializeWithGridPoints(QRectF gridRect, int pixelPrecision);
+    void initializeWithGridPoints(PkRectF gridRect, int pixelPrecision);
 
-    void addPoint(int index, QPointF position);
-    void removePoint(int index, QPointF position);
-    void movePoint(int index, QPointF positionBefore, QPointF positionAfter);
-    QVector<QPointF> toVector();
+    void addPoint(int index, PkPointF position);
+    void removePoint(int index, PkPointF position);
+    void movePoint(int index, PkPointF positionBefore, PkPointF positionAfter);
+    PkVector<PkPointF> toVector();
 
-    void findAllInRange(QVector<int> &indexes, QPointF center, qreal range);
+    void findAllInRange(PkVector<int> &indexes, PkPointF center, qreal range);
 
     int count();
     // O(log(n)*m_maxPointsInDict)
-    QPointF getTopLeft();
+    PkPointF getTopLeft();
     // O(log(n)*m_maxPointsInDict)
-    QRectF exactBounds();
+    PkRectF exactBounds();
 
     // erase everything
     void clear();
@@ -66,24 +64,24 @@ public:
 
 private:
 
-    void addPointRec(int index, QPointF position, SpatialNode* node);
-    void removePointRec(int index, QPointF position, SpatialNode* node);
-    void movePointRec(int index, QPointF positionBefore, QPointF positionAfter, SpatialNode* node);
-    SpatialNode *createNodeForPoint(int index, QPointF position);
+    void addPointRec(int index, PkPointF position, SpatialNode* node);
+    void removePointRec(int index, PkPointF position, SpatialNode* node);
+    void movePointRec(int index, PkPointF positionBefore, PkPointF positionAfter, SpatialNode* node);
+    SpatialNode *createNodeForPoint(int index, PkPointF position);
 
 
-    void findAllInRangeRec(QVector<int> &indexes, QPointF center, qreal range, SpatialNode* node);
+    void findAllInRangeRec(PkVector<int> &indexes, PkPointF center, qreal range, SpatialNode* node);
 
 
-    void gatherDataRec(QVector<QPointF> &vector, SpatialNode* node);
+    void gatherDataRec(PkVector<PkPointF> &vector, SpatialNode* node);
 
-    void debugWriteOutRec(SpatialNode* node, QString prefix);
+    void debugWriteOutRec(SpatialNode* node, PkString prefix);
 
     std::optional<qreal> getBoundaryOnAxis(bool positive, bool xAxis, SpatialNode* node);
-    QPointF getBoundaryPoint(bool left, bool top);
+    PkPointF getBoundaryPoint(bool left, bool top);
 
-    void initializeLevels(SpatialNode* node, int levelsLeft, QRectF area);
-    void initializeWithGridPointsRec(QRectF gridRect, int pixelPrecision, SpatialNode* node, int startRow, int startColumn, int columnCount);
+    void initializeLevels(SpatialNode* node, int levelsLeft, PkRectF area);
+    void initializeWithGridPointsRec(PkRectF gridRect, int pixelPrecision, SpatialNode* node, int startRow, int startColumn, int columnCount);
 
     void clearRec(SpatialNode* node);
 
