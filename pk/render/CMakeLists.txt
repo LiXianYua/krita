@@ -108,5 +108,26 @@ endif()
 add_test(NAME test_text COMMAND test_text)
 set_tests_properties(test_text PROPERTIES ENVIRONMENT "${PK_RENDER_TEXT_ENV}")
 
+# R-55 Task 5 · 判据② 的依赖墙 driver（R线-spec〈依赖墙挡住真实测试类时〉降级路径）。
+#   tests/graft/text_draw_driver.cpp —— 逐行复刻两处真实 drawText 调用点的形状。
+# 形态照抄先例 pk/time/tests/graft/date_parser_driver.cpp（R-16 Task 3）：独立
+# 可执行体、不接 pk/test harness，**也不 add_test**——它是判据② 的试接证据，
+# 不是一条判据（判据只有 test_text 那条，见上）。
+#
+# 为什么要编 libs/flake/kis_painting_tweaks.cpp：调用点 ② 的笔色由
+# `bgColorForCaret()` → `KisPaintingTweaks::luminosityCoarse()` 算出。那是真实生产
+# 函数，**不抄进 driver**，直接把树里那一份源文件编进来（用 `-I tests/graft/stubs`
+# 提供的 kritaflake_export.h 桩满足它的第 11 行，属编译参数、不是改调用点）。
+# 它只进这个 driver 的产物，**不进 libpkrender.a**，故判据③ 的 nm 面不受影响。
+add_executable(text_draw_driver
+    tests/graft/text_draw_driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../libs/flake/kis_painting_tweaks.cpp)
+target_link_libraries(text_draw_driver PRIVATE pkrender)
+target_include_directories(text_draw_driver PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../..            # <pk/render/PkPainter.h> 那条 include 的根
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/graft/stubs)  # kritaflake_export.h 桩
+# 不给它 add_test：它是判据② 的试接证据，不是一条判据。跑法见 task-5-report.md。
+# 期望值同样取 PK_RENDER_TEXT_GOLDEN（手工跑时自己 export，见报告里的命令行）。
+
 add_library(retained_tools_compile OBJECT tests/retained_tools_compile.cpp)
 target_link_libraries(retained_tools_compile PRIVATE pkrender)

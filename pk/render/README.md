@@ -51,20 +51,53 @@ commands belongs above `pk/render` (currently the `libs/flake` boundary).
 ## Backend command coverage
 
 `pk/render/PkPaintCommand.h` defines 27 command types. `PkImageRasterBackend::submit`
-(`libs/flake/PkImageRasterBackend.cpp`) implements 21 of them and throws
-`std::logic_error("PkImageRasterBackend does not support this paint command")` for the
-rest. The table below is the **diff set** R-51 measured: every count is
-call sites verified by receiver type (not by grep), over the retained range
-(`libs/ plugins/ pk/ sdk/`, excluding `tests/`, `benchmarks/` and `oracle/` at any depth).
+(`libs/flake/PkImageRasterBackend.cpp`) dispatches 26 of them; **25 do work and 2 throw**
+`std::logic_error("PkImageRasterBackend does not support this paint command")` — those two
+are `PkDrawArcCommand` (no branch at all, falls through to the generic throw at `:621`) and
+`PkDrawTextInRectCommand` (an explicit throw-only branch at `:612-618`). **Counts
+re-measured by R-55 Task 5 on this tree** (the sentence read `21` when R-51 wrote it; R-51
+then implemented polygon+ellipse and R-55 Task 3 implemented `drawText`@point + `setFont`).
+
+The table below is the **diff set** R-51 measured, with R-55 Task 5's re-measured
+call-site counts. Every count is call sites verified by receiver type (not by grep), over
+the retained range (`libs/ plugins/ pk/ sdk/`, excluding `tests/`, `benchmarks/` and
+`oracle/` at any depth).
 
 | Command | Raster backend | Live call sites | Files | Batch |
 |---|---|---|---|---|
 | `PkDrawPolygonCommand` | **implemented 2026-09-11** (`addPolygon` + `closeSubpath`) | 13 | 4 | R-51 |
 | `PkDrawEllipseCommand` | **implemented 2026-09-11** (`addEllipse`) | 10 | 6 | R-51 |
 | `PkDrawArcCommand` | throws | 2 | 1 | R-51/1b |
-| `PkDrawTextAtPointCommand` | throws | 1 | 1 | R-51/2 |
-| `PkDrawTextInRectCommand` | throws | 1 | 1 | R-51/2 |
-| `PkSetFontCommand` | throws | 0 | 0 | R-51/2 |
+| `PkDrawTextAtPointCommand` | **implemented 2026-09-12** (`PkImageRasterBackend::drawText`) | **2** | **2** | R-55/3 |
+| `PkDrawTextInRectCommand` | throws (registered deviation — see the R-55 Task 5 table below) | **0** | **0** | R-55/5 |
+| `PkSetFontCommand` | **implemented 2026-09-12** | 0 | 0 | R-55/3 |
+
+Two rows were corrected by R-55 Task 5 and the correction matters: R-51 recorded
+`PkDrawTextAtPointCommand` as 1 site / 1 file and `PkDrawTextInRectCommand` as **1 site /
+1 file**, i.e. it claimed the `PkRectF` overload had a live caller. It does not.
+Re-measured on this tree with the retained-range command
+`grep -rn --include='*.cpp' --include='*.h' --include='*.cc' --include='*.cxx'
+'\\bdrawText\\s*(' libs plugins pk sdk` (minus `tests/`, `benchmarks/`, `oracle/`), the
+**7** occurrences outside `pk/render` itself are exactly:
+
+```
+libs/flake/PkImageRasterBackend.h:20      declaration
+libs/flake/PkImageRasterBackend.cpp:609   definition (submit dispatch)
+libs/flake/PkImageRasterBackend.cpp:1166  comment
+libs/flake/PkImageRasterBackend.cpp:1247  definition
+libs/flake/text/KoSvgTextShape_p_output.cpp:686    ← real call site ①  (PkPointF, PkString)
+libs/image/kis_threaded_text_rendering_workaround.h:11   comment
+plugins/tools/svgtexttool/SvgTextCursor.cpp:880    ← real call site ②  (PkPointF, PkString)
+```
+
+Both live call sites pass a **point**, so the `PkRectF` overload's live-call-site count is
+**0**, not 1 — which is the numeric basis for the zero-usage registration of
+`PkDrawTextInRectCommand`. `PkSetFontCommand`'s 0 is re-confirmed the same way:
+`libs/brush/kis_text_brush_factory.cpp:35` `brush->setFont(font)` has receiver
+`KisTextBrush`, not `PkPainter` (`KisTextBrush` rasterises through
+`PkFontRasterizer::render()/outline()` directly, never through `PkPainter`), so it is not
+a `PkSetFontCommand` call site. There is no `PkPainter::setFont` call in the retained
+range at all.
 
 `drawPolygon` and `drawEllipse` are Qt 5.15.7-pixel-identical to building the
 corresponding `PkPainterPath` and routing it through the existing fill/stroke
@@ -292,14 +325,129 @@ to be reducible, not a special case for `\n`:
 
 **Still open, registered — same layer, different implementation.** Not hidden by the rule
 above and **not** fixed here; `run_text.sh` will legitimately go red on these on a FreeType
-host:
-- **TAB** (`vis/kept/tab`). Qt's point overload still runs the text engine's tab stop
-  (`qtextengine.cpp:1341 calculateTabWidth`): measured 80.000 for `\t` alone and 94.656 for
-  `"X\tY"` at DejaVu Sans 24px, versus Pk passing `U+0009` to Raqm (7.000).
-- **U+2066/U+2067/U+2068/U+2069 and U+061C** (`vis/bidi/lri`, `vis/bidi/alm`). Hidden on
-  both sides as single characters, but in a string Qt's output is bit-identical to the
-  control character's absence while Pk's Raqm bidi pass moves the neighbouring glyphs.
-- **U+007F, U+180E, U+FFF9..FFFB, U+0008, U+001D** (`vis/kept/del`, `vis/kept/mvs`). Hidden
-  by Qt's **CoreText** font engine on this machine, not by Qt's text engine; Pk's FreeType
-  path differs. This is the already-registered〈文字类对拍〉platform difference (plan §6
-  item 1), so it is out of scope by construction.
+host. Each carries its measured numbers and its source; the full sweep table is
+`.superpowers/sdd/R-55/task-4fix-report.md` §3:
+
+- **TAB (U+0009)** — `vis/kept/tab`. Qt's point overload still runs the text engine's tab
+  stop (`qtextengine.cpp:1341 calculateTabWidth`), i.e. **the same layer** as
+  `applyVisibilityRules`, not a font-engine behaviour. Measured at DejaVu Sans px24:
+  `U+0009` alone Qt advance **80.000** vs Pk **7.000**; `"X\tY"` Qt **94.656** vs Pk
+  **38.000**. Qt's 80.000 is `QTextOption::tabStop`'s default, not a font metric; Pk hands
+  `U+0009` to Raqm as an ordinary glyph. Source: task-4fix-report.md §6.1.
+  **Why keep and register rather than fix:** both real call sites' text contains no tab
+  (`KoSvgTextShape_p_output.cpp` labels are `#<n>~<m>\n(<idx>)`, `SvgTextCursor.cpp` names
+  come from a fixed `i18nc` handle table) — zero measured usage. Fixing it would require
+  splitting `coverage()`'s "one string → one mask" exit into per-segment placement, a
+  design change outside this batch.
+- **U+2066 / U+2067 / U+2068 / U+2069 / U+061C** — `vis/bidi/lri`, `vis/bidi/rli`,
+  `vis/bidi/fsi`, `vis/bidi/pdi`, `vis/bidi/alm`. Hidden on both sides as single
+  characters, but inside a string Qt's output is bit-identical to the control character's
+  absence while Pk's Raqm bidi pass moves the neighbouring glyphs. Measured: Pk digest for
+  `"AB"` = **2598421920**; `A LRI B` / `A RLI B` / `A LRI B PDI` / `A FSI B` all =
+  **2038677757**; `A RLO B` / `A PDF B` **equal** `"AB"`. Qt side: `A LRI B`'s advance and
+  ink are pixel-identical to `"AB"` (260 non-white pixels, bbox `[20..50]`). Source:
+  task-4fix-report.md §6.2. **Why keep and register:** this is not a "dropped character"
+  defect — the advance is 0 on both sides and neither emits ink; it is Raqm's bidi
+  resolution versus Qt's own (`QTextEngine::itemize`), a different implementation on a
+  different layer, and belongs to another line. All five codepoints are zero-usage in the
+  two real call sites.
+- **U+007F, U+180E, U+FFF9..FFFB, U+0008, U+001D** — `vis/kept/del`, `vis/kept/mvs`.
+  Hidden by Qt's **font engine** (CoreText on this machine), not by Qt's text engine: the
+  five-font consistency column of the sweep reads `no` for all five (U+007F dropped by
+  3/5 fonts, U+0008 and U+001D by 4/5, U+FFF9/U+FFFA/U+FFFB by 1/5 — DejaVu only), which is
+  exactly the discriminator between "text-engine rule" (5/5) and "font-engine behaviour"
+  (mixed). Pk's FreeType path differs. This is the already-registered〈文字类对拍〉platform
+  difference (plan §6 item 1) — **out of scope by construction**, not by omission. Source:
+  task-4fix-report.md §2.1 / §6.3.
+  **The temptation to filter them too must be resisted**: doing so would contradict the
+  standing "align to Qt-**with-FreeType**" ruling (on a FreeType host Qt goes through
+  FreeType and may well *not* hide them). `vis/kept/del` and `vis/kept/mvs` exist as the
+  reverse guards that turn red if anyone widens the filter set.
+
+### R-55 Task 5 — closing registration (判据② 降级路径 + plan §6 清单)
+
+**1. The driver artifact `text_draw_driver` (判据② 的依赖墙降级路径).**
+`tests/graft/text_draw_driver.cpp` + `tests/graft/stubs/kritaflake_export.h` are a
+CMake target (no `add_test` — it is 判据②'s trial-link **evidence**, not a criterion of its
+own; same shape as the R-16 precedent `pk/time/tests/graft/date_parser_driver.cpp`). It
+transcribes, line for line, the code shape of the two real `drawText` call sites
+(`libs/flake/text/KoSvgText_shape_p_output.cpp:686`,
+`plugins/tools/svgtexttool/SvgTextCursor.cpp:880`), and it **self-annotates as a
+substitute** in its header comment and in four `DRIVER-NOTICE` stdout lines. Registration
+reasons, per `R线-spec`「依赖墙挡住真实测试类时」:
+
+- **Which wall, and why it is outside the locks.** File ① compiles into target
+  `kritaflake` (`libs/flake/CMakeLists.txt:563`, source listed at `:287`/`:494`); file ②
+  into `krita_tool_svgtext_static`
+  (`plugins/tools/svgtexttool/CMakeLists.txt:49`). Their **CMake-generated products**
+  (`kritaflake_export.h` via `generate_export_header` @ `libs/flake/CMakeLists.txt:574`,
+  `kritatoolsvgtext_export.h` @ `plugins/tools/svgtexttool/CMakeLists.txt:51`, the ECM
+  macros) and their `PUBLIC` closure (`kritaimage`/`kritaui`) are outside R-55's locks
+  (`pk/render`, `pk/font`, `libs/flake/PkImageRasterBackend.cpp`, `libs/flake/text`,
+  `plugins/tools/svgtexttool`). **Holding the `libs/flake/text` and
+  `plugins/tools/svgtexttool` locks means "allowed to edit those directories", not "can
+  build those targets"** — building them needs their own generated headers plus the whole
+  closure. Verified first-hand with a layered `-fsyntax-only` probe, raw errors in
+  `task-5-report.md` §2.
+- **Validation values from real-Qt probes: cannot be given on this machine, and it says
+  so.** This host's Qt has **no FreeType text engine** (`QFontEngineFT=0 of
+  nm_lines=9594`, probed independently by `pk/font/oracle/compare.cmake` and
+  `run_text.sh`), so the text-rasterisation reference frame does not exist here. The driver
+  therefore carries **no "cross-checked against real Qt" claim**; every number it prints is
+  **Pk-side self-produced** and must not be read as a Qt golden (〈文字类对拍〉ruling
+  2026-09-12; plan §6 items 1 and 6). What it does verify is (a) same-engine cross-check
+  against the oracle case table (`callsite1/glyphdebug/n{0,1,2}` digests equal
+  `oracle/text_golden.txt`) and (b) invariants internal to the transcribed code.
+- **The stub is a compile parameter, not an edit.** `tests/graft/stubs/kritaflake_export.h`
+  substitutes CMake's generated export header purely so the driver can compile the **real**
+  `libs/flake/kis_painting_tweaks.cpp` (whose `luminosityCoarse()` computes call site ②'s
+  pen colour). `libs/flake/kis_painting_tweaks.cpp` is not copied and is not modified;
+  the stub lives only on this driver's `-I` path and enters no library — so 判据③'s `nm`
+  surface is unaffected.
+
+**2. `PkDrawTextInRectCommand` — zero usage, kept and registered** (plan §6 item 2; row in
+the coverage table above corrected to **0 live call sites / 0 files**). The command carries
+only `{ PkRectF rect; PkString text; }`, so it **cannot express** Qt's
+`drawText(QRectF, int flags, QString, QRectF *)` overload — there is no flags field — and
+`PkImageRasterBackend::submit` throws for it (throw-only branch at
+`libs/flake/PkImageRasterBackend.cpp:612-618`, with the reason in a comment). Same class of
+decision as R-51's fill-rule-less `drawPolygon`: at zero measured usage the R-line rule is
+**keep and register, do not delete**.
+
+**3. Two findings made while writing the driver** (both are *measurement* results, neither
+is a behaviour change):
+
+- **`bgColorForCaret()` can only return black or white — the case table's comment about the
+  call-site-② pen colour is wrong.** `SvgTextCursor.cpp:786-789` is
+  `luminosityCoarse(c) > 0.8 ? PkColor(0,0,0,opacity) : PkColor(255,255,255,opacity)`, a
+  two-way ternary. For the case table's `selectionColor = 0x2a6fd6` it returns
+  **`(255,255,255,255)` = white** — measured, asserted in the driver — not the grey the
+  table's comment claims. Consequence, measured: a *faithful* transcription draws white on
+  the oracle's white canvas and produces **exactly the blank digest** (Pk `digest ==
+  1332944325` for the empty image), which is precisely why `oracle/text_cases.h` needed a
+  visible stand-in colour. `oracle/text_cases.h:265` hard-codes
+  `c.penRgb = 0x3f3f3f` with the comment "`bgColorForCaret(selectionColor,255)` 的灰" —
+  **the value is a legitimate parametric choice, the comment is false**. The driver pins the
+  truth (`bgColorForCaret(0x2a6fd6, 255).rgba() == 0xffffffff`) so the case table's case
+  shapes are exercised with the real colour *and* with a visible one.
+- **Call site ② double-maps its point.** `SvgTextCursor.cpp:795` sets
+  `gc.setTransform(shape->absoluteTransformation(), true)` and that transform is **never
+  reset** before `:880`; the point passed at `:880` is already
+  `painterTf.map(closestBaselinePoint)`, and `PkImageRasterBackend::drawText` then maps
+  `command.position` **again** (`libs/flake/PkImageRasterBackend.cpp:1262`). The driver
+  reproduces this faithfully rather than "fixing" it (the real call site really does
+  double-map). Task 4's case table applies it once; noted here so the difference is not
+  mistaken for a driver bug.
+
+**4. The two remaining plan §6 items owned by `pk/font`** — item 1 (判据④ unreachable
+locally, engine-conditional, with the 几何类 discriminating-power control green here) and
+item 6 (`text_golden.txt`'s `# born=Pk` birth certificate) — plus item 3 (empty-`PkFont`
+resolution is platform-dependent) and item 4 (gamma(CFF) coloured-glyph composition
+unverified) and item 5 (fontconfig config must be set explicitly) are registered in
+**`pk/font/README.md`**, which holds the batch's complete deviation table. One line each
+from the render side, so this file is readable on its own: **item 3** — Qt resolves an
+empty `PkFont` to `.AppleSystemUIFont` 12pt, Pk to fontconfig `sans-serif` + 12pt@96dpi (a
+scope decision, not an omission); **item 4** — the coloured-glyph (CBDT/COLR) composite
+path has no test on either side; **item 5** — without `FONTCONFIG_PATH` pointing at the CI
+prefix's `_install/etc/fonts` the same binary goes red for environment reasons (measured
+once; hence the value is baked into the ctest environment in `CMakeLists.txt`).
