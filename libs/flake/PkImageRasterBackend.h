@@ -17,6 +17,7 @@ public:
 
 private:
     void drawImage(const PkDrawImageCommand &command);
+    void drawText(const PkDrawTextAtPointCommand &command);
     void drawTransformedImage(const PkDrawImageCommand &command,
                               const PkRectF &source = PkRectF(), bool tiled = false);
     void renderImage(const PkImage &image, const std::vector<unsigned char> &mask,
@@ -36,6 +37,7 @@ private:
         PkTransform transform;
         PkPen pen;
         PkBrush brush;
+        PkFont font;
         unsigned hints {0};
         std::vector<unsigned char> clip;
         bool hasClip {false};

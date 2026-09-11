@@ -7,6 +7,7 @@
 #include "PkImageRasterBackend.h"
 #include "PkGrayRaster.h"
 #include "PkAliasedRasterizer.h"
+#include "PkFontRasterizer.h"
 #include <PkStrokeOutline.h>
 #include <PkPathClipper_p.h>
 #include "PkCosmeticStroker.h"
@@ -452,6 +453,13 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
         m_state.brush = brush->brush;
         return;
     }
+    if (const auto *font = std::get_if<PkSetFontCommand>(&command)) {
+        // Pure state: qfont.h's setFont has no rasterisation of its own, and
+        // the facade's save()/restore() rolls the font back, so the backend
+        // must track it to keep the state contract identical.
+        m_state.font = font->font;
+        return;
+    }
     if (const auto *path = std::get_if<PkDrawPathCommand>(&command)) {
         fillPath(path->path, m_state.brush);
         strokePath(path->path, m_state.pen);
@@ -595,6 +603,19 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
                                               phase(image->offset.y(), image->image.height())),
                                      PkSizeF(image->rect.width(), image->rect.height())), true);
         return;
+    }
+
+    if (const auto *text = std::get_if<PkDrawTextAtPointCommand>(&command)) {
+        drawText(*text);
+        return;
+    }
+    if (std::holds_alternative<PkDrawTextInRectCommand>(command)) {
+        // Deliberately left unimplemented. The command carries only
+        // { PkRectF rect; PkString text; } with no alignment / word-wrap flags,
+        // so it cannot express Qt's three-argument rect + flags overload; it
+        // also has zero live call sites. Registered as an accepted deviation in
+        // R-55 plan §1.3 / §6 item 2, alongside R-51's fillRule-less drawPolygon.
+        throw std::logic_error("PkImageRasterBackend does not support this paint command");
     }
 
     throw std::logic_error("PkImageRasterBackend does not support this paint command");
@@ -1137,6 +1158,70 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
                            m_state.mode));
         }
     }
+}
+
+void PkImageRasterBackend::drawText(const PkDrawTextAtPointCommand &command)
+{
+    // Text is painted with the pen colour only: neither the pen width nor the
+    // brush influences it (measured against Qt 5.15.7, R-55 plan §2 P2). So the
+    // fill always composes a solid colour, through the shared fillMask() path,
+    // which already applies painter opacity, composition mode and clip.
+    PkBrush brush(m_state.pen.color());
+    if (brush.style() == Pk::NoBrush) return;
+    if (m_destination.format() != PkImage::Format_ARGB32 &&
+        !uses32BitComposition(m_destination.format())) {
+        throw std::invalid_argument("PkImageRasterBackend requires ARGB32 or Grayscale8 destination");
+    }
+    // Glyphs are rasterised in device space: Qt passes the brush transform down
+    // to the font engine per glyph rather than stroking a transformed outline
+    // (R-55 plan §2 P5/P7). The translation is already baked into devicePoint.
+    const PkPointF devicePoint = m_state.transform.map(command.position);
+    // `coverage()` anchors its offsets differently in its two branches, so the
+    // point it is handed is the *text origin* of the branch it will take:
+    //
+    //  * non-identity 2x2 -- it lays the glyphs out in device space around the
+    //    point, so offsetX == minLeft - floor(point.x()) is an exact delta from
+    //    that point and the mapped baseline origin is the right argument;
+    //  * identity 2x2, which includes a pure translation -- it reproduces
+    //    `render()`'s user-space layout, whose mask does not depend on the point
+    //    at all and whose offsets are the ink box relative to the *text origin*
+    //    (PkFontRasterizer.h: "At `devicePoint == (0, 0)` ... the offsets are the
+    //    ink box relative to the baseline origin itself"). The text origin of
+    //    that branch is (0, 0); handing it the mapped point instead would make
+    //    the offsets subtract it back out and drop the text on the device origin.
+    // The mapped baseline is added back in the placement below, so both branches
+    // land on the same device pixel grid.
+    const bool linear2x2 = m_state.transform.m11() != 1.0 || m_state.transform.m12() != 0.0 ||
+                           m_state.transform.m21() != 0.0 || m_state.transform.m22() != 1.0;
+    const PkPointF textOrigin = linear2x2 ? devicePoint : PkPointF(0.0, 0.0);
+    const auto cov = PkFontRasterizer::coverage(command.text, m_state.font, textOrigin,
+                                               m_state.transform);
+    if (cov.isEmpty()) return;
+    // Anchor the mask on the device pixel grid exactly as the glyph blit does:
+    // cell (col, row) covers
+    //   (floor(devicePoint.x()) + offsetX + col,
+    //    round(devicePoint.y()) + offsetY + row)
+    // (PkFontRasterizer.h TextCoverage; qpaintengine_raster.cpp:2892-2893).
+    const int originX = static_cast<int>(std::floor(devicePoint.x())) + cov.offsetX;
+    const int originY = static_cast<int>(std::lround(devicePoint.y())) + cov.offsetY;
+    const int width = m_destination.width();
+    const int height = m_destination.height();
+    std::vector<unsigned char> mask(static_cast<std::size_t>(width) * height, 0);
+    for (int row = 0; row < cov.height; ++row) {
+        const int y = originY + row;
+        if (y < 0 || y >= height) continue;
+        for (int col = 0; col < cov.width; ++col) {
+            const int x = originX + col;
+            if (x < 0 || x >= width) continue;
+            mask[static_cast<std::size_t>(y) * width + x] =
+                cov.mask[static_cast<std::size_t>(row) * cov.width + col];
+        }
+    }
+    // Solid-colour brushes never read `path` (only the gradient / pattern
+    // branches do), but the contract is a device-space ink rectangle.
+    PkPainterPath inkBox;
+    inkBox.addRect(PkRectF(originX, originY, cov.width, cov.height));
+    fillMask(inkBox, brush, mask);
 }
 
 void PkImageRasterBackend::drawTransformedImage(const PkDrawImageCommand &command,
