@@ -373,6 +373,61 @@ exit=1
 
 无输出（grep 未命中，exit=1 即符合预期）。
 
+## RTTI 可见性（R-53）
+
+本目录的 **3 个**值类型挂了 `PK_TYPE_VISIBILITY`（宏在
+`pk/container/PkTypeVisibility.h`）：`PkDate` `PkTime` `PkDateTime`。落点逐个见
+`PkDateTime.h:13/60/144`；该文件补了一行 `#include "../container/PkTypeVisibility.h"`
+（形制照 `pk/string/PkString.h`）。
+
+**为什么挂**：`PkVariant` 把非 POD 负载存进 `std::any`，读出来靠 `std::any_cast`
+的 `type_info` 相等。Apple arm64 的 libc++（impl 3 `NonUniqueARMRTTIBit`）在
+`-fvisibility=hidden`（本仓仓库级设置，来自 ECM 的 `KDECompilerSettings`）下把每个
+类型的 RTTI 判成 **unique**，`__eq` 只比地址 ⇒ **造在 A 镜像、读在 B 镜像**时认不出
+⇒ `any_cast` 返回 `nullptr`（S-17 定位的根因，本目录在 R-53 之前同样中招）。
+`type_visibility("default")` 把它标成 non-unique，打开 `strcmp` 回退。完整机制与各
+平台差异写在那个头里。
+
+**跨镜像用例在哪**（判据② 的载体）。`pk/*` 薄壳里**原本没有镜像边界**（薄壳全是
+STATIC + 单个 exe），所以它在 `pk/variant` 薄壳里**自建两个镜像**（一个 SHARED 探针
+dylib + 一个 exe）：
+
+| 文件 | 角色 |
+|---|---|
+| `pk/variant/tests/cross_image_payload.h` | 两侧共用：14 个负载类型的清单 + 每人一份 `ximg_read_<T>` / `ximg_make_<T>` 桥声明 |
+| `pk/variant/tests/cross_image_payload.cpp` | 编进 SHARED 库 `pkcrossimage` 的那一份实现 |
+| `pk/variant/tests/test_cross_image_payload.cpp` | exe 侧用例（`pk/test` 的 PK_* harness） |
+| `pk/variant/tests/cross_image_case.h` | `Q_OBJECT` + `private Q_SLOTS`，槽名 = 类型名 |
+| `pk/variant/CMakeLists.txt` | 注册 SHARED `pkcrossimage` + exe `test_pk_cross_image` + `add_test` |
+
+用例覆盖全部 **14** 个负载类型（本目录 3 个 + `pk/geometry` 8 个 + S-17 的
+`PkString`/`PkStringList`/`PkByteArray`），**两个方向**都测（exe 造/lib 读、
+lib 造/exe 读）。R-53 实测：挂属性前 `6 passed, 11 failed`（失败项包含本目录 3 个
+类型），挂属性后 `17 passed, 0 failed`。
+
+**模板实参传播规则（R-53 新实测）**：一个类模板特化的 unique 位 = 该特化**全部模板
+实参**（**含** `std::less<K>` / `std::hash<K>` / `std::allocator<…>` 这类由库推导出来
+的实参）各自 unique 位的「**与**」——只要有一个实参是 unique，整个特化就是 unique。
+成员类**不**传播；模板实参**传播**。
+
+**平台边界**（`pk/container/PkTypeVisibility.h` 也有一份）：本修法只在 **Apple arm64**
+有效（libc++ impl 3）。**Apple x86_64** 是 impl 1（**只比地址、没有名字回退**）——
+那里**没有可见性层面的解法**；**Linux / libstdc++** 上是 **no-op**。⇒ 跨镜像用例在
+非 Apple arm64 上打印 `SKIP: …` 并**通过**（平台门），不做断言。
+
+**⚠ 已知缺口 —— 下面是 `pk` 未覆盖的负载类型，别把这节读成「pk 负载已全覆盖」。**
+`PkVariantList` / `PkVariantHash` / `PkVariantMap`（`pk/variant/PkVariant.h:46-48`；
+另在 `pk/variant/PkDataStream.h:18-20` 有一份**同样**的 typedef）**本任务没有处理**：
+
+- **现状**：它们是 `std::vector<PkVariant>` / `std::unordered_map<PkString,PkVariant>` /
+  `std::map<PkString,PkVariant>` 的 **typedef**，而 `class PkVariant`
+  （`pk/variant/PkVariant.h:52`）**自身未挂** `PK_TYPE_VISIBILITY`。
+- **后果**：这三个负载的**跨镜像读取仍然是坏的**——与 geometry/time 修前同症状。
+- **为什么不修**：任务行明写「**设计岔路，先回报再动手**」，一行未动是**照令执行**，
+  不是遗漏。（按上面的传播规则，给 `class PkVariant` 挂一行属性会让三个 typedef
+  一起翻开；三个选项的对比与一个自足可复现的最小探针在
+  `$PK/docs/superpowers/plans/R-53.md` §7 / §7.1。）
+
 ## 8. 怎么跑
 
 ```bash

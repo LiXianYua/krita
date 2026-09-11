@@ -2,6 +2,7 @@
 #define PK_GEOMETRY_PKLINE_H
 
 #include "PkGlobal.h"
+#include "../container/PkTypeVisibility.h"
 #include "PkPoint.h"
 
 // ---------------------------------------------------------------------------
@@ -44,7 +45,7 @@
 //     `plugins/assistants/Assistants/TwoPointAssistant.cc:315`。**实现**。
 // ---------------------------------------------------------------------------
 
-class PkLine
+class PK_TYPE_VISIBILITY PkLine
 {
 public:
     // qline.h:56 —— 默认构造**不初始化**任何字段（Qt 原文函数体为空）。
@@ -146,7 +147,7 @@ constexpr inline bool PkLine::operator==(const PkLine &d) const
 //   · qHash / QDataStream 的 <<>> / QDebug 的 << —— 归 R-02 / R-12 / R-08
 // ---------------------------------------------------------------------------
 
-class PkLineF
+class PK_TYPE_VISIBILITY PkLineF
 {
 public:
     // qline.h 声明的是 `IntersectionType intersects(...)`，`IntersectionType`

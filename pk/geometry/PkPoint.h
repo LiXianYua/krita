@@ -2,6 +2,7 @@
 #define PK_GEOMETRY_PKPOINT_H
 
 #include "PkGlobal.h"
+#include "../container/PkTypeVisibility.h"
 
 // ---------------------------------------------------------------------------
 // PkPoint / PkPointF —— QPoint / QPointF 的零 Qt 替代。
@@ -37,7 +38,7 @@
 // 详见 README.md 的「覆盖度缺口」。
 // ---------------------------------------------------------------------------
 
-class PkPoint
+class PK_TYPE_VISIBILITY PkPoint
 {
 public:
     constexpr PkPoint();
@@ -191,7 +192,7 @@ constexpr inline const PkPoint operator/(const PkPoint &p, qreal c)
 }
 
 
-class PkPointF
+class PK_TYPE_VISIBILITY PkPointF
 {
 public:
     constexpr PkPointF();

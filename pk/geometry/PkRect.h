@@ -2,6 +2,7 @@
 #define PK_GEOMETRY_PKRECT_H
 
 #include "PkGlobal.h"
+#include "../container/PkTypeVisibility.h"
 #include "PkMargins.h"
 #include "PkPoint.h"
 #include "PkSize.h"
@@ -64,7 +65,7 @@
 //   · qHash / QDataStream 的 <<>> / QDebug 的 <<（归 R-02 / R-12 / R-08）
 // ---------------------------------------------------------------------------
 
-class PkRect
+class PK_TYPE_VISIBILITY PkRect
 {
 public:
     // qrect.h:60 —— ⚠ **(0,0,-1,-1)**：宽高都是 0，且 isNull() 为真。
@@ -570,7 +571,7 @@ constexpr inline bool operator!=(const PkRect &r1, const PkRect &r2) noexcept
 // 签名）。
 // ---------------------------------------------------------------------------
 
-class PkRectF
+class PK_TYPE_VISIBILITY PkRectF
 {
 public:
     // qrect.h:514 —— ⚠ **(0.,0.,0.,0.)**：与 PkRect 的 (0,0,-1,-1) 哨兵不同。

@@ -4,12 +4,13 @@
 #include <chrono>
 #include <cstdint>
 #include <limits>
+#include "../container/PkTypeVisibility.h"
 #include <string>
 
 // ── PkDate —— QDate 的零 Qt 替代（julianDay 模型，照 Qt 5.15 qdatetime.h/cpp 的
 // 格里历算法）。默认构造为无效（nullJd 哨兵，isNull()==!isValid()）。R-29 Task 2
 // 新增；PkDateTime 仍为 epoch 版（R-29 Task 3 才重写为依赖 PkDate/PkTime）。─────
-class PkDate
+class PK_TYPE_VISIBILITY PkDate
 {
 public:
     PkDate() : m_jd(nullJd()) {}
@@ -56,7 +57,7 @@ private:
 
 // ── PkTime —— QTime 的零 Qt 替代（msecs-since-midnight 模型，照 Qt 5.15）。
 // 默认构造为无效（NullTime 哨兵）。R-29 Task 2 新增。──────────────────────────
-class PkTime
+class PK_TYPE_VISIBILITY PkTime
 {
 public:
     PkTime() : m_mds(NullTime) {}
@@ -140,7 +141,7 @@ private:
 // 时间（wall-clock，"现在是几点几分"），这正是 system_clock 的契约——它跟随系统
 // 时间调整；steady_clock（PkElapsedTimer 用的）保证的是单调递增的相对计时，两者
 // 目的不同，不能互换。
-class PkDateTime
+class PK_TYPE_VISIBILITY PkDateTime
 {
 public:
     using Clock = std::chrono::system_clock;

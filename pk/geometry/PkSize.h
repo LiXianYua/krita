@@ -2,6 +2,7 @@
 #define PK_GEOMETRY_PKSIZE_H
 
 #include "PkGlobal.h"
+#include "../container/PkTypeVisibility.h"
 
 // ---------------------------------------------------------------------------
 // PkSize / PkSizeF —— QSize / QSizeF 的零 Qt 替代。
@@ -38,7 +39,7 @@
 //   · qHash / QDataStream 的 <<>> / QDebug 的 <<（归 R-02 / R-12 / R-08）
 // ---------------------------------------------------------------------------
 
-class PkSize
+class PK_TYPE_VISIBILITY PkSize
 {
 public:
     // qsize.h:123 —— ⚠ **(-1,-1)**，不是 (0,0)。
@@ -185,7 +186,7 @@ constexpr inline PkSize PkSize::expandedTo(const PkSize & otherSize) const noexc
 }
 
 
-class PkSizeF
+class PK_TYPE_VISIBILITY PkSizeF
 {
 public:
     // qsize.h:296 —— ⚠ **(-1.,-1.)**，不是 (0,0)。
