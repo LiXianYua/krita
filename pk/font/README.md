@@ -155,7 +155,8 @@ QtGui」这个语义，且不依赖 `CMAKE_PREFIX_PATH` 在测试运行时还在
      宿主可证** —— 与第 1 条同源，是判据④不可达的直接后果。
    - **这条不是「死代码」**（2026-09-12 全分支评审订正）：gamma 分支**被用例集踩到**——
      变异组 E（`gammaCorrect` 恒 false）在 `test_text` 上命中 3 例
-     （`callsite2/handlename/scale1.5/nonascii`、`adv/nonascii`、`vis/bidi/lri`）。
+     （`callsite2/handlename/devpt30/nonascii`、`adv/nonascii`、`vis/bidi/lri`；tag 原名
+     `.../scale1.5/...`，2026-09-12 修复轮随单映射建模改名）。
      缺的只是 **Qt 侧的彩色合成参照系**，不是这条分支没有用量。原文「零用量：本批用例
      覆盖到的字体里没有一个 CFF-format 彩色字形」字面不假（命中的是 CFF **单色回退**字形，
      非 COLR/CBDT 彩色字形），但会被读成「死代码」，故订正。

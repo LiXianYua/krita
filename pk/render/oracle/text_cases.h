@@ -17,10 +17,15 @@
 //      text = "#" + number(i) [+ "~" + number(end)] + "\n(%1)".arg(idx) —— ASCII + 一个 \n。
 //   2) plugins/tools/svgtexttool/SvgTextCursor.cpp:880（paintDecorations）
 //        gc.setTransform(d->shape->absoluteTransformation(), true);   // 含缩放的仿射
+//        PkTransform painterTf = gc.transform();                      // :830 先取样
+//        KisHandlePainterHelper helper(&gc, handleRadius, decorationThickness);  // :831
 //        gc.setPen(pen /* bgColorForCaret(selectionColor,255), 宽 decorationThickness */);
 //        gc.setBrush(PkBrush(selectionColor));
 //        gc.drawText(painterTf.map(closestBaselinePoint), name);      // name = i18nc 可翻译串
 //      name 是可翻译手柄名（可含非 ASCII），位置经 painterTf 映射到设备空间。
+//      ⚠ :831 的 `KisHandlePainterHelper` 构造即调 `init()`，把画笔变换**重置成单位阵**
+//      （libs/flake/KisHandlePainterHelper.cpp:59），到 :880 仍是单位阵 ⇒ 该点是**单映射**。
+//      本表 callsite2 组据此取单位变换 + 设备点（见该组注释），非双映射。
 //
 // 两处都**不**调用 setFont（plan §1.1：`PkSetFontCommand` 直调 0 处）——默认字体即两种
 // 调用点的实际形态。§6 第 3 条已登记「空 PkFont 的字体解析平台相关」。为覆盖
@@ -256,12 +261,22 @@ inline std::vector<Case> table()
     }
 
     // ── 真实调用点 2：SvgTextCursor.cpp:880 的手柄名 ────────────────────────────
-    // 带缩放的仿射变换、画笔 + 画刷、可翻译手柄名（含非 ASCII 变体）。
+    // 画笔 + 画刷、可翻译手柄名（含非 ASCII 变体）。
+    //
+    // ⚠ **单映射**（2026-09-12 修复轮订正）：真调用点 :830 抓 `painterTf` 之后，:831
+    //   构造 `KisHandlePainterHelper`，其 `init()` 把画笔变换**重置成单位阵**
+    //   （libs/flake/KisHandlePainterHelper.cpp:59），到 :880 仍是单位阵 ⇒ 后端
+    //   `PkImageRasterBackend::drawText` 里 `m_state.transform.map(command.position)`
+    //   （:1264）是**唯一**一次映射。故 renderCase 里画笔变换取**单位阵**（sx=sy=1.0），
+    //   px/py 直接给 `painterTf.map(closestBaselinePoint)` 的**设备坐标** (30,30)
+    //   （closestBaselinePoint=(20,20)、shape 绝对变换 scale(1.5) ⇒ 20*1.5=30）。
+    //   旧版本按「双映射」建模（sx=sy=1.5 且 px=py=30 ⇒ 落到设备点 (45,45)、字形放大
+    //   1.5），与真实调用点不符，本版已改正。tag 随之由 `.../scale1.5/` 改成 `.../devpt30/`。
     const char *names[] = {"Text Top", "テキスト上端", "Text unten"};
     const char *nameTags[] = {"ascii", "nonascii", "ascii2"};
     for (int i = 0; i < 3; ++i) {
         Case c = baseCase();
-        c.tag = std::string("callsite2/handlename/scale1.5/") + nameTags[i];
+        c.tag = std::string("callsite2/handlename/devpt30/") + nameTags[i];
         // NOTE: 0x3f3f3f is a deliberate stand-in, NOT what the call site produces.
         // `bgColorForCaret()` (SvgTextCursor.cpp:786-789) is a two-branch ternary that
         // returns only black or white; for this case's selectionColor=0x2a6fd6 it
@@ -274,8 +289,8 @@ inline std::vector<Case> table()
         c.brushRgb = 0x2a6fd6; // selectionColor
         c.px = 30.0;
         c.py = 30.0;
-        c.sx = 1.5;
-        c.sy = 1.5;
+        c.sx = 1.0;
+        c.sy = 1.0;
         c.text = names[i];
         cases.push_back(c);
     }

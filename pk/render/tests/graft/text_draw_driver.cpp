@@ -44,11 +44,12 @@
 //
 //   ② plugins/tools/svgtexttool/SvgTextCursor.cpp:880
 //      `SvgTextCursor::paintDecorations`（:791 起）里的排版手柄名。源码逐字
-//      （:795 / :830 / :872-882）：
+//      （:795 / :830-831 / :872-882）：
 //
 //          gc.setTransform(d->shape->absoluteTransformation(), true);   // :795
 //          ...
 //          PkTransform painterTf = gc.transform();                      // :830
+//          KisHandlePainterHelper helper(&gc, handleRadius, decorationThickness);  // :831
 //          ...
 //          PkString name = handleName(d->hoveredTypeSettingHandle);     // :872
 //          if (!name.isEmpty()) {
@@ -61,6 +62,14 @@
 //              gc.drawText(painterTf.map(d->typeSettingDecor.closestBaselinePoint), name);
 //              gc.restore();
 //          }
+//
+//      ⚠ :831 的 `KisHandlePainterHelper` **不是**装饰：它的构造即调 `init()`
+//      （libs/flake/KisHandlePainterHelper.cpp:56-68），第一件事就是
+//      `m_painter->setTransform(PkTransform())`——把画笔变换**重置成单位阵**；
+//      析构时再 `setTransform(m_originalPainterTransform)` 还原（:71-75）。所以到
+//      :880 画笔变换是**单位阵**：`:880` 传的 `painterTf.map(point)` 已是设备坐标，
+//      后端 `PkImageRasterBackend::drawText` 里那一次
+//      `m_state.transform.map(command.position)`（:1264）是**唯一**一次映射 ⇒ **单映射**。
 //
 //      下面 drvCallsite2_handleName() 就是这一段。`handleName()` 是 :428 起的
 //      一长串 `i18nc` 手柄名表，本 driver 取其**返回值**作形参（`name`）——
@@ -211,6 +220,27 @@ void drvCallsite2_handleName(PkPainter &gc,
     PkTransform painterTf = gc.transform();
     // ↑↑↑
 
+    // ↓↓↓ 照抄 :831（helper 构造 → init() → setTransform(单位阵)）↓↓↓
+    //   真实代码这一行是
+    //       KisHandlePainterHelper helper(&gc, handleRadius, decorationThickness);
+    //   它的构造即调 `init()`（libs/flake/KisHandlePainterHelper.cpp:56-68），第一件事
+    //   就是 `m_painter->setTransform(PkTransform())` —— 把画笔变换**重置成单位阵**；
+    //   析构时再 `setTransform(m_originalPainterTransform)` 还原（:71-75）。所以到 :880
+    //   画笔变换是单位阵，后端 drawText 里那一次 `m_state.transform.map(...)` 是**唯一**
+    //   一次映射 ⇒ **单映射**。
+    //
+    //   ── 复刻边界（为什么只写这一句 setTransform、不构造真 helper）──────────────
+    //   `init()` 对**画笔**的副作用只有这一句 setTransform；其余动作
+    //   （`inheritStyle`、算 `m_handleTransform`/`m_handlePolygon`）只写 helper 的私有
+    //   成员，不碰 painter。:861-870 的句柄绘制（drawHandleCircle/drawHandleRect/
+    //   drawPath）虽在 :880 之前，但各自 save/restore，且随后 :876 设笔、:879 设画刷，
+    //   把本调用点要用的 pen/brush 显式覆盖回来 ⇒ painter 的 transform/pen/brush 到 :880
+    //   与「只把变换置单位阵」逐态一致。真 helper 的依赖闭包（KisHandleStyle、
+    //   PkPolygonF、PenBrushSaver…）不在本 driver 的最小复刻范围内，故按**等价复刻**，
+    //   不链它。析构还原那一半由本函数末尾的 `gc.restore()`（对应 :885）承担。
+    gc.setTransform(PkTransform());
+    // ↑↑↑
+
     // ↓↓↓ 照抄 :872-882 ↓↓↓
     if (!name.isEmpty()) {
         gc.save();
@@ -347,12 +377,16 @@ int main(int argc, char **argv)
     }
 
     // ═══ ② 复刻调用点 2 ═══════════════════════════════════════════════════════
-    // 复刻 :795 的 `setTransform(absoluteTransformation, true)`：用例表以
-    // scale(1.5) 作 absoluteTransformation；:880 的点是 `painterTf.map(baselinePoint)`。
-    // ⚠ 注意真实语义：:795 之后**没有**把变换重置成单位阵，:880 传的又是**已经映射过**
-    //   的点 ⇒ PkImageRasterBackend::drawText 里 `m_state.transform.map(command.position)`
-    //   会把那个点**再映射一次**（PkImageRasterBackend.cpp:1262）。本 driver 照实复刻，
-    //   不做"修正"——真实调用点就是双重映射。
+    // 复刻 :795 的 `setTransform(absoluteTransformation, true)`：shape 的绝对变换取
+    // 含缩放的仿射 scale(1.5)（真调用点的形态）；:880 的点是
+    // `painterTf.map(closestBaselinePoint)` = (20,20)*1.5 = (30,30) 的**设备坐标**。
+    // ⚠ 真实语义（2026-09-12 复核订正）：:830 抓完 `painterTf` 后，:831 构造
+    //   `KisHandlePainterHelper`，其 `init()` 立即把画笔变换重置成**单位阵**
+    //   （libs/flake/KisHandlePainterHelper.cpp:59），到 :880 画笔变换就是单位阵 ⇒
+    //   PkImageRasterBackend::drawText 里 `m_state.transform.map(command.position)`
+    //   （:1264）是**唯一**一次映射，:880 的点**单映射**。本 driver 据此在
+    //   drvCallsite2_handleName() 里补上了 helper 的那一步 setTransform(单位阵)；
+    //   用例表 `callsite2/handlename/devpt30/*` 同步改为单位变换 + 设备点 (30,30)。
     PkTransform shapeTf;
     shapeTf.scale(1.5, 1.5);
 

@@ -432,19 +432,26 @@ is a behaviour change):
   table's comment claims. Consequence, measured: a *faithful* transcription draws white on
   the oracle's white canvas and produces **exactly the blank digest** (Pk `digest ==
   1332944325` for the empty image), which is precisely why `oracle/text_cases.h` needed a
-  visible stand-in colour. `oracle/text_cases.h:265` hard-codes
+  visible stand-in colour. `oracle/text_cases.h:286` hard-codes
   `c.penRgb = 0x3f3f3f` with the comment "`bgColorForCaret(selectionColor,255)` 的灰" —
   **the value is a legitimate parametric choice, the comment is false**. The driver pins the
   truth (`bgColorForCaret(0x2a6fd6, 255).rgba() == 0xffffffff`) so the case table's case
   shapes are exercised with the real colour *and* with a visible one.
-- **Call site ② double-maps its point.** `SvgTextCursor.cpp:795` sets
-  `gc.setTransform(shape->absoluteTransformation(), true)` and that transform is **never
-  reset** before `:880`; the point passed at `:880` is already
-  `painterTf.map(closestBaselinePoint)`, and `PkImageRasterBackend::drawText` then maps
-  `command.position` **again** (`libs/flake/PkImageRasterBackend.cpp:1262`). The driver
-  reproduces this faithfully rather than "fixing" it (the real call site really does
-  double-map). Task 4's case table applies it once; noted here so the difference is not
-  mistaken for a driver bug.
+- **Call site ② single-maps its point (an earlier "double-maps" claim here was wrong).**
+  `SvgTextCursor.cpp:795` sets `gc.setTransform(shape->absoluteTransformation(), true)`, but
+  after `painterTf` is sampled at `:830` the code constructs a `KisHandlePainterHelper` at
+  `:831`, whose `init()` **resets the painter transform to identity**
+  (`libs/flake/KisHandlePainterHelper.cpp:59`; restored on destruction, `:71-75`). So at
+  `:880` the painter transform is identity: the point passed is already
+  `painterTf.map(closestBaselinePoint)` (device space) and `PkImageRasterBackend::drawText`'s
+  `m_state.transform.map(command.position)` (`libs/flake/PkImageRasterBackend.cpp:1264`) is
+  the **only** mapping — single-mapped. A prior revision of this note (and of the driver,
+  `tests/graft/text_draw_driver.cpp`) wrongly claimed `:795`'s transform is never reset and
+  the point is double-mapped; that model left the driver's painter at the shape transform
+  instead of replicating the helper's reset, diverging from the real call site. Corrected in
+  the 2026-09-12 fix round: the driver now performs the helper's `setTransform(identity)`
+  step, and Task 4's case table (`callsite2/handlename/devpt30/*`) uses an identity painter
+  transform plus the device point `(30,30)`.
 
 **4. The two remaining plan §6 items owned by `pk/font`** — item 1 (判据④ unreachable
 locally, engine-conditional, with the 几何类 discriminating-power control green here) and
