@@ -221,20 +221,36 @@ void TestTagModel::testSetTagActiveInactive()
 {
     KisTagModel tagModel(m_resourceType);
 
-    int rowCount = static_cast<int>(tagModel.tags().size());
+    // The default tag filter is ShowActiveTags, so tags() lists active tags
+    // only -- the migration equivalent of upstream's filtered
+    // QSortFilterProxyModel::rowCount(). ShowAllTags does not look at the
+    // active state, so it can only widen that list. This case runs before
+    // testRenameTag leaves "* Favorites" inactive, so at this point both filter
+    // states list the same number of tags -- hence >= rather than the strict >
+    // used by testChangeTagActive, which runs after testRenameTag.
+    const int activeRowCount = static_cast<int>(tagModel.tags().size());
+    tagModel.setTagFilter(KisTagModel::ShowAllTags);
+    const int allRowCount = static_cast<int>(tagModel.tags().size());
+    QVERIFY(allRowCount >= activeRowCount);
 
+    // Both baselines above are measured before the tag is touched, so every
+    // count below is compared against a value taken in the same filter state.
     tagModel.setTagInactive(m_tag);
     QVERIFY(!m_tag->active());
-    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount - 1);
-    tagModel.setTagFilter(KisTagModel::ShowAllTags);
+    // ShowAllTags ignores the active state, so that list is untouched ...
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), allRowCount);
+
     KisTagSP stored = tagModel.tagForUrl(m_tag->url());
     QVERIFY(stored);
     QVERIFY(!stored->active());
 
+    // ... while the active-only filter stops listing it.
+    tagModel.setTagFilter(KisTagModel::ShowActiveTags);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), activeRowCount - 1);
 
     tagModel.setTagActive(m_tag);
     QVERIFY(m_tag->active());
-    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), activeRowCount);
 
     stored = tagModel.tagForUrl(m_tag->url());
     QVERIFY(stored);
