@@ -86,7 +86,7 @@ private Q_SLOTS:
     void transformMapRectScaleFastPathFlipsNegativeExtent();
     void transformMapRectIntegerUsesRightPlusOne();
     void transformMapRectFloatHasNoOffByOne();
-    void transformMapRectPerspectiveClipIsADeclaredGap();
+    void transformMapRectPerspectiveClipMatchesQt();
 
     // ── 相等 ──
     void transformEqualityIsExactNotFuzzy();

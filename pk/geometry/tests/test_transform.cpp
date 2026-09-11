@@ -961,23 +961,30 @@ void PkTransformCase::transformMapRectFloatHasNoOffByOne()
     PK_VERIFY(fieldsAre(p.mapRect(PkRectF(0, 0, 10, 10)), 0, 0, 9.0909090909090899, 10));
 }
 
-void PkTransformCase::transformMapRectPerspectiveClipIsADeclaredGap()
+void PkTransformCase::transformMapRectPerspectiveClipMatchesQt()
 {
-    // R-22 T5 关闭偏离 21：mapRect 在 TxProject + needsPerspectiveClipping 时
-    // 改走 PkPainterPath（把矩形当路径、在近裁剪面上真的裁一刀再取包围盒）。
-    // 这是 PkPainterPath 裁剪后的实际取值（与 Qt 的 QPainterPath 对齐）。
+    // **这条曾经叫 `…IsADeclaredGap`**：R-22 T5 时 mapRect 在
+    // TxProject + needsPerspectiveClipping 下改走 PkPainterPath 取包围盒，
+    // 而当时的 map(PkPainterPath) **不做透视裁剪**（逐点仿射），于是值与真 Qt
+    // 不一致，被登记成「已声明偏离」。**S-18 实现了 mapProjective（人拍板），
+    // 偏离闭合**，本测试随之从「记录偏离值」改成「钉住与真 Qt 一致」。
+    //
+    // 下面的值是**真 Qt 5.15.7 的实测值**（本机 arm64 framework，
+    // `QTransform(1,0,-1, 0,1,0, 0,0,1).mapRect(QRectF(0,0,10,10))`），
+    // 不是 pk 自己跑出来的数 —— 这条线的判据是「Qt 怎么做」。
     const PkTransform t(1, 0, -1, 0, 1, 0, 0, 0, 1);
     PK_COMPARE((int)t.type(), (int)PkTransform::TxProject);
 
-    // PkPainterPath 裁剪后的取值（实测精确值）：
+    // 近裁剪面在 w = 1e-6：被夹住的那个角投影到 1/1e-6 = 1e6 量级，
+    // 所以包围盒宽 999999、高 1e7（**不是**未裁剪的 -1.111 那种）。
     PkRectF r = t.mapRect(PkRectF(0, 0, 10, 10));
-    PK_VERIFY(std::abs(r.x() - (-1.111111111111111)) < 1e-14);
-    PK_VERIFY(std::abs(r.y() - (-1.111111111111111)) < 1e-14);
-    PK_VERIFY(std::abs(r.width() - 1.111111111111111) < 1e-14);
-    PK_VERIFY(std::abs(r.height() - 11.111111111111111) < 1e-14);
+    PK_VERIFY(std::abs(r.x() - 0.0) < 1e-14);
+    PK_VERIFY(std::abs(r.y() - 0.0) < 1e-14);
+    PK_VERIFY(std::abs(r.width() - 999999.00000000035) < 1e-9);
+    PK_VERIFY(std::abs(r.height() - 10000000.0) < 1e-9);
 
     PkRect ri = t.mapRect(PkRect(0, 0, 10, 10));
-    PK_VERIFY(ri.x() == -1 && ri.y() == -1 && ri.width() == 1 && ri.height() == 11);
+    PK_VERIFY(ri.x() == 0 && ri.y() == 0 && ri.width() == 999999 && ri.height() == 10000000);
 }
 
 // ═══ 相等 ═════════════════════════════════════════════════════════════════

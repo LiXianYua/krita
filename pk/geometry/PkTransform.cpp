@@ -1,5 +1,9 @@
 #include "PkTransform.h"
 #include "PkPainterPath.h"
+// S-18：Bezier 辅助（照 Qt 的 `qbezier_p.h` 形制）。`pkCubicToClipped` 要用
+// `pkSplitBezier` 把曲线摊成折线 —— 上游 `cubicTo_clipped` 走的就是
+// `QBezier::toPolygon`，同一个头在 qtransform.cpp / qpainterpath.cpp 之间共用。
+#include "PkBezier_p.h"
 
 // ⚠ **这两个系统头必须在 oracle/geometry_difftest.cpp 顶部的系统头区里也出现过**
 // —— 那份对拍把本 .cpp `#include` 进 `namespace pkoracle {}` 里，头文件守卫已经
@@ -8,6 +12,13 @@
 // <cmath> 是 rotate / rotateRadians 的 std::sin / std::cos 要的。
 #include <cmath>
 #include <type_traits>
+
+// ⚠ S-18：`mapProjective` 的两个重载定义在本文件靠后（与上游 qtransform.cpp 里
+// 「先定义 mapProjective、后用到」的排布不同 —— 本文件 `map(const PkPolygonF&)`
+// 在前）。前置声明即可，**不要把定义挪位置**：挪到前面会打乱本文件既有的
+// 「按 Qt 原行号顺序排布」的编排，那是给对照上游看的人留的。
+static PkPainterPath pkMapProjective(const PkTransform &transform, const PkPainterPath &path);
+static PkPolygonF pkMapProjective(const PkTransform &transform, const PkPolygonF &poly);
 
 // ---------------------------------------------------------------------------
 // PkTransform 的 out-of-line 部分。**逐字抄自 qtbase 标签 v5.15.7-lts-lgpl 的
@@ -21,9 +32,11 @@
 //   ③ **不复刻 `#ifndef QT_NO_DEBUG` 的七处 NaN 早退分支** —— 实测本机
 //      libQt5Gui.so 是带 QT_NO_DEBUG 编的（探针 §B），那些分支不在里面
 //
-// 一处**真实行为偏离**（登记在 oracle/geometry.deviation 与 README）：
-//   · `mapRect` 在「TxProject 且需要透视裁剪」时 Qt 改走 QPainterPath，
-//     本类落回四角包围盒。见 mapRect 上方那段。
+// **S-18（2026-09-12 人拍板）起本文件不再有真实行为偏离**：原先唯一那一处 ——
+// `mapRect` / `map(PkPainterPath)` / `map(PkPolygonF)` 在 `TxProject` 下 Qt 走
+// `mapProjective`（近/远裁剪面上的真裁剪）、本类落回四角包围盒 —— **已经实现**，
+// 见本文件 `pkMapProjective` 那一整块。原成文理由「`QPainterPath` 归属未定不在
+// R-03 范围」已过期（`PkPainterPath` 由 R-22 交付，且消费方是活的）。
 // ---------------------------------------------------------------------------
 
 // qtransform.cpp:64 —— qreal 是 double，所以取 0.000001 那一支。
@@ -889,6 +902,11 @@ PkPolygonF PkTransform::map(const PkPolygonF &a) const
     if (t <= TxTranslate)
         return a.translated(m_dx, m_dy);
 
+    // 上游：`if (t >= QTransform::TxProject) return mapProjective(*this, a);`
+    //（qtransform.cpp:1472）。S-18 起这一支实现好了，不再声明成偏离。
+    if (t >= TxProject)
+        return pkMapProjective(*this, a);
+
     const int n = a.size();
     PkPolygonF p(n);
     for (int i = 0; i < n; ++i)
@@ -1027,6 +1045,313 @@ static inline bool pkNeedsPerspectiveClipping(const PkRectF &rect, const PkTrans
 // **不是**把这片输入从对拍里拿掉 —— 那样谁都看不见这个洞有多大。
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 投影路径映射（`mapProjective`）—— S-18 按 `S线-spec.md`
+// 「S-18 撞到的投影偏离：不声明，实现 mapProjective」（2026-09-12 人拍板）。
+//
+// 上游 qtbase 5.15 `src/gui/painting/qtransform.cpp` 的一整块，**逐字照抄**，
+// 只把 `Q*` 换成 `Pk*`（`qAbs`→`pkAbs`、`qMax`→`pkMax`、`qSqrt`→`std::sqrt`、
+// `qFuzzyCompare`→`pkQtFuzzyCompare`）。**别自创** —— 这条线刚立的规矩是
+// 「判据是 Qt 怎么做，不是本 fork 当年怎么拍的」：
+//   qt_scaleForTransform / QHomogeneousCoordinate / mapHomogeneous /
+//   lineTo_clipped / cubicTo_clipped / mapProjective(QPainterPath) /
+//   mapProjective(QPolygonF)
+//
+// 这一块关掉的是**同一条根因**的四处（原先都声明成偏离）：
+//   `T::map(PainterPath) txproject` 2652 · `T::mapRect(PkRectF)`
+//   `persp-clip/proj-signed-zero/signed-zero` 1 · `T::mapRect(PkRect)` 的 8 行
+//   `persp-clip/*` · `T::map(PolygonF) txproject-deviation`。
+// 原成文理由「`QPainterPath` 归属未定不在 R-03 范围」**已过期**：`PkPainterPath`
+// 由 R-22 交付，且消费方是活的
+//（`plugins/tools/tool_transform2/kis_perspective_transform_strategy.cpp:274`
+//  的 `handlesTransform.map(handles)` 正是这条路径；`libs/global/kis_dom_utils.cpp`
+//  还会从 XML 反序列化含 m13/m23/m33 的九分量矩阵）。
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ⚠ 近裁剪面用本文件顶部那个 `PK_NEAR_CLIP`（`qtransform.cpp:64`，本机
+// qreal==double 所以是 1e-6）—— **不要在这里再 define 一个**：`PK_MAP` 与
+// `pkNeedsPerspectiveClipping` 用的是同一个常量，两份定义迟早会漂。
+// （S-18 第一版重复 define 过，编译期就撞 `macro redefined` 警告，已删。）
+
+// qtransform.cpp:2373-2410（`qt_scaleForTransform`）。返回值在
+// `cubicTo_clipped` 里没被用，但照抄保留 —— 它是「旋转+等比缩放」的判据。
+static bool pkScaleForTransform(const PkTransform &transform, qreal *scale)
+{
+    const PkTransform::TransformationType type = transform.type();
+    if (type <= PkTransform::TxTranslate) {
+        if (scale)
+            *scale = 1;
+        return true;
+    } else if (type == PkTransform::TxScale) {
+        const qreal xScale = pkAbs(transform.m11());
+        const qreal yScale = pkAbs(transform.m22());
+        if (scale)
+            *scale = pkMax(xScale, yScale);
+        return pkQtFuzzyCompare(xScale, yScale);
+    }
+
+    // rotate then scale: compare columns
+    const qreal xScale1 = transform.m11() * transform.m11()
+                        + transform.m21() * transform.m21();
+    const qreal yScale1 = transform.m12() * transform.m12()
+                        + transform.m22() * transform.m22();
+
+    // scale then rotate: compare rows
+    const qreal xScale2 = transform.m11() * transform.m11()
+                        + transform.m12() * transform.m12();
+    const qreal yScale2 = transform.m21() * transform.m21()
+                        + transform.m22() * transform.m22();
+
+    // decide the order of rotate and scale operations
+    if (pkAbs(xScale1 - yScale1) > pkAbs(xScale2 - yScale2)) {
+        if (scale)
+            *scale = std::sqrt(pkMax(xScale1, yScale1));
+
+        return type == PkTransform::TxRotate && pkQtFuzzyCompare(xScale1, yScale1);
+    } else {
+        if (scale)
+            *scale = std::sqrt(pkMax(xScale2, yScale2));
+
+        return type == PkTransform::TxRotate && pkQtFuzzyCompare(xScale2, yScale2);
+    }
+}
+
+// qtransform.cpp:1576-1589（`QHomogeneousCoordinate`）。
+struct PkHomogeneousCoordinate {
+    qreal x = 0;
+    qreal y = 0;
+    qreal w = 0;
+
+    PkHomogeneousCoordinate() {}
+    PkHomogeneousCoordinate(qreal x_, qreal y_, qreal w_) : x(x_), y(y_), w(w_) {}
+
+    const PkPointF toPoint() const {
+        qreal iw = 1. / w;
+        return PkPointF(x * iw, y * iw);
+    }
+};
+
+// qtransform.cpp:1591-1599（`mapHomogeneous`）。
+static inline PkHomogeneousCoordinate pkMapHomogeneous(const PkTransform &transform, const PkPointF &p)
+{
+    PkHomogeneousCoordinate c;
+    c.x = transform.m11() * p.x() + transform.m21() * p.y() + transform.m31();
+    c.y = transform.m12() * p.x() + transform.m22() * p.y() + transform.m32();
+    c.w = transform.m13() * p.x() + transform.m23() * p.y() + transform.m33();
+    return c;
+}
+
+// qtransform.cpp:1598-1635（`lineTo_clipped`）。近裁剪面上的真裁剪：
+// 两端都在近裁剪面之前就整条丢掉；一端在前就在交点处切开。
+static inline bool pkLineToClipped(PkPainterPath &path, const PkTransform &transform,
+                                   const PkPointF &a, const PkPointF &b,
+                                   bool needsMoveTo, bool needsLineTo = true)
+{
+    PkHomogeneousCoordinate ha = pkMapHomogeneous(transform, a);
+    PkHomogeneousCoordinate hb = pkMapHomogeneous(transform, b);
+
+    if (ha.w < PK_NEAR_CLIP && hb.w < PK_NEAR_CLIP)
+        return false;
+
+    if (hb.w < PK_NEAR_CLIP) {
+        const qreal t = (PK_NEAR_CLIP - hb.w) / (ha.w - hb.w);
+
+        hb.x += (ha.x - hb.x) * t;
+        hb.y += (ha.y - hb.y) * t;
+        hb.w = qreal(PK_NEAR_CLIP);
+    } else if (ha.w < PK_NEAR_CLIP) {
+        const qreal t = (PK_NEAR_CLIP - ha.w) / (hb.w - ha.w);
+
+        ha.x += (hb.x - ha.x) * t;
+        ha.y += (hb.y - ha.y) * t;
+        ha.w = qreal(PK_NEAR_CLIP);
+
+        const PkPointF p = ha.toPoint();
+        if (needsMoveTo) {
+            path.moveTo(p);
+            needsMoveTo = false;
+        } else {
+            path.lineTo(p);
+        }
+    }
+
+    if (needsMoveTo)
+        path.moveTo(ha.toPoint());
+
+    if (needsLineTo)
+        path.lineTo(hb.toPoint());
+
+    return true;
+}
+
+// qbezier.cpp:59-75（`QBezier::toPolygon`）+ :103-137（`addToPolygon`）。
+// 按 flattening 阈值把三次曲线摊成折线：控制点离首尾连线足够近就停，否则二分。
+// 用**显式栈**而不是递归（上游就是显式栈，深度上限 9），所以这里照抄那个循环。
+static void pkBezierAddToPolygon(PkPolygonF *polygon, const PkArcBezier &bezier,
+                                 qreal bezier_flattening_threshold)
+{
+    PkArcBezier beziers[10];
+    int levels[10];
+    beziers[0] = bezier;
+    levels[0] = 9;
+    int top = 0;
+
+    while (top >= 0) {
+        PkArcBezier *b = &beziers[top];
+        // check if we can pop the top bezier curve from the stack
+        qreal y4y1 = b->y4 - b->y1;
+        qreal x4x1 = b->x4 - b->x1;
+        qreal l = pkAbs(x4x1) + pkAbs(y4y1);
+        qreal d;
+        if (l > 1.) {
+            d = pkAbs((x4x1) * (b->y1 - b->y2) - (y4y1) * (b->x1 - b->x2))
+                + pkAbs((x4x1) * (b->y1 - b->y3) - (y4y1) * (b->x1 - b->x3));
+        } else {
+            d = pkAbs(b->x1 - b->x2) + pkAbs(b->y1 - b->y2)
+                + pkAbs(b->x1 - b->x3) + pkAbs(b->y1 - b->y3);
+            l = 1.;
+        }
+        if (d < bezier_flattening_threshold * l || levels[top] == 0) {
+            // good enough, we pop it off and add the endpoint
+            polygon->append(PkPointF(b->x4, b->y4));
+            --top;
+        } else {
+            // split, second half of the polygon goes lower into the stack
+            const PkArcBezierSplit sp = pkSplitBezier(*b);
+            b[1] = sp.first;      // 上游 `std::tie(b[1], b[0]) = b->split();`
+            b[0] = sp.second;
+            levels[top + 1] = --levels[top];
+            ++top;
+        }
+    }
+}
+
+static PkPolygonF pkBezierToPolygon(const PkArcBezier &bezier, qreal bezier_flattening_threshold)
+{
+    PkPolygonF polygon;
+    polygon.append(PkPointF(bezier.x1, bezier.y1));
+    pkBezierAddToPolygon(&polygon, bezier, bezier_flattening_threshold);
+    return polygon;
+}
+
+// qtransform.cpp:1639-1657（`cubicTo_clipped`）。曲线先按 flattening 阈值摊成
+// 折线，再逐段走 `lineTo_clipped` —— 上游注释写着理由：
+// "Convert projective xformed curves to line segments so they can be
+//  transformed more accurately"。
+static inline bool pkCubicToClipped(PkPainterPath &path, const PkTransform &transform,
+                                    const PkPointF &a, const PkPointF &b, const PkPointF &c,
+                                    const PkPointF &d, bool needsMoveTo)
+{
+    qreal scale;
+    pkScaleForTransform(transform, &scale);
+
+    qreal curveThreshold = scale == 0 ? qreal(0.25) : (qreal(0.25) / scale);
+
+    PkPolygonF segment = pkBezierToPolygon(PkArcBezier::fromPoints(a, b, c, d), curveThreshold);
+
+    for (int i = 0; i < segment.size() - 1; ++i)
+        if (pkLineToClipped(path, transform, segment.at(i), segment.at(i + 1), needsMoveTo))
+            needsMoveTo = false;
+
+    return !needsMoveTo;
+}
+
+// qtransform.cpp:1658-1700（`mapProjective(const QTransform&, const QPainterPath&)`）。
+static PkPainterPath pkMapProjective(const PkTransform &transform, const PkPainterPath &path)
+{
+    PkPainterPath result;
+
+    // ⚠ **先撒一个占位 `moveTo(0,0)`，镜像 Qt 的 `ensureData()`。**
+    // 上游 `qpainterpath.cpp:598-606`：
+    //     void QPainterPath::ensureData_helper() {
+    //         QPainterPathPrivate *data = new QPainterPathData;
+    //         data->elements.reserve(16);
+    //         QPainterPath::Element e = { 0, 0, QPainterPath::MoveToElement };
+    //         data->elements << e;          // ← 就是这一句
+    //         d_ptr.reset(data);
+    //     }
+    // Qt 的 QPainterPath 一旦被 "ensure" 过就**自带一个 (0,0) 的 MoveTo 占位元素**，
+    // 后续第一个 `moveTo` 会把它**覆盖**掉（qpainterpath.cpp:747 那条
+    // `if (last.type == MoveToElement) 覆写`）。而 `mapProjective` 结尾会调
+    // `result.setFillRule(...)`，`setFillRule` 的第一句就是 `ensureData()`
+    // （qpainterpath.cpp:1395-1397）—— 于是**整条路径被裁光时，Qt 返回的不是空
+    // 路径，而是一条只有一个 (0,0) MoveTo 的路径**（实测：`QPainterPath r;
+    // r.setFillRule(Qt::WindingFill);` → `elementCount()==1`，而 `isEmpty()` 仍是真）。
+    //
+    // 本模块的 `PkPainterPath` **没有**这个占位元素（`m_elements` 空就是空），
+    // 于是同一批输入下 pk 给 0 个元素、Qt 给 1 个 —— 实测这就是 `T::map(PainterPath)
+    // txproject` 残留那 161 条的全部根因（都是"整个路径落在近裁剪面之后"的输入）。
+    // 在**这里**撒种子是忠实的：`result` 全程只被 `moveTo`/`lineTo` 碰，语义与
+    // Qt 那条 ensured 路径逐一对应；**不去改 `PkPainterPath` 的表示** —— 那是
+    // 全模块的结构改动（`elementCount`/`isEmpty`/`currentPosition`/路径布尔运算
+    // 都受影响），远超本任务。
+    result.moveTo(PkPointF());
+
+    PkPointF last;
+    PkPointF lastMoveTo;
+    bool needsMoveTo = true;
+    for (int i = 0; i < path.elementCount(); ++i) {
+        switch (path.elementAt(i).type) {
+        case PkPainterPath::MoveToElement:
+            if (i > 0 && lastMoveTo != last)
+                pkLineToClipped(result, transform, last, lastMoveTo, needsMoveTo);
+
+            lastMoveTo = path.elementAt(i);
+            last = path.elementAt(i);
+            needsMoveTo = true;
+            break;
+        case PkPainterPath::LineToElement:
+            if (pkLineToClipped(result, transform, last, path.elementAt(i), needsMoveTo))
+                needsMoveTo = false;
+            last = path.elementAt(i);
+            break;
+        case PkPainterPath::CurveToElement:
+            if (pkCubicToClipped(result, transform, last, path.elementAt(i),
+                                 path.elementAt(i + 1), path.elementAt(i + 2), needsMoveTo))
+                needsMoveTo = false;
+            i += 2;
+            last = path.elementAt(i);
+            break;
+        default:
+            // 上游这里是 Q_ASSERT(false)；pk/geometry 没有断言设施（归 R-08），
+            // 与 PkTransform.cpp 里其它 Q_ASSERT 位点同一处置：落到这里就跳过。
+            break;
+        }
+    }
+
+    if (path.elementCount() > 0 && lastMoveTo != last)
+        pkLineToClipped(result, transform, last, lastMoveTo, needsMoveTo, false);
+
+    result.setFillRule(path.fillRule());
+    return result;
+}
+
+// qtransform.cpp:1416-1435（`mapProjective(const QTransform&, const QPolygonF&)`）。
+// 多边形先铺成路径、走同一条路，再把元素倒回多边形。
+static PkPolygonF pkMapProjective(const PkTransform &transform, const PkPolygonF &poly)
+{
+    if (poly.size() == 0)
+        return poly;
+
+    if (poly.size() == 1) {
+        PkPolygonF one;
+        one.append(transform.map(poly.at(0)));
+        return one;
+    }
+
+    PkPainterPath path;
+    path.addPolygon(poly);
+
+    path = pkMapProjective(transform, path);
+
+    PkPolygonF result;
+    const int elementCount = path.elementCount();
+    result.reserve(elementCount);
+    for (int i = 0; i < elementCount; ++i)
+        result.append(path.elementAt(i));     // Element 隐式转 PkPointF（qpainterpath.h:57）
+    return result;
+}
+
 // R-22 T5: map(PkPainterPath)。关闭偏离 21。
 //
 // ⚠ **逐元素原地改坐标，不走 moveTo/lineTo/cubicTo 重建** —— 这是 S-18 按
@@ -1072,6 +1397,12 @@ PkPainterPath PkTransform::map(const PkPainterPath &path) const
     TransformationType t = inline_type();
     if (t == TxNone || path.elementCount() == 0) {
         return path;
+    }
+
+    // ⚠ **这一支现在是实现好的，不再是偏离**（S-18，见本函数上方那段长注释）。
+    // 上游：`if (t >= TxProject) return mapProjective(*this, path);`
+    if (t >= TxProject) {
+        return pkMapProjective(*this, path);
     }
 
     PkPainterPath copy = path;

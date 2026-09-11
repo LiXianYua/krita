@@ -39,37 +39,7 @@ static constexpr qreal kPkPathKappa = 0.5522847498;
 
 static inline qreal pkDegToRad(qreal deg) { return deg * static_cast<qreal>(M_PI / 180.0); }
 
-struct PkArcBezier {
-    qreal x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0, x4 = 0, y4 = 0;
-
-    static PkArcBezier fromPoints(const PkPointF &p1, const PkPointF &p2,
-                                   const PkPointF &p3, const PkPointF &p4)
-    { return {p1.x(), p1.y(), p2.x(), p2.y(), p3.x(), p3.y(), p4.x(), p4.y()}; }
-
-    PkPointF pt1() const { return PkPointF(x1, y1); }
-    PkPointF pt2() const { return PkPointF(x2, y2); }
-    PkPointF pt3() const { return PkPointF(x3, y3); }
-    PkPointF pt4() const { return PkPointF(x4, y4); }
-
-    PkPointF pointAt(qreal t) const;
-    PkRectF bounds() const;
-    PkArcBezier mapBy(const PkTransform &transform) const;
-    PkArcBezier getSubRange(qreal t0, qreal t1) const;
-    qreal tForY(qreal t0, qreal t1, qreal y) const;
-    int stationaryYPoints(qreal &t0, qreal &t1) const;
-
-    PkArcBezier bezierOnInterval(qreal t0, qreal t1) const;
-    void parameterSplitLeft(qreal t, PkArcBezier *left);
-};
-
-struct PkArcBezierSplit { PkArcBezier first, second; };
-
-static inline void pkBezierCoefficients(qreal t, qreal &a, qreal &b, qreal &c, qreal &d)
-{
-    qreal m_t = 1. - t;
-    b = m_t * m_t; c = t * t; d = c * t;
-    a = b * m_t; b *= 3. * t; c *= 3. * m_t;
-}
+#include "PkBezier_p.h"   // S-18：Bezier 辅助搬进共用私有头（照 Qt qbezier_p.h）
 
 void PkArcBezier::parameterSplitLeft(qreal t, PkArcBezier *left)
 {
@@ -209,18 +179,6 @@ int PkArcBezier::stationaryYPoints(qreal &t0, qreal &t1) const
         return count;
     }
     return 0;
-}
-
-static PkArcBezierSplit pkSplitBezier(const PkArcBezier &b)
-{
-    PkPointF mid12((b.x1 + b.x2) * 0.5, (b.y1 + b.y2) * 0.5);
-    PkPointF mid23((b.x2 + b.x3) * 0.5, (b.y2 + b.y3) * 0.5);
-    PkPointF mid34((b.x3 + b.x4) * 0.5, (b.y3 + b.y4) * 0.5);
-    PkPointF mid1223((mid12.x() + mid23.x()) * 0.5, (mid12.y() + mid23.y()) * 0.5);
-    PkPointF mid2334((mid23.x() + mid34.x()) * 0.5, (mid23.y() + mid34.y()) * 0.5);
-    PkPointF mid((mid1223.x() + mid2334.x()) * 0.5, (mid1223.y() + mid2334.y()) * 0.5);
-    return {PkArcBezier::fromPoints(PkPointF(b.x1,b.y1), mid12, mid1223, mid),
-            PkArcBezier::fromPoints(mid, mid2334, mid34, PkPointF(b.x4,b.y4))};
 }
 
 static PkRectF pkBezierBounds(const PkArcBezier &b)
@@ -558,8 +516,33 @@ void PkPainterPath::reserve(int size)
     m_elements.reserve(size);
 }
 
+// ⚠ qpainterpath.cpp:74-89 —— `isValidCoord` **不只是 qIsFinite**：还要求
+// `fabs(c) < 1e128`。Qt 用它在 `moveTo` / `lineTo` / `cubicTo` / `quadTo` /
+// `arcTo` / `addRect` / `addEllipse` 的入口把「非有限或过大」的点**整条丢掉**。
+//
+// S-18 之前本模块**没有**这道守卫。后果实测：`mapRect` 的投影支走
+// `mapProjective` → `path.lineTo`，在 `w` 溢出到 ±inf 的输入上（如 m13=-2、
+// 矩形宽 1e308）会算出 NaN 点并塞进路径；Qt 那边这些点被 `lineTo` 丢掉、
+// 路径停在那个 moveTo 上，取包围盒就得到空路径的 (0,0,0,0)。
+// 于是 `persp-clip/*` 残留 1 490 条 —— **根因在这道缺失的守卫，不在
+// mapProjective**。补上即对齐 Qt。
+static inline bool pkIsValidCoord(qreal c)
+{
+    if (sizeof(qreal) >= sizeof(double))
+        return std::isfinite(c) && std::fabs(c) < 1e128;
+    else
+        return std::isfinite(float(c)) && std::fabsf(float(c)) < 1e16f;
+}
+static inline bool pkHasValidCoords(const PkPointF &p)
+{ return pkIsValidCoord(p.x()) && pkIsValidCoord(p.y()); }
+static inline bool pkHasValidCoords(const PkRectF &r)
+{ return pkIsValidCoord(r.x()) && pkIsValidCoord(r.y())
+      && pkIsValidCoord(r.width()) && pkIsValidCoord(r.height()); }
+
 void PkPainterPath::moveTo(const PkPointF &p)
 {
+    if (!pkHasValidCoords(p))
+        return;
     detachForMutation();
     m_requireMoveTo = false;
     if (!m_elements.isEmpty() && m_elements.last().type == MoveToElement) {
@@ -574,6 +557,8 @@ void PkPainterPath::moveTo(const PkPointF &p)
 
 void PkPainterPath::lineTo(const PkPointF &p)
 {
+    if (!pkHasValidCoords(p))
+        return;
     detachForMutation();
     if (m_elements.isEmpty())
         moveTo(PkPointF());
@@ -586,6 +571,8 @@ void PkPainterPath::lineTo(const PkPointF &p)
 }
 void PkPainterPath::cubicTo(const PkPointF &c1, const PkPointF &c2, const PkPointF &ep)
 {
+    if (!pkHasValidCoords(c1) || !pkHasValidCoords(c2) || !pkHasValidCoords(ep))
+        return;
     detachForMutation();
     if (m_elements.isEmpty())
         moveTo(PkPointF());
@@ -628,7 +615,10 @@ void PkPainterPath::closeSubpath()
 PkPointF PkPainterPath::currentPosition() const { return m_currentPos; }
 
 void PkPainterPath::addRect(const PkRectF &rect)
-{ moveTo(rect.x(),rect.y()); lineTo(rect.x()+rect.width(),rect.y()); lineTo(rect.x()+rect.width(),rect.y()+rect.height()); lineTo(rect.x(),rect.y()+rect.height()); closeSubpath(); }
+{
+    if (!pkHasValidCoords(rect))
+        return;
+    moveTo(rect.x(),rect.y()); lineTo(rect.x()+rect.width(),rect.y()); lineTo(rect.x()+rect.width(),rect.y()+rect.height()); lineTo(rect.x(),rect.y()+rect.height()); closeSubpath(); }
 void PkPainterPath::addPolygon(const PkPolygonF &polygon)
 {
     if (polygon.isEmpty())

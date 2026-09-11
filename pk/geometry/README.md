@@ -1094,68 +1094,52 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 18 | **`PkRectF::toAlignedRect` 用 `std::floor` / `std::ceil`，Qt 用 `qFloor` / `qCeil`（`qmath.h`）** | `qmath.h` 的 `qFloor(qreal v)` 就是 `int(std::floor(v))`、`qCeil` 同（只是把 `int(...)` 收进函数里），逐字等价。不把 `qFloor`/`qCeil` 提进 `PkGlobal.h` 是因为它们在保留范围内于 **Rect 族没有调用点** —— 导出去才是违反判据①（与偏离 7 的 `qIsNull` 同一个处理）。`qmath.h` 整体归谁未定，本条同时是给后续线的提醒。取值一致由 149 255 069 次对拍里 `RF::toAlignedRect` 那条 `rec()` 逐输入证明（零真实差异），并被注入实验 C 组反证（抄成 `toRect()` 的实现 → 8 548 次差异、5 个未声明 tag）。 |
 | 19 | **`PkRectF` 的五个构造函数按 Qt 头文件全集实现**，不按实测调用点裁剪 | 与偏离 6（运算符）、偏离 14（`PkRect` 的构造）同一个理由、同一个性质：构造函数无法按调用点 grep 归属。范围 = `qrect.h` 里为 `QRectF` 声明的全部构造，一个不多一个不少（Darwin 专有的 `fromCGRect` 除外，有 `#if defined(Q_OS_DARWIN)` 卫兵且实测 0）。 |
 | 20 | `PkRectF` 的默认构造函数**函数体挪到类体外**（Qt 写在类体里） | 与偏离 17（`PkRect`）逐字同理：取值一字不差（`xp(0.), yp(0.), w(0.), h(0.)`），改的只是位置，为的是让 `run_oracle.sh` 的规则三闸门能从**类体的纯声明**机械解析出重载清单。**无行为差异**，`tests/test_rectf.cpp` 的 `rectfDefaultIsAllZero` 与 `PkRect.cpp` 的 `static_assert(PkRectF().isNull())` 各钉一遍。 |
-| 21 | **`PkTransform::mapRect` 的两个重载在「`type() == TxProject` 且需要透视裁剪」那一支落回四角包围盒，Qt 走 `QPainterPath`** —— R-03 唯一一条**真实**的行为偏离，`geometry.deviation` 里那 23 行全是它 | **唯一站得住的偏离理由：决策文档已明确划在范围外。** `QPainterPath` 不在 `Qt替代品选型.md` §1 几何那一行点名的四个类型里，**归属未定**（实测 766 次 / 168 文件，是一个独立子系统，不是一个函数）。它不是"我们写错了"，是"这一跳的被调方还没有人认领"。**没有别的处置**：Qt 在这一支里把矩形当路径、在近裁剪面 `w = 1e-6` 上真的裁一刀再取包围盒；落回四角包围盒时被夹持到 `1e-6` 的那个角会把包围盒撑到 `1e7` 量级，而 Qt 裁出来的是 `1e6` 量级（实测 `t(1,0,-1, 0,1,0, 0,0,1)` 对 `(0,0,10,10)`：Qt 给 `(0,0,999999.0000000007,1e7)`，四角包围盒给 `(0,0,1e7,1e7)`）。**这一支在代码里是显形的**：`PkTransform.cpp` 的两个 `mapRect` 保住了 Qt 原本的四分支结构，合并分支会省几行、也会让这个洞消失在视野里。逐条对齐见下面「偏离清单里那 23 行怎么读」。 |
+| 21 | **`PkTransform::mapRect` 的两个重载在「`type() == TxProject` 且需要透视裁剪」那一支落回四角包围盒，Qt 走 `QPainterPath`** —— R-03 唯一一条**真实**的行为偏离。**✅ 2026-09-12 已闭合（S-18 实现了 `mapProjective`，见下面「偏离清单」一节）** | **已不成立。** 当年登记它的理由是「`QPainterPath` 归属未定、决策文档划在范围外」，而该理由**已过期**：`PkPainterPath` 由 R-22 交付，消费方是活的（`plugins/tools/tool_transform2/kis_perspective_transform_strategy.cpp:274` 的 `handlesTransform.map(handles)` 正是这条路径）。按 `S线-spec.md`「S-18 撞到的投影偏离：不声明，实现 mapProjective」（2026-09-12 人拍板）实现了 Qt 的 `mapProjective` 后，这一族**整族归零**：`geometry.deviation` 回到 canary-only，`DIFF total=155625778 mismatch=3`。当年的实测对照仍值得留着当历史：Qt 给 `(0,0,999999.0000000007,1e7)`、四角包围盒给 `(0,0,1e7,1e7)` —— 现在两侧都给前者。 |
 | 22 | **`PkTransform` 不留 Qt5 那个永远是 `nullptr` 的 `Private *d`**，代价是 `sizeof(PkTransform) != sizeof(QTransform)` | 那个字段不经任何 API 露出来（Qt6 已删）。**代价诚实登记**：对拍里 Transform 族**没有** `sizeof` 相等的 `static_assert`，而 Point/Size/Rect 三族都有。**无行为差异**，但「布局一致」这条在这一族上确实弱一档。 |
 | 23 | **`PkTransform` 不复刻 `#ifndef QT_NO_DEBUG` 的七个 NaN 早退分支** | 与偏离 8（`Q_ASSERT`）同一条口径：实测本机 `libQt5Gui.so` 是带 `QT_NO_DEBUG` 编的（探针：`translate(NaN,1)` 之后 `dx == nan`，说明早退分支不在），Krita 的发布构建同样带 `QT_NO_DEBUG`。对齐的是**发布形态**。**未对齐的部分**：Debug 构建下 Qt 会 `nanWarning()` 并早退而 `PkTransform` 不会 —— 行为差异，只是它发生在 Krita 不发布的那种构建里。 |
 | 24 | **`graft/stubs/` 里 14 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |
 | 25 | **`PkTransform::isAffine()` 实现了，但 Transform 族实测调用点 = 0** —— **这条违反判据①「一项不多」，没有站得住的理由，登记在案等人裁决** | **这不是一条有理由的偏离，是一个未闭合的口子。** 三形态 6 处命中没有一处是 `QTransform`：`kis_transform_mask.cpp:459/512/578/634` 与 `inplace_transform_stroke_strategy.cpp:1003` 是 `KisTransformMaskParamsInterface::isAffine()`，`kis_transform_mask_adapter.cpp:52` 是 `KisTransformMaskAdapter` 自己的定义行。形状与 `unite`/`intersect`（都是 `QSet` 的）一模一样：**实施计划把它列进了「必须实现」清单，那是计划的实测错误** —— 与 `dotProduct`（计划说 0、实际非 0）方向相反。**它没有任何内部调用者**（与 `adjoint` 不同 —— 那个是 `inverted` 的 TxProject 路径要用才留成私有 helper，`PkTransform.cpp:1065` 出现的 `isAffine` 只是一条 `static_assert` 的消息字符串）。**收口时才查出来，本 Task 没删**：删一个已实现成员要同时动 `PkTransform.h`、`api_seen.expected`、`transform_api.map`、对拍 `rec()` 与单测五处，属于交付面变更而非收口。**两条出路二选一，由人定**：按判据①删掉，或改判为一条有意的偏离并在这里补上理由。 |
 
-### 偏离清单里那 23 行怎么读（`oracle/geometry.deviation`）
+### 偏离清单：**已清空，只剩三条 canary**（2026-09-12）
 
-23 行**只有一个根因**，就是偏离 21。它们不是 23 条独立的偏离，是**同一条偏离被
-tag 按输入形态切成了 23 格**——切细是为了让额度可推导，不是为了扩大豁免面。
+这里曾经有一节「那 23 行怎么读」，讲的是一族 `persp-clip/*` 额度 —— **那一族已经闭合，
+本节随之作废**（原文在 git 里）。现在的状态是：
 
-- **谓词与理由逐个限定词对齐（方法论规则二：谓词不许比理由宽）**：tag 只在
-  `tfFreshIsProject(m)`（与 Qt 的 `type()` 第一档**逐字相同**的模糊门槛）**且**
-  `tfNeedsClip(m, l, r, t, b)`（`qtransform.cpp:1934-1940` 的就地重算，连
-  `qMin` 用 `(a<b)?a:b` 而不是 `std::fmin` 都照抄——NaN 上两者取值不同，
-  而这里真会吃到 NaN）同时成立时才构造。**两个限定词都在，一个不多。**
-  两侧都是拿**输入的九个 double** 重算的，**不问被测对象的 `type()`** ——
-  问它的话被测对象坏掉时 tag 会跟着坏。
-- **额度（第三列）说得清"为什么恰好是这么多"**：分母合计 **27 492**、
-  分子合计 **25 495**（`run_oracle.sh` 结论块打的 27 495 / 25 498 是**含三条 canary**
-  的合计，差的正好是那 3 条 —— **两个数字都对，口径不同，别互相对账**）。
-  23 行里 **12 行分子 == 分母**（命中即分家，合计 1 547 次）；剩下 11 行的差额
-  1 997 次是**裁剪前后包围盒重合**的输入（被夹持的角落在已有包围盒之内）。
-- **这 23 行不豁免任何别的东西**：Transform 一节跑了 29 020 413 次比对，
-  除这 25 495 次外**一次都没分家**——包括惰性缓存那一整类多步序列、直角特判、
-  `inverted` 的三条路径、`map` 四个重载的夹持与不夹持。
-- **R-03 至今只有这一条真实偏离，其余全是 canary。** 这是正确结果不是漏测：
-  另外六个类型都是**逐字照抄 Qt 头文件与实现**，逐输入对拍下来本来就该是零差异。
-  判别力靠**注入自证**（每族至少三组），不靠 `total` 这个数字本身。
+```
+$ geometry.deviation 的非注释行      → 3 行，全是 canary（额度 1/1）
+$ run_oracle.sh                      → 通过 —— 全部差异都已声明，canary 齐全
+$ DIFF total=155625778 mismatch=3    → 那 3 条就是三条 canary（故意的）
+```
 
-## 调试流运算符的登记偏离（S-16，2026-09-11）
+**闭合过程**（`S线-spec.md`「S-18 撞到的投影偏离：不声明，实现 mapProjective」，
+2026-09-12 人拍板）：实现 Qt 的 `mapProjective`（齐次坐标下的近/远裁剪），
+一次关掉四处同根因的偏离 —— `T::map(PainterPath) txproject`、
+`T::mapRect(PkRectF)` 的 `persp-clip/*`、`T::mapRect(PkRect)` 的 8 行 `persp-clip/*`、
+`T::map(PolygonF) txproject-deviation`。mismatch 从 **29 120 → 3**（只剩 canary）。
 
-`PkPoint/PkPointF/PkSize/PkSizeF/PkRect/PkRectF/PkLine/PkLineF/PkMargins/PkMarginsF/`
-`PkPolygon/PkPolygonF/PkTransform` 的 `PkDebug operator<<` 逐字照抄真 Qt 5.15.7
-（取证命令见 `oracle/debugstream_qt.cpp` 文件头），**只有两处有意偏离**：
+闭合路径上有三处是**分三步才挖到底**的，记在这里免得有人重走：
 
-1. **类型名用 `Pk*`，不用 `Q*`。** 真 Qt 打 `QPointF(1,2)` 是因为真 Qt 里那个类型就叫
-   `QPointF`——规则是「打印类型自己的名字」。内核产物里没有 `QPointF`，打它等于给读
-   日志的人指一个不存在的头。两桶打的都是各自桶里真实存在的类型名，这才是一致的规则：
-   真 Qt 桶里 `PkPointF` 经 `PkFlakeBridge.h` 转成真 `QPointF` 后打出的正是 `QPointF(1,2)`。
-2. **`qSetFieldWidth` / `qSetRealNumberPrecision` 不再作用到内部各分量。** 真 Qt 逐个
-   分量插入，这里一次插入整串（**这是必需的**：`PkDebug` 没有 `QDebugStateSaver`，
-   而它的 `space()` 会吐分隔符、`nospace()` 不吐，逐个插入的写法在 nospace 上下文里
-   会多吐一个空格）。实测零调用点在流几何值的同时用这两个操纵符。
-
-> **`PkTransform` 是修复轮 2 补的（原登记说它是「实测零消费方」，那句是错的）。**
-> 实证：消费点在 `libs/global/kis_algebra_2d.cpp:785` 的
-> `qWarning() << "Cannot decompose matrix!" << t`——`t` 是一个 `PkTransform` **变量**。
-> **漏检原因是摸底判据只看「同一行里同时出现几何类型名」，而那里的操作数是变量名。**
-> 这个判据不可靠（判据自洽要求：有实测消费方的几何值类型就该在覆盖集合里），
-> **下一族补类型时不要沿用旧结论，按本节的教训重新取证消费方。**
-
-**未覆盖、已登记的类型**（Qt 也有运算符，本轮不做）：`PkRegion`、`PkPainterPath`、
-`PkMatrix4x4`、`PkVector2D/3D/4D`，以及 `pk/container` 的 `PkVector<T>`。
-**本轮未逐个取证其消费方**——已知摸底用的「同一行出现类型名」判据会漏掉变量名操作数
-（`PkTransform` 就是这么被误判的）。它们的真 Qt 输出是多行/结构化形式
-（`QPainterPath` 是元素逐行 dump、`QRegion`/`QMatrix4x4` 各有自己的格式），
-照抄的成本与风险高于本任务收益。**补之前先按本节的教训重新取证消费方，不要沿用旧结论。**
-
-## 覆盖度缺口
-
-「说不出覆盖不到什么的，说明还没想清楚」：
+1. **`mapRect` / `map(PolygonF)` 一改就好，`map(PainterPath)` 不**：剩下的 161 条
+   全是「整个路径落在近裁剪面之后」的输入（`sample` 出来的两条都是）。根因**不在
+   `mapProjective`**，而在 `PkPainterPath` 缺了 Qt 的**坐标守卫** ——
+   `qpainterpath.cpp:74-89` 的 `isValidCoord` 不只 `qIsFinite`，还要求
+   `fabs(c) < 1e128`，`moveTo`/`lineTo`/`cubicTo` 的入口拿它把「非有限或过大」的点
+   **整条丢掉**。本模块原先没有这道守卫，于是 `w` 溢出到 ±inf 时算出的 NaN 点被塞进了
+   路径，Qt 那边却丢掉了 —— 取包围盒自然分家。补上守卫（`pkIsValidCoord` /
+   `pkHasValidCoords`）后 161 归零。
+2. **最后 161 → 3 靠的是镜像 Qt 的 `ensureData()`**：`qpainterpath.cpp:598-606` 的
+   `ensureData_helper()` 会往元素表里**先塞一个 `(0,0)` 的 MoveTo 占位元素**；
+   `mapProjective` 结尾那句 `result.setFillRule(...)` 第一件事就是 `ensureData()`
+   （`:1395-1397`）。于是**"整条路径被裁光"时 Qt 返回的不是空路径，而是一条只有一个
+   `(0,0)` MoveTo 的路径**（实测：`QPainterPath r; r.setFillRule(Qt::WindingFill);`
+   → `elementCount()==1`，而 `isEmpty()` 仍是真）。本模块的 `PkPainterPath`
+   **没有**这个占位元素。处置见 `PkTransform.cpp` 里 `pkMapProjective` 顶上那段长注释：
+   **只在 `pkMapProjective` 内部撒种子**，不动 `PkPainterPath` 的表示 ——
+   后者是结构改动（`elementCount`/`isEmpty`/`currentPosition`/路径布尔运算全受影响），
+   远超本任务。
+3. **判据是 Qt 的二进制，不是 Qt 的源码**：第 2 条是在源码里翻不到的 ——
+   `mapProjective` 的 v5.15.7-lts-lgpl 原文逐字读过，按它推出来「应当是空路径」，
+   而实测的 Qt 给 1 个元素。**对不上时以二进制为准**，那才是这条线说的「Qt 怎么做」。
 
 ### 对拍侧为什么不带 `-fwrapv`（**给 S 线看**）
 
@@ -1295,8 +1279,16 @@ tag 按输入形态切成了 23 格**——切细是为了让额度可推导，�
   **点**映射不是同一个算术（`map(QPointF)` **没有**近裁剪面夹持、`MAP` 宏**有**），
   本函数只修结构不动算术，所以逐点仍走 `map(PkPointF)`；换成 `map(x,y,tx,ty)`
   会连带改掉投影档取值（实测会把 `transformMapRectPerspectiveClipIsADeclaredGap` 打红）。
-  **投影档（`type() >= TxProject`）仍不对齐** —— Qt 走 `mapProjective`（近/远裁剪面
-  上的真裁剪，`lineTo_clipped`/`cubicTo_clipped`），本实现不做裁剪，与偏离 21 同根因。
+  **投影档（`type() >= TxProject`）当时仍不对齐** —— Qt 走 `mapProjective`（近/远裁剪面
+  上的真裁剪，`lineTo_clipped`/`cubicTo_clipped`）。**同日第二刀把它也实现了**（同一裁决），
+  见下一段。
+- **`PkTransform::mapProjective`（近/远裁剪面上的真裁剪）已实现**（S-18 第二刀，同一裁决）。
+  逐字照抄 qtbase 5.15 `qtransform.cpp` 的 `qt_scaleForTransform` / `QHomogeneousCoordinate`
+  / `mapHomogeneous` / `lineTo_clipped` / `cubicTo_clipped` / `mapProjective`（路径版与多边形版），
+  外加 `qbezier.cpp` 的 `toPolygon` / `addToPolygon` 摊平（Bezier 辅助已按 Qt 的 `qbezier_p.h`
+  形制搬进共用私有头 `PkBezier_p.h`）。**一次关掉四处同根因的偏离**：
+  `T::map(PainterPath) txproject`、`T::mapRect(PkRect|PkRectF)` 的 `persp-clip/*`、
+  `T::map(PolygonF) txproject-deviation`。闭合过程与三处深坑见「偏离清单」一节。
 - **`PK_COMPARE` 对 `double` 走的是 `pk/test` 的模糊比较（相对 1e-12），不是位相等**
   ——R-11 harness 的能力边界，跨线，R-03 内不修。凡是主张"与 Qt 逐位一致"的断言
   一律用 `PK_VERIFY(sameBits(...))` 或 `std::signbit`，`test_point.cpp` 里已经这么做了。
@@ -1450,10 +1442,10 @@ tag 按输入形态切成了 23 格**——切细是为了让额度可推导，�
    对拍为此喂了**多步序列**（四个标量运算符各自的过期路径 × 问过/没问过两条分支、
    旋转往返、连续 mutator 链），但**序列空间是无穷的，喂的是手挑的那几条**。
    一元/二元 API 的全组合在这一族上不再是充分覆盖。
-2. **`mapRect` 的透视裁剪支只证明了"我们与 Qt 在这里分家"，没有证明分家的量有界。**
-   偏离 21 的 23 行额度是**当前输入集**下的数（分母合计 27 492）。换一组矩阵输入，
-   分家次数会变 —— 那时闸门会 FAIL（额度漂移），**失败方向是对的**，但不要把
-   25 495 这个数读成"偏离的规模上限"。
+2. **`mapRect` 的透视裁剪支：✅ 2026-09-12 已闭合。** 实现 `mapProjective` 之后
+   这一族**一条分家都没有了**（`mismatch=3` 即三条 canary）。原先「额度是当前输入集
+   下的数、换一组矩阵会漂」那条警告随闭合作废 —— 现在**任何**非 canary 分家都是 FAIL，
+   不再有额度可言。
 3. **`isAffine` 是判据①在这一族上的一个未闭合口子**，见上面 Transform 归属表下方
    那条警示。它不是覆盖缺口（对拍与单测都压到了它），是**范围缺口**。
 4. **`squareToQuad` / `quadToSquare` 有用量但做不出来**（签名吃 `QPolygonF`），
