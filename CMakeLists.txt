@@ -103,11 +103,32 @@ if (APPLE)
     set(CMAKE_FIND_FRAMEWORK LAST)
     set(CMAKE_MACOSX_RPATH 1)
     set(BUILD_WITH_INSTALL_RPATH 1)
+
+    # Mach-O 的 ld 默认不允许 dylib/bundle 里留未定义符号（`-undefined error`），
+    # 而 ELF 的 `-shared` 默认允许——本项目的插件架构正是靠这个：核心库引用由
+    # dlopen 的插件在运行时提供的入口（如 libs/pigment/KoColorSpaceRegistry.cpp
+    # 对 registerLcmsEngine 的弱引用）。上游在主 CMakeLists 里也显式把
+    # `-Wl,--no-undefined` 从 CMAKE_SHARED_LINKER_FLAGS 删掉了（见本文件
+    # `string(REPLACE "-Wl,--no-undefined" "" ...)`），意图一致。这里补上
+    # macOS 的对应物，让两个宿主的链接宽松度对齐；不这么做会得到一批假
+    # undefined symbol 错误。配套：那类入口的声明要标 `weak_import`，否则
+    # 解析不到时是强引用、dyld 加载即失败。
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-undefined,dynamic_lookup")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-undefined,dynamic_lookup")
+
     set(MACOS_GUI_TEST "GUI")
     if (BUILD_WITH_QT6)
         set(MACOS_MINIMUM_VERSION 12)
     else()
-        set(MACOS_MINIMUM_VERSION 10.14)
+        # 13.3 而非上游的 10.14：pk/ 层是照 Linux/libstdc++ 写的，用到了几处
+        # Apple libc++ 按部署目标设限的设施——
+        #   std::filesystem（PkConfigStore）            → 10.15
+        #   std::to_chars 浮点重载（PkString_format）   → 13.3（整数重载才是 10.15）
+        # 这个 add_definitions 排在 CMAKE_OSX_DEPLOYMENT_TARGET 之后，会覆盖它。
+        # 注意 pk/string/PkString_format.cpp:20-32 的注释：写方向保留 to_chars 是
+        # 有意为之（Android NDK 的 libc++ 从 v14 起有，解析方向才换成 strtod_l），
+        # 这里只抬高 macOS 构建的部署目标，不动那套语义。
+        set(MACOS_MINIMUM_VERSION 13.3)
     endif()
     add_definitions(-mmacosx-version-min=${MACOS_MINIMUM_VERSION} -Wno-macro-redefined -Wno-deprecated-register)
     if (CMAKE_OSX_ARCHITECTURES)

@@ -150,11 +150,9 @@ if (ANDROID)
     endif()
 endif()
 
-if(APPLE)
-    target_link_libraries(kritaglobal PRIVATE
-        kritamacosutils
-    )
-endif ()
+# 原 if(APPLE) 段链接 kritamacosutils——该 target 与其源（libs/macosutils 7 文件）
+# 已由 D 线删除（实施边界-构建目标视图.md §6「D1 删」，R-26 落地）。留着会在
+# 任何 APPLE 构建上 ld 失败；Linux 上这段根本不编译，所以一直没暴露。
 
 set_target_properties(kritaglobal PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}

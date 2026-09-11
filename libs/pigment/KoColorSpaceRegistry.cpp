@@ -38,7 +38,16 @@
 // The lcms MODULE supplies the production registration entry.  A weak reference
 // keeps the core independent when the module is loaded dynamically, while
 // statically-linked test/host targets can provide the same entry directly.
+//
+// Mach-O 与 ELF 对「未解析的弱引用」处理不同：ELF 允许共享库里留着未解析的
+// weak 符号（运行时由 dlopen 的插件补上），Mach-O 必须显式标 weak_import，
+// 否则 ld 报 undefined symbol。两者语义一致——解析不到就是 NULL，下面
+// `if (registerLcmsEngine)` 的守卫会跳过，改由 :218 的注册回调路径处理。
+#if defined(__APPLE__)
+extern void registerLcmsEngine() __attribute__((weak_import));
+#else
 extern void registerLcmsEngine() __attribute__((weak));
+#endif
 
 namespace {
 bool s_registryInitialized = false;

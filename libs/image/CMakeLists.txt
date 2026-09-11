@@ -623,9 +623,9 @@ endif()
 
 target_link_libraries(kritaimage PRIVATE ${FFTW3_LIBRARIES})
 
-if(APPLE)
-    target_link_libraries(kritaimage PRIVATE kritamacosutils)
-endif()
+# 原 if(APPLE) 段链接 kritamacosutils——该 target 已由 D 线删除（见
+# 实施边界-构建目标视图.md §6「D1 删」，R-26 落地）。Linux 上这段不编译，
+# 所以直到在 macOS 上构建才暴露为 ld 失败。
 
 target_link_libraries(kritaimage PUBLIC kritamultiarch)
 

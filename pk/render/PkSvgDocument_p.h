@@ -13,14 +13,19 @@
 #include <PkStrokeOutline.h>
 #include <SvgTransformParser.h>
 #include <SvgCssHelper.h>
-#include <charconv>
 #include <algorithm>
 #include <limits>
 #include <map>
 #include <set>
 #include <string_view>
 #include <stdexcept>
+#include <cmath>
 #include <cstdlib>
+#include <locale.h>
+#include <stdlib.h>
+#if defined(__APPLE__)
+#include <xlocale.h>   // macOS 把 strtod_l 声明在这里，不在 <stdlib.h>
+#endif
 #include <linebreak.h>
 #include <graphemebreak.h>
 
@@ -35,19 +40,36 @@ inline std::string trim(std::string value)
     const auto first = value.find_first_not_of(" \t\r\n");
     return first == std::string::npos ? "" : value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
 }
+// 解析走 strtod_l 而不是 std::from_chars —— 与 pk/string/PkString_format.cpp:20-32
+// 同一条理由，那份注释是这条规矩的真源，这里只记本处特有的两点：
+//   · libc++ 的**浮点** from_chars 实现得很晚（LLVM 20），Android NDK r27/r28 带的是
+//     Clang 18/19，那里 std::from_chars(..., double&) 是编译期错误；Apple 的 libc++
+//     则按部署目标把它卡在 macOS 26。三个平台都不能用浮点 from_chars。
+//   · strtod_l + newlocale("C") 三平台都有，且显式传 C locale，不读进程全局 locale
+//     （SVG 的小数点恒为 '.'，不受 LC_NUMERIC 影响）。
+inline locale_t pkSvgCLocale()
+{
+    // 进程生命周期缓存一份；不 freelocale（故意的，就一个对象）。
+    // 函数内 static 初始化由 C++11 保证线程安全。
+    static locale_t loc = ::newlocale(LC_ALL_MASK, "C", static_cast<locale_t>(0));
+    return loc;
+}
 inline std::vector<double> numbers(std::string_view input)
 {
     std::vector<double> result;
-    while (!input.empty()) {
-        const auto begin = input.find_first_not_of(" \t\r\n,");
-        if (begin == std::string_view::npos) break;
-        input.remove_prefix(begin);
-        if (input.front() == '+') input.remove_prefix(1);
-        double n = 0;
-        const auto parsed = std::from_chars(input.data(), input.data() + input.size(), n);
-        if (parsed.ec != std::errc() || !std::isfinite(n)) break;
+    // strtod_l 要 NUL 结尾的串，string_view 不保证，拷一份。
+    const std::string buffer(input);
+    const char *p = buffer.c_str();
+    const char *const end = p + buffer.size();
+    while (p < end) {
+        while (p < end && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n' || *p == ',')) ++p;
+        if (p >= end) break;
+        if (*p == '+') ++p;   // strtod 认 '+'，但保持与上一版一致：只剥一个，剥完须有数字
+        char *next = nullptr;
+        const double n = ::strtod_l(p, &next, pkSvgCLocale());
+        if (next == p || !std::isfinite(n)) break;
         result.push_back(n);
-        input.remove_prefix(std::size_t(parsed.ptr - input.data()));
+        p = next;
     }
     return result;
 }

@@ -41,6 +41,13 @@ namespace KisDomUtils {
         } else if constexpr (std::is_same<T, bool>::value) {
             buffer[0] = value ? '1' : '0';
             result = {buffer + 1, std::errc()};
+        } else if constexpr (std::is_enum<T>::value) {
+            // 枚举显式转 underlying_type 再进 to_chars：Apple libc++ 把枚举重载
+            // 删掉了（to_chars_integral.h 里那条 explicitly deleted），于是浮点
+            // 重载变成候选、调用歧义。显式转换在三个 stdlib 上数值一致——Linux
+            // 上原本也是走 enum→int 的隐式转换，行为不变。
+            result = std::to_chars(buffer, buffer + sizeof(buffer),
+                                   static_cast<std::underlying_type_t<T>>(value));
         } else {
             result = std::to_chars(buffer, buffer + sizeof(buffer), value);
         }
