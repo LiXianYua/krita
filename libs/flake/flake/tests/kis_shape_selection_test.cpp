@@ -28,12 +28,38 @@
 #include <QImage>
 #include <QPainter>
 #include <QPainterPath>
+#include <QTimer>
+
+#include <PkThreadCallQueue.h>
 
 class TestKisDocument : public KisDocument
 {
 public:
     TestKisDocument() : KisDocument() {}
 };
+
+/**
+ * R-30（S线-spec「跨线程投递的 pump 是消费方必装件」）：PkTimer 的到期回调是
+ * 投递到目标线程的 PkThreadCallQueue 的，目标线程必须显式 pump 才会执行——
+ * 不像 Qt 的 QTimer 由事件循环隐式驱动。本测试的等待全部是 QTest::qWait（跑
+ * Qt 事件循环），而 KisSelectionUpdateCompressor 的 100ms 压缩定时器已迁到
+ * PkTimer，因此宿主必须持续 pump，否则 KisSelection::updateProjection() 永远
+ * 不被调用、selectedExactRect() 读回的是上一步留下的旧值。
+ *
+ * KoCanvasDeferredCallTest / KoToolProxyPkPainterTest 同样在 initTestCase 里
+ * warm-up + 显式 pump，这里取「宿主持续 pump」的形态（pump 挂在 Qt 事件循环上，
+ * 让 QTest::qWait 期间也能抽干队列）。
+ */
+void KisShapeSelectionTest::initTestCase()
+{
+    PkThreadCallQueue::warmUpCurrentThread();
+
+    QTimer *pkQueuePump = new QTimer(this);
+    connect(pkQueuePump, &QTimer::timeout, this, [] {
+        PkThreadCallQueue::processPendingCalls();
+    });
+    pkQueuePump->start(10);
+}
 
 void KisShapeSelectionTest::testAddChild()
 {

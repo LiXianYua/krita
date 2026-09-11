@@ -15,6 +15,8 @@ class KisShapeSelectionTest : public QObject
 
 private Q_SLOTS:
 
+    void initTestCase();
+
     void testAddChild();
 
     void testUndoFlattening();
