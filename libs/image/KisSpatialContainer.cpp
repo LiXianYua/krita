@@ -400,7 +400,7 @@ void KisSpatialContainer::debugWriteOutRec(SpatialNode *node, PkString prefix)
     if (node->isLeaf) {
         qCritical() << prefix << "* (" << node->nodeId << ") is Leaf?" << node->isLeaf << ppVar(node->pointsCount) << ppVar(node->pointsData.length());
         for (int i = 0; i < node->pointsCount; i++) {
-            qCritical() << prefix << " - " << node->pointsData[i].index << " | " << node->pointsData[i].position;
+            qCritical() << prefix << " - " << node->pointsData[i].index << " | (" << node->pointsData[i].position.x() << ", " << node->pointsData[i].position.y() << ")";
         }
     } else {
         qCritical() << prefix << "* (" << node->nodeId << ") is Leaf?" << node->isLeaf << ppVar(node->xPartition) << ppVar(node->yPartition);
