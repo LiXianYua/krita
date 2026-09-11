@@ -47,5 +47,22 @@ target_include_directories(test_shape_primitive PRIVATE ${CMAKE_CURRENT_SOURCE_D
 add_test(NAME test_shape_primitive COMMAND test_shape_primitive)
 set_tests_properties(test_shape_primitive PROPERTIES
     ENVIRONMENT "PK_RENDER_SHAPE_PRIMITIVE_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/shape_primitive_golden.txt")
+
+# R-52: 两处 blur 滤镜内核构造（AA 1px cosmetic 直线 / AA 凸多边形填充 + translate）对拍。
+#   blur_kernel_oracle_pk —— Pk 侧 oracle 输出体（Qt-free，正常进本工程构建）。
+#   test_blur_kernel      —— ctest 目标，期望值来自 oracle/blur_kernel_golden.txt，
+#                            那份文件由 oracle/run_blur_kernel.sh 从**真 Qt 侧**产出。
+# Qt 侧 oracle 仍然只由脚本手工编译：本工程不得 find_package(Qt...)，也不得链 Qt。
+add_executable(blur_kernel_oracle_pk oracle/blur_kernel_oracle.cpp)
+target_link_libraries(blur_kernel_oracle_pk PRIVATE pkrender)
+target_include_directories(blur_kernel_oracle_pk PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/oracle)
+
+add_executable(test_blur_kernel tests/test_blur_kernel.cpp)
+target_link_libraries(test_blur_kernel PRIVATE pkrender)
+target_include_directories(test_blur_kernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/oracle)
+add_test(NAME test_blur_kernel COMMAND test_blur_kernel)
+set_tests_properties(test_blur_kernel PROPERTIES
+    ENVIRONMENT "PK_RENDER_BLUR_KERNEL_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/blur_kernel_golden.txt")
+
 add_library(retained_tools_compile OBJECT tests/retained_tools_compile.cpp)
 target_link_libraries(retained_tools_compile PRIVATE pkrender)
