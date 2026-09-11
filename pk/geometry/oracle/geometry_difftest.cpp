@@ -195,7 +195,7 @@ namespace pkoracle {
 // 符号，链不上（本族是 Task 7 加进来的，当时没同步补这一条）。纪律同上：
 // PkPainterPath.cpp 的系统头必须在上面的系统头区里已经出现过。**要核的集合是
 // 它实际 include 的那几个**（`<cmath> <cfloat> <algorithm> <math.h> <cassert>
-// <type_traits>`，见该文件 20-25 行）—— 上面 75-92 行的系统头区全部覆盖，
+// <type_traits>`，见该文件 20-25 行）—— 上面 75-93 行的系统头区全部覆盖，
 // 且 `<math.h>` 会被先到的 `<cmath>` 连带落地（两者共用同一个 include guard），
 // 所以不会造出 `pkoracle::std`。
 // ⚠ 这条注释第一版只写了「它只 #include <cstdint> 与 <cmath>」——把要核的集合
@@ -2837,10 +2837,17 @@ static void cmp_line_ctors(int x1, int y1, int x2, int y2)
     // 整条对拍抓不到（评审 S-18 发现）。对照同族口径：`S::operator==` /
     // `R::operator==` / `EQ::operator==` 都是拿**两个不同输入**比，
     // 扫起来同时覆盖"相等对"与"不等对"。
-    // 这里补第三条 `q3 = (x1+1, y1, x2, y2)`：只要 x1+1 不溢出，它必然与 `q` 不等
-    //（`x1+1` 溢出时可能撞回原值，那一档两侧仍然一致地比，不产生假差异）。
-    const QLine  q3(x1 + 1, y1, x2, y2);
-    const PkLine p3(x1 + 1, y1, x2, y2);
+    // 这里补第三条 `q3 = (x3, y1, x2, y2)`，`x3` 恒 ≠ `x1` ⇒ 端点必与 `q` 不同
+    //（`QLine::operator==` 比 pt1/pt2 四点，改了 pt1.x 就不等）。
+    // ⚠ **`x3` 不能直接写 `x1 + 1`**：扫描集 `kLineIntHand` 里有 `INT_MAX`
+    //（`geometry_difftest.cpp` 的 Line 驱动），而**本文件刻意不带 `-fwrapv`**
+    //（要与 Qt 的构建旗标对等，见本文件 §对拍侧为什么不带 -fwrapv），
+    // `INT_MAX + 1` 是有符号溢出 UB —— 在对拍 TU 里引入 UB 与这个文件的整个
+    // 设计前提相冲。`INT_MAX` 那一档绕开（走 `INT_MAX - 1`）即可：
+    // 两个分支都恒 ≠ `x1`，且分支内没有一步溢出。
+    const int x3 = (x1 == INT_MAX) ? (INT_MAX - 1) : (x1 + 1);
+    const QLine  q3(x3, y1, x2, y2);
+    const PkLine p3(x3, y1, x2, y2);
     rec("L::operatorEq",
         (q == q) == (p == p) && (q == q2) == (p == p2) && (q == q3) == (p == p3),
         sh, in,
