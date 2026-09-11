@@ -43,6 +43,20 @@ else()
     set(KRITA_AS_NEEDED "-Wl,--as-needed")
 endif()
 
+# --whole-archive 同样是 GNU ld 的说法，但**语义与 --no-as-needed 不同**，不能照
+# 上面的形制置空：--no-as-needed 在 Mach-O 上「本来就无需」（默认把命令行每个
+# dylib 记进 LC_LOAD_DYLIB），置空是语义等价；--whole-archive 是「强制把归档里
+# 全部成员拉进来，包括没被引用的」，Mach-O 的对应物是 -force_load,<归档绝对路径>
+# （缺它则「静态全局构造自注册」的对象会被链接器丢弃、构造函数不运行）。路径必须
+# 是绝对路径，$<TARGET_FILE:> 正好给出绝对路径；写错路径 ld 会直接报错（M5 实测
+# 退出码 1）。用法见下方 kis_fill_painter_test。
+if(APPLE)
+    set(KRITA_LCMS_WHOLE_ARCHIVE "-Wl,-force_load,$<TARGET_FILE:kritalcmsengine>")
+else()
+    set(KRITA_LCMS_WHOLE_ARCHIVE
+        "-Wl,--whole-archive" "$<TARGET_FILE:kritalcmsengine>" "-Wl,--no-whole-archive")
+endif()
+
 kis_add_test(
     KisPathCoverageMaskTest.cpp
     LINK_LIBRARIES kritatestsdk
@@ -173,8 +187,7 @@ target_sources(kis_mesh_transform_worker_test PRIVATE ../KisBezierGradientMesh.c
 # 填充结果与参考图差 1 像素。D-12 之后插件是静态库，必须 --whole-archive
 # 才能把它的自注册静态对象（LcmsEngineRegistration）拉进来；--no-as-needed
 # 对静态库无效（静态库按符号引用取成员，无引用的成员照样被丢弃）。
-target_link_options(kis_fill_painter_test PRIVATE
-    "-Wl,--whole-archive" "$<TARGET_FILE:kritalcmsengine>" "-Wl,--no-whole-archive")
+target_link_options(kis_fill_painter_test PRIVATE ${KRITA_LCMS_WHOLE_ARCHIVE})
 
 kis_add_test(
     kis_clone_layer_test.cpp
