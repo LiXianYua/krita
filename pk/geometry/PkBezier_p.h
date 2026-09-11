@@ -18,6 +18,15 @@
 #include "PkPoint.h"
 #include "PkRect.h"
 
+// ⚠ 本头只在**声明**里用 `PkTransform`（`PkArcBezier::mapBy` 的引用形参），
+// 引用形参要的是完整类型之外的"已声明"，所以这里前向声明就够、不必 include
+// `PkTransform.h`（那会把 PkTransform 整包拉进每个 include 本头的 TU）。
+// 两个使用方（`PkPainterPath.cpp`、`PkTransform.cpp`）都本来就 include 了
+// `PkTransform.h`，定义那份（`mapBy`）在 `PkPainterPath.cpp` 里。
+// 加这一行是为了**本头自足** —— 原先它靠 PkPoint.h/PkRect.h 的传递 include
+// 才编得过，换个 include 顺序就会炸（评审 S-18 指出这处没核到底）。
+class PkTransform;
+
 struct PkArcBezier {
     qreal x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0, x4 = 0, y4 = 0;
 
