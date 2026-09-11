@@ -244,6 +244,112 @@ void TestMimeDatabase::mimeTypeForFileHandlesPathWithDotsInDirectory()
     PK_COMPARE(PkMimeDatabase::mimeTypeForFile(PkString("/home/user/my.folder/noext")), PkString(""));
 }
 
+// ---------------------------------------------------------------------------
+// 标准图片格式后缀兜底表（决定 Q-7，docs/Qt替代品选型.md §6.7）
+//
+// 这 9 个后缀**都不在那张 37 条的 Krita 表里**（fillMimeData() 中 png/svg/jpg/…
+// 出现 0 次），上游一直靠 QMimeDatabase 的后缀兜底。补回兜底表后：
+//   - mimeTypeForSuffix / mimeTypeForFile 在 37 条表 miss 后查它；
+//   - suffixesForMimeType 同样查它（KisResourceLoaderBase::filters() 消费）；
+//   - descriptionForMimeType **不查**它（判定见 PkMimeDatabase.cpp 内注释）。
+// 反过来也要守住：补了兜底**没有**打开内容嗅探——mimeTypeForData 仍是空桩，
+// 上面 unknownExtensionReturnsEmpty() 断言 jp2 仍返回空就是那条边界的守卫。
+// ---------------------------------------------------------------------------
+
+void TestMimeDatabase::imageFallbackSuffixesResolveToStandardImageMimeTypes()
+{
+    // 后缀 → mime（两条入口都要同源同语义）
+    struct Pair { const char *suffix; const char *mimeType; };
+    static const Pair pairs[] = {
+        {"png", "image/png"},
+        {"svg", "image/svg+xml"},
+        {"jpg", "image/jpeg"},
+        {"jpeg", "image/jpeg"},
+        {"gif", "image/gif"},
+        {"bmp", "image/bmp"},
+        {"tif", "image/tiff"},
+        {"tiff", "image/tiff"},
+        {"webp", "image/webp"},
+    };
+    PK_COMPARE(static_cast<int>(sizeof(pairs) / sizeof(pairs[0])), 9);
+    for (const Pair &p : pairs) {
+        PK_COMPARE(PkMimeDatabase::mimeTypeForSuffix(PkString(p.suffix)), PkString(p.mimeType));
+    }
+
+    // 大小写折叠对兜底表同样生效（与 37 条表同一条 toLowerAscii 路径）
+    PK_COMPARE(PkMimeDatabase::mimeTypeForSuffix(PkString("PNG")), PkString("image/png"));
+    PK_COMPARE(PkMimeDatabase::mimeTypeForSuffix(PkString("Svg")), PkString("image/svg+xml"));
+    PK_COMPARE(PkMimeDatabase::mimeTypeForSuffix(PkString("JPEG")), PkString("image/jpeg"));
+
+    // mimeTypeForFile 走同一条查找路径：这正是 S-13 的转绿点
+    // （TestBundleStorage::testResourceIterator 经 KisStoragePlugin.cpp:50 走到这里，
+    //  bundle 里 39 个 .png 笔尖 + 3 个 .svg 笔尖）。
+    PK_COMPARE(PkMimeDatabase::mimeTypeForFile(PkString("abominable_snowman.png")), PkString("image/png"));
+    PK_COMPARE(PkMimeDatabase::mimeTypeForFile(PkString("bristles_circle_variable.svg")), PkString("image/svg+xml"));
+    PK_COMPARE(PkMimeDatabase::mimeTypeForFile(PkString("/a/b/pattern.TIFF")), PkString("image/tiff"));
+    PK_COMPARE(PkMimeDatabase::mimeTypeForFile(PkString("photo.JPEG")), PkString("image/jpeg"));
+
+    // 兜底表没有把「不认识的后缀」也吞掉
+    PK_COMPARE(PkMimeDatabase::mimeTypeForFile(PkString("brush.xyzzy")), PkString(""));
+}
+
+void TestMimeDatabase::imageFallbackSuffixesForMimeTypeRoundTrip()
+{
+    // mime → 后缀，首选后缀在前。消费方：KisResourceLoaderBase::filters()
+    // （libs/resources/KisResourceLoader.cpp:13-25）对每个注册的 mime 调它来产出
+    // "*.xxx"，再由 KisFolderStorage::resources() 拿去枚举资源文件。
+    {
+        PkStringList suffixes = PkMimeDatabase::suffixesForMimeType(PkString("image/png"));
+        PK_COMPARE(suffixes.size(), 1);
+        PK_VERIFY(suffixes.at(0) == PkString("png"));
+    }
+    {
+        PkStringList suffixes = PkMimeDatabase::suffixesForMimeType(PkString("image/svg+xml"));
+        PK_COMPARE(suffixes.size(), 1);
+        PK_VERIFY(suffixes.at(0) == PkString("svg"));
+    }
+    {
+        // 首选后缀是 jpg（与上游 suffixesForMimeType 对 image/jpeg 的特判一致）
+        PkStringList suffixes = PkMimeDatabase::suffixesForMimeType(PkString("image/jpeg"));
+        PK_COMPARE(suffixes.size(), 2);
+        PK_VERIFY(suffixes.at(0) == PkString("jpg"));
+        PK_VERIFY(suffixes.at(1) == PkString("jpeg"));
+    }
+    {
+        // 首选后缀是 tif
+        PkStringList suffixes = PkMimeDatabase::suffixesForMimeType(PkString("image/tiff"));
+        PK_COMPARE(suffixes.size(), 2);
+        PK_VERIFY(suffixes.at(0) == PkString("tif"));
+        PK_VERIFY(suffixes.at(1) == PkString("tiff"));
+    }
+
+    // 两个方向必须自洽：suffixesForMimeType 给出的每个后缀都能查回同一个 mime。
+    // 这是 filters() → mimeTypes() 往返（KisResourceLoaderRegistry.cpp:163-175）
+    // 不产生空串项的前提。
+    static const char *const mimes[] = {
+        "image/png", "image/svg+xml", "image/jpeg", "image/gif",
+        "image/bmp", "image/tiff", "image/webp",
+    };
+    for (const char *mime : mimes) {
+        const PkStringList suffixes = PkMimeDatabase::suffixesForMimeType(PkString(mime));
+        PK_VERIFY(!suffixes.isEmpty());
+        for (int i = 0; i < suffixes.size(); ++i) {
+            PK_COMPARE(PkMimeDatabase::mimeTypeForSuffix(suffixes.at(i)), PkString(mime));
+        }
+    }
+}
+
+void TestMimeDatabase::descriptionForMimeTypeDoesNotConsultImageFallback()
+{
+    // 判定：兜底表服务 mimeTypeForFile/mimeTypeForSuffix/suffixesForMimeType，
+    // **不服务** descriptionForMimeType——兜底表里没有「Krita 写过的英文原文」，
+    // 唯一消费方（plugins/impex/qimageio/kis_qimageio_export.cpp:46）只把它当
+    // 人读的提示串用。所以查不到就还是原样返回 mimeType 自己。
+    PK_COMPARE(PkMimeDatabase::descriptionForMimeType(PkString("image/png")), PkString("image/png"));
+    PK_COMPARE(PkMimeDatabase::descriptionForMimeType(PkString("image/svg+xml")), PkString("image/svg+xml"));
+    PK_COMPARE(PkMimeDatabase::descriptionForMimeType(PkString("image/tiff")), PkString("image/tiff"));
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_mime_database.inc"

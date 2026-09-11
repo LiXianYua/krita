@@ -16,6 +16,10 @@ private Q_SLOTS:
     void mimeTypeForFileUsesLowercasedSuffix();
     void mimeTypeForFileHandlesNoExtensionAndDotfile();
     void mimeTypeForFileHandlesPathWithDotsInDirectory();
+    // 标准图片格式后缀兜底表（决定 Q-7，Qt替代品选型.md §6.7）
+    void imageFallbackSuffixesResolveToStandardImageMimeTypes();
+    void imageFallbackSuffixesForMimeTypeRoundTrip();
+    void descriptionForMimeTypeDoesNotConsultImageFallback();
 };
 
 // mimeTypeForData 没有单独的测试槽：它的形参类型 PkByteArray 归 R-02（pk/port）

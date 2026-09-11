@@ -13,7 +13,14 @@ class PkByteArray;
 // （libs/koplugin/KisMimeDatabase.cpp 168-353 行 fillMimeData()，jp2 那 4 行
 // 在真实源码里就是被注释掉的、从不进表——所以真正参与运行时查找的是 37 条，
 // 不是文件里出现过的 mimeType 赋值语句总数），**丢弃 QMimeDatabase 的内容
-// 嗅探兜底**：查表命中就返回，查不到就是「不支持」，不再问 Qt。
+// 嗅探**（mimeTypeForData 零调用、mimeTypeForFile 所有调用点都显式传
+// checkExistingFiles=false——没有一处走内容嗅探）。
+//
+// **但后缀查表要补回**：png/svg/jpg/tif/… 从来不在那 37 条里，上游一直靠
+// QMimeDatabase 的**后缀兜底**。丢内容嗅探时把后缀兜底也一起带走了，那是两个
+// 不同的东西（§6.7）。所以这里有一张**标准图片格式后缀兜底表**，
+// mimeTypeForFile()/mimeTypeForSuffix()/suffixesForMimeType() 在 37 条表 miss
+// 后查它；mimeTypeForData() 仍是不做任何嗅探的空桩。
 //
 // description 是**未翻译的英文原文**（真实 i18nc(...) 调用的第二个参数）——
 // 翻译职责移交 Flutter 侧，按这个英文字符串去查自己的翻译表。
@@ -37,11 +44,13 @@ public:
     // 查），恒定返回空 PkString。
     static PkString mimeTypeForData(const PkByteArray &ba);
 
-    // 找 mimetype 对应的用户可读描述。表里查不到时原样返回 mimeType 自己
-    // ——这是真实 KisMimeDatabase::descriptionForMimeType 第 117 行自己的
+    // 找 mimetype 对应的用户可读描述。**只查 Krita 37 条表**（不查事后补的
+    // 标准图片格式兜底表，理由见 .cpp 内注释）；查不到时原样返回 mimeType
+    // 自己——这是真实 KisMimeDatabase::descriptionForMimeType 第 117 行自己的
     // 兜底分支，不依赖 QMimeDatabase，本类保留这条行为。
     static PkString descriptionForMimeType(const PkString &mimeType);
 
-    // 找 mimetype 对应的全部后缀，第一个是首选后缀。表里查不到返回空列表。
+    // 找 mimetype 对应的全部后缀，第一个是首选后缀。
+    // 查 Krita 37 条表 + 标准图片格式兜底表；两张表都没有则返回空列表。
     static PkStringList suffixesForMimeType(const PkString &mimeType);
 };
