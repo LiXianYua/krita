@@ -278,22 +278,39 @@ void TestTagModel::testChangeTagActive()
 {
     KisTagModel tagModel(m_resourceType);
 
-    int rowCount = static_cast<int>(tagModel.tags().size());
+    // The default tag filter is ShowActiveTags, so tags() lists active tags only
+    // -- the migration equivalent of upstream's filtered
+    // QSortFilterProxyModel::rowCount(). ShowAllTags does not look at the active
+    // state, so it can only widen that list; "* Favorites" is left inactive by
+    // testRenameTag, hence the strict inequality.
+    const int activeRowCount = static_cast<int>(tagModel.tags().size());
+    tagModel.setTagFilter(KisTagModel::ShowAllTags);
+    const int allRowCount = static_cast<int>(tagModel.tags().size());
+    QVERIFY(allRowCount > activeRowCount);
 
-
+    // Both baselines above are measured before the tag is touched, so every
+    // count below is compared against a value taken in the same filter state.
     KisTagSP tagToActivate = tagModel.tagForUrl("Another name altogether");
+    QVERIFY(tagToActivate);
+    QVERIFY(tagToActivate->active());
 
+    // ShowAllTags ignores the active state, so deactivating the tag leaves that
+    // list untouched ...
     tagModel.changeTagActive(tagToActivate, false);
     QVERIFY(!tagToActivate->active());
-    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount - 1);
-    tagModel.setTagFilter(KisTagModel::ShowAllTags);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), allRowCount);
+
     KisTagSP stored = tagModel.tagForUrl(tagToActivate->url());
     QVERIFY(stored);
     QVERIFY(!stored->active());
 
+    // ... while the active-only filter stops listing it.
+    tagModel.setTagFilter(KisTagModel::ShowActiveTags);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), activeRowCount - 1);
+
     tagModel.changeTagActive(tagToActivate, true);
     QVERIFY(tagToActivate->active());
-    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), activeRowCount);
 
     stored = tagModel.tagForUrl(tagToActivate->url());
     QVERIFY(stored);
@@ -301,7 +318,6 @@ void TestTagModel::testChangeTagActive()
              ResourceTestHelper::toQString(tagToActivate->url()));
     QCOMPARE(ResourceTestHelper::toQString(stored->name()), QString("Another name altogether"));
     QVERIFY(stored->active());
-
 }
 
 void TestTagModel::testAddEmptyTagWithResources()
