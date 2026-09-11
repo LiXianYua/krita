@@ -20,7 +20,7 @@
 ```
 
 它做四件事：配置并构建独立工程 → 跑 `test_pkgeometry` → `nm -u libpkgeometry.a |
-grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry/` 前缀内（`locks`）。
+grep -i qt` 必须无输出（判据③）→ 自证改动全部落在**本任务的** locks 内。
 
 > **判据③的判别力边界，别搞反。** `nm -u` 那条查的是**替代品本体**
 > `build/libpkgeometry.a`。**静态库允许留未定义符号**，所以在 `.a` 上这条有判别力：
@@ -31,11 +31,26 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 > 它留着只是因为判据要求这种形式的证据。`oracle/` 更不在此列——对拍**按设计就要
 > 链真 Qt**，那边 `ldd` 看得见 `libQt5Core` 才是对的。
 
-最后那条用 `git status --porcelain -- . ':(exclude)pk/geometry'` **非空即失败**，
+最后那条用 `git status --porcelain -- . ':(exclude)<locks 前缀>…'` **非空即失败**，
 不解析 porcelain 的输出文本。按列切文本的写法在两种真实情形下会失灵，两种都实测
 复现过：改名行 `R  pk/geometry/x -> pk/other/x` 切出来仍以 `pk/geometry/` 开头，
 越界改名被放过；含空格/非 ASCII 的路径 git 默认加引号转义，切出来以 `"` 开头，
 合规改动被误判越界。
+
+**R-56 起，被排除的前缀不再是写死的 `pk/geometry/`，而是「本任务的 locks」**：locks
+从 `<工作空间>/.exec/tasks.yaml` 经 `.exec/lib_tasks.py` 读（解析器**只有那一份**，
+不另写），任务 ID 取 worktree 目录名、退而取分支名 `x/<ID>`，工作空间根从仓库根的
+上一级/上两级各试一次；比对的是**本任务自己声明的那几个前缀**。**任务 ID 或 locks
+解析不出时降级成 WARN，不 FAIL**（判据的前提不成立时它不断言）。
+
+> **为什么这么改。** 写死 `pk/geometry/` 是 R-03 时代的假设 —— 那时 locks 恰好就是
+> 这一个目录。但 locks 是**每个任务各自声明**的（`scheduler.py` 靠它判并发冲突）：
+> 别的任务（如 R-53，锁含 `pk/variant`、`pk/time`、`pk/container`）跑同一个脚本时
+> 最后一步必红，而**真越界与预期越界在输出上不可区分** —— 判据退化成噪音，还卡在
+> 跑测试路径的最后一步。反方向是同一个病的另一面：把「判据算不出来」当失败（换了
+> 解析口径、不在 worktree 里、没装 pyyaml 就硬红），等于让**装置问题冒充代码问题**，
+> 噪音同样盖住真信号。所以这里同时钉两条：**判据取自本任务的真值**（`locks`），
+> **真值取不到时只 WARN**。
 
 单测走 R-11 的 PK_* harness：`pk/test` 由 `add_subdirectory(... EXCLUDE_FROM_ALL)`
 拉进来，**只用不改**。测试类声明必须在独立 `.h` 里（`pk_test_moc.py` 只扫 `.h`）。
@@ -57,16 +72,21 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 > `<标签>=<计数>[;<标签>=<计数>…]`，标签 = `uname` 归一化（`Darwin`→`macos`、
 > `aarch64`→`arm64`），每档的**实测来源**登记在同文件头部的 `# PLATFORM <标签> = <环境描述>` 行里。
 > ⚠ **缺本机那一档 = FAIL**，不许「没测过就当它一致」、也不许拿别的平台那档顶替。
-> 为什么必须分档：这批计数里有一批是**浮点决策**的产物（`persp-clip` 的档位由对拍 TU 里
+> 为什么要分档：这批计数里有一批曾是**浮点决策**的产物（`persp-clip` 的档位由对拍 TU 里
 > 编译的 `tfNeedsClip()` 判定），换架构/编译器就会在 tag 之间**搬家** —— 实测
 > x86-64 与 arm64 有 **12 条不同，且双向都有**（`proj-zero/zero-zero` 1757 vs 1537、
-> `proj-finite/span-overflow-span-overflow` 44 vs 109）。把某一个平台的观测值当全局期望，
+> `proj-finite/span-overflow-span-overflow` 44 vs 109 —— **那批 `persp-clip` 行现已整族闭合，
+> 这两组数是历史值，见下面「偏离清单：已清空」**）。把某一个平台的观测值当全局期望，
 > 就是「期望值是某平台 UB 的观测值」那类问题的原样重演 —— 判据是**每档各自实测**。
+> **现状（R-56 现场实测）**：清单里只剩 3 条 canary，每条的第三列都是
+> `linux-x86_64=1;macos-arm64=1` —— 分档**机制**仍然常驻（下面那五种负向测试守着），
+> 只是此刻没有一条计数会随平台搬家。
 > 标签/来源/第三列三样缺一即 FAIL（负向测试：缺档、标签没登记、退回旧的单个整数、
 > 来源描述过短、篡改某档计数 —— 五种都实测过会 FAIL）。
 
 **测试规模的口径**（数字随代码变，改完重跑以实际值为准；下面这一版是 Task 9
-收口时现场重测的）。计数口径：**先去掉 `//` 注释再数**
+收口时的现场快照）——**表里标了「R-56 现场重测」的两行是 2026-09-12 这一轮的值，
+其余各行仍是 Task 9 的快照、没有跟着 R-21/R-22 重测**。计数口径：**先去掉 `//` 注释再数**
 `PK_VERIFY|PK_VERIFY2|PK_COMPARE` 的出现次数——注释里写着的断言不算，不去注释
 就会系统性多数（实测踩过）：
 
@@ -78,8 +98,8 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | `static_assert` | 151 | `PkPoint.cpp` 26 + `PkSize.cpp` 42 + `PkRect.cpp` 49 + `PkTransform.cpp` 14 + `oracle/geometry_difftest.cpp` 20（布局 / 枚举取值 / constexpr 能力 / **noexcept 面**，只有在一个 TU 里才落得了地） |
 | 运行输出 `Totals` 行 | 15 / 26 / 33 / 40 / 48 / 58 | harness 的口径：每个测试类的 slot 数 + `initTestCase` + `cleanupTestCase`，**不是**测试函数数，也不是断言数。六个类合计 220 |
 | 翻译单元 | 13 | `test_main` `test_global` `test_point` `test_size` `test_rect` `test_rectf` `test_transform` + 三个 `coexist_*` + 三个 `*_macro_proof` |
-| 对拍比对次数 | 154 358 778 | `run_oracle.sh` 输出的 `DIFF total=`，`mismatch=25 498`（= 3 条 canary + 23 条已声明偏离共 25 495 次，全部落在 `T::mapRect` 的透视裁剪那一支，见偏离清单 21）。拆开：Point 族 35 569 662 + Size 族 63 189 837 + Rect/RectF 两族 26 578 866 + Transform 族 29 020 413 |
-| 规则三 map 的声明数 | 56 / 56 / 62 / 64 / 43 | `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` 的非注释行数，与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` **303 行（同口径：非注释非空行；裸 `wc -l` 是 311，差的 8 行是注释）** |
+| 对拍比对次数 | 155 626 078 | **R-56 现场重测。** `run_oracle.sh` 输出的 `DIFF total=`，`mismatch=3`（**全部是那三条 canary**）。R-56 相对上一版 **+300**：来源是新增的 `PP::*` 一族（七个坐标守卫入口各两种起点，见「坐标守卫」一节），150 次 `cmp_pp_entry` 调用 × 2 种起点 = 300 次 `rec()`（其中 Task 2 的 `cubicTo`/`quadTo`/`arcTo`/`addRect`/`addEllipse` +294、Task 3 的退化/空矩形专属档 +6）。**「新增覆盖」（7 个入口）与「新增比对次数」（300）是两个数，别混用。** |
+| 规则三 map 的声明数 | `point` 56 / `size` 56 / `rect` 66 / `rectf` 68 / `transform` 48 / `line` 43 / `margins` 40 / `polygon` 16 / `vectornd` 137 / `matrix4x4` 27 / `region` 41 | **11 份 map** 的非注释行数（顺序同上），与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` **603 行（同口径：非注释非空行；裸 `wc -l` 是 613，差的 10 行是注释或空行）**。**本行是 R-56 现场重测的**：上一版写的 5 份 map / 303 行是 R-03–R-21 时代的快照，已随 R-21 的六族与 R-22 的 `PkPainterPath` 过期。 |
 
 **优化档矩阵**（`-fwrapv` 由 `CMakeLists.txt` 的 `target_compile_options(... PUBLIC)`
 统一带上；`-fno-wrapv` 那一列是手工编译出来的对照，不是可用配置）：
@@ -98,6 +118,14 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 断言变红，整套单测事实上锁死在 `-O0`。
 **（S-18 起单测里已不剩"越界的 double→int"断言 —— 那一整块移去了对拍，见「覆盖度
 缺口」；`noFold()` 仍服务于 `sizefDivision` 的浮点除零两条。）**
+
+> **`run_pathops_oracle.sh`（R-39 的路径布尔运算对拍）现在两栖。** 它原先只有 Linux
+> 一支（`ldd` 找 `libQt5Core.so` + `LD_LIBRARY_PATH`）。R-56 把它补成与 `run_oracle.sh`
+> **同形**的两栖脚本：macOS 走 framework（`otool -L` 确认链的是 `QtCore.framework` /
+> `QtGui.framework`，运行时用 `DYLD_FRAMEWORK_PATH` / `DYLD_LIBRARY_PATH`），Linux 仍走
+> `ldd` + `LD_LIBRARY_PATH`，**两侧判据逐字相同**。于是 `run_tests.sh` 在 macOS 上也能把
+> 这条跑到 `exit 0` —— 本机实测那条链的输出是 `otool -L … | grep -i qt` 看到两个 5.15.7
+> framework，随后 `DIFF total=1281589 mismatch=0`。
 
 ## RTTI 可见性（R-53）
 
@@ -181,8 +209,8 @@ libstdc++ 的 `operator==` 本就带 `strcmp` 回退）。⇒ 跨镜像用例在
 | `PkVectorND.h` / `PkVectorND.cpp`（**R-21 T3**） | `PkVector2D`/`PkVector3D`/`PkVector4D`（N 维 float 向量），逐字抄自 `qvector2d.h`/`qvector3d.h`/`qvector4d.h` + 上游 `v5.15.7-lts-lgpl` 的 `qvectornd.cpp`。**float/double 精度不对称**（length double 累加、lengthSquared float 累加、dotProduct float 累加）与 **`qIsNull`（精确零）vs `qFuzzyIsNull`（模糊）语义分家**都是反汇编真 `libQt5Gui.so.5` 实测钉死的照抄语义。详见「VectorND 族（R-21 T3）」 |
 | `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` `compat/QRectF` `compat/QTransform` `compat/QLine` `compat/QLineF` `compat/QMargins` `compat/QMarginsF`（后四个 **R-21 T1**）`compat/QPolygon` `compat/QPolygonF`（**R-21 T2**）`compat/QVector2D` `compat/QVector3D` `compat/QVector4D`（**R-21 T3**）`compat/QMatrix4x4`（**R-21 T4**）`compat/QRegion`（**R-21 T5**） | `#define` 垫片，无扩展名，共 **19 个**。垫片形态一致：每个都把同族名字一起给（Qt 的转发头也是这样，包任一个都能拿到全族名字）。Task 5 补齐了 `QRectF`（偏离 16 已消）。**每个垫片都必须先包 `compat/QtGlobal` 再包各自的 Pk 头**（见「与 `pk/test/compat/QtGlobal` 的共存」，Task 7/8 的试接把这条压成了硬纪律） |
 | `tests/` | `test_global.cpp`（13 函数）、`test_point.cpp`（24）、`test_size.cpp`（31）、`test_rect.cpp`（38）、`test_rectf.cpp`（46）、`test_transform.cpp`（56）、`test_line.cpp`（29，R-21 T1）、`test_margins.cpp`（22，R-21 T1）、`test_polygon.cpp`（23，R-21 T2）、`test_vectornd.cpp`（28，R-21 T3）、`test_matrix4x4.cpp`（23，R-21 T4）、`test_region.cpp`（18，R-21 T5）、**三个**共存 TU `coexist_*.cpp`、**三个**宏改写探针 `point_macro_proof.cpp` / `size_macro_proof.cpp` / `rectf_macro_proof.cpp`（口径：函数个数按 `cases/*_case.h` 的 `private Q_SLOTS:` 声明数，不含 harness 自带的 `initTestCase`/`cleanupTestCase`；`run_tests.sh` 打的 `Totals: N passed` 是 N = 函数数 + 2） |
-| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF / Transform / Line / Margins / Polygon / VectorND / Matrix4x4 / Region **十一族**）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` / `line_api.map` / `margins_api.map` / `polygon_api.map` / `vectornd_api.map` / `matrix4x4_api.map` / `region_api.map`（规则三的机器闸门，十一族各一份，见下）** |
-| `oracle/painterpath_pathops_difftest.cpp` / `run_pathops_oracle.sh`（**R-39 T1**） | 同一 TU 内保持真 `QPainterPath` 与 `pkoracle::PkPainterPath` 为不同类型，不使用 `compat/`。除矩形、椭圆、折线、嵌套环、离散复合和自交形状外，也覆盖零元素/仅 move/连续 move/零长度 line、close 后同点/异点 line 与 fuzzy-close append/snap 归一、末元素编辑（unique/COW 后接同点/异点 line/cubic）、未闭合 polygon 后接 line/cubic、大小坐标近重合对与大尺度抵消三次曲线；在 OddEven/Winding 下逐输入比较具名运算、四个运算符别名、路径关系、成员关系、bounds/fill/empty 与拓扑保持的规范化元素签名。签名按子路径解析，绑定 cubic 的两个控制点与端点，只归一化闭合路径循环起点并排序整条子路径；内建同点集重连/重排 mutation 与 de Casteljau 数值自测。stdout 只包含 `DIFF` / `DIFFTAG`，`FAMILY` 覆盖记录写到独立 stderr coverage log 并由 runner 验证；`pathops.deviation` 默认必须为空，脚本通过 `ldd` 强制确认真实链接 Qt5Gui/Qt5Core。 |
+| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF / Transform / Line / Margins / Polygon / VectorND / Matrix4x4 / Region **十一族**）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` / `line_api.map` / `margins_api.map` / `polygon_api.map` / `vectornd_api.map` / `matrix4x4_api.map` / `region_api.map`（规则三的机器闸门，十一族各一份，见下）**；**R-56 增 `PP::*` 一族** —— 七个坐标守卫入口（`moveTo`/`lineTo`/`cubicTo`/`quadTo`/`arcTo`/`addRect`/`addEllipse`），每个入口两种起点（`/empty-subpath` 与 `/open-subpath`）各跑一遍，见「坐标守卫」一节 |
+| `oracle/painterpath_pathops_difftest.cpp` / `run_pathops_oracle.sh`（**R-39 T1**） | 同一 TU 内保持真 `QPainterPath` 与 `pkoracle::PkPainterPath` 为不同类型，不使用 `compat/`。除矩形、椭圆、折线、嵌套环、离散复合和自交形状外，也覆盖零元素/仅 move/连续 move/零长度 line、close 后同点/异点 line 与 fuzzy-close append/snap 归一、末元素编辑（unique/COW 后接同点/异点 line/cubic）、未闭合 polygon 后接 line/cubic、大小坐标近重合对与大尺度抵消三次曲线；在 OddEven/Winding 下逐输入比较具名运算、四个运算符别名、路径关系、成员关系、bounds/fill/empty 与拓扑保持的规范化元素签名。签名按子路径解析，绑定 cubic 的两个控制点与端点，只归一化闭合路径循环起点并排序整条子路径；内建同点集重连/重排 mutation 与 de Casteljau 数值自测。stdout 只包含 `DIFF` / `DIFFTAG`，`FAMILY` 覆盖记录写到独立 stderr coverage log 并由 runner 验证；`pathops.deviation` 默认必须为空；脚本**两栖**（R-56 起）：macOS 用 `otool -L` 确认真实链接 `QtCore.framework`/`QtGui.framework`（运行时 `DYLD_FRAMEWORK_PATH`/`DYLD_LIBRARY_PATH`），Linux 仍用 `ldd` + `LD_LIBRARY_PATH`，**两侧判据逐字相同**。 |
 | `graft/` | 真实调用点试接（判据②）：`graft_run.sh` 拿 **两个真实 Krita 测试类零改动**编译并跑绿——`KisRectsGridTest`（`libs/global/tests`）与 `KisFourPointInterpolatorTest`（`libs/image/tests`），分属两个不同 target。`stubs/` 是把不属于 R-03 的上游依赖顶住的最小垫片（清单与归属见下面「`graft/` 的 stub 清单」），`rename.sed` 做 `QTest`→`PK_*` 的机械改写，`git diff --quiet` 自证源树零改动 |
 
 ### 规则三的机器闸门
@@ -1063,7 +1091,7 @@ T1 真正交付的东西）。
 | 证据链 | 证明了什么 | **看不见什么** |
 |---|---|---|
 | `tests/`（PK_* 单测） | 期望值来自真 Qt 探针，逐条钉住反直觉语义；**唯一**能钉住"预处理期宏改写"与"共存 include 顺序"的地方 | ① 期望值是**我们挑的**输入，不是输入空间；② include 顺序是**我们写的**，不是真实调用点的；③ `PK_COMPARE` 对 `double` 走模糊比较（相对 1e-12），主张"逐位一致"必须改用 `PK_VERIFY(sameBits(...))` |
-| `oracle/`（逐输入对拍） | 1.54 亿次逐输入与真 Qt 比取值；**唯一**能抓住"单测全绿但取值分家"的地方（实测：`PkSizeF` 隐式提升丢精度，单测 33 用例全绿、对拍抓到 962 323 处） | ① 只覆盖**写了 `rec()` 的重载**，漏一条就是整个重载零覆盖（规则三的机器闸门补这一条）；② 编译行里**没有 `compat/`、没有 `pk/test` 的垫片**（硬闸门禁止），所以预处理期语义偷换与 include 顺序问题它一概看不见；③ 输入是**全组合不是穷举**，覆盖靠输入集选得对 |
+| `oracle/`（逐输入对拍） | 1.56 亿次逐输入与真 Qt 比取值；**唯一**能抓住"单测全绿但取值分家"的地方（实测：`PkSizeF` 隐式提升丢精度，单测 33 用例全绿、对拍抓到 962 323 处） | ① 只覆盖**写了 `rec()` 的重载**，漏一条就是整个重载零覆盖（规则三的机器闸门补这一条；本目录 **11 个族**进了闸门 —— `API_GROUPS` 十一项 —— 但 **`PkPainterPath.h` 不在其中**，它由 R-39 的 pathops oracle 单独守，所以 `PP::*` 那七条是**手工登记**在 `api_seen.expected` 的。**这是本目录规则三覆盖面的已知缺口，不是遗漏**：`PkPainterPath` 新增重载时闸门②**不会**替你抓）；② 编译行里**没有 `compat/`、没有 `pk/test` 的垫片**（硬闸门禁止），所以预处理期语义偷换与 include 顺序问题它一概看不见；③ 输入是**全组合不是穷举**，覆盖靠输入集选得对 |
 | `graft/`（真实调用点试接） | 真实 Krita 测试类**零改动**编译并跑绿；**唯一**能抓住"接口形状对但接不上"的地方 | ① 只有 **2 个**目标、**14 个**测试函数，覆盖的 API 面远小于前两条；② 它证明的是"能编能跑"，不证明取值对（取值对是前两条的事）；③ stub 顶住的那些依赖等于**没被验证** |
 
 **这一节的由来是一个真实的 Critical：`compat/` 漏复刻 Qt 的传递 include。**
@@ -1167,23 +1195,160 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 23 | **`PkTransform` 不复刻 `#ifndef QT_NO_DEBUG` 的七个 NaN 早退分支** | 与偏离 8（`Q_ASSERT`）同一条口径：实测本机 `libQt5Gui.so` 是带 `QT_NO_DEBUG` 编的（探针：`translate(NaN,1)` 之后 `dx == nan`，说明早退分支不在），Krita 的发布构建同样带 `QT_NO_DEBUG`。对齐的是**发布形态**。**未对齐的部分**：Debug 构建下 Qt 会 `nanWarning()` 并早退而 `PkTransform` 不会 —— 行为差异，只是它发生在 Krita 不发布的那种构建里。 |
 | 24 | **`graft/stubs/` 里 14 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |
 | 25 | **`PkTransform::isAffine()` 实现了，但 Transform 族实测调用点 = 0** —— **这条违反判据①「一项不多」，没有站得住的理由，登记在案等人裁决** | **这不是一条有理由的偏离，是一个未闭合的口子。** 三形态 6 处命中没有一处是 `QTransform`：`kis_transform_mask.cpp:459/512/578/634` 与 `inplace_transform_stroke_strategy.cpp:1003` 是 `KisTransformMaskParamsInterface::isAffine()`，`kis_transform_mask_adapter.cpp:52` 是 `KisTransformMaskAdapter` 自己的定义行。形状与 `unite`/`intersect`（都是 `QSet` 的）一模一样：**实施计划把它列进了「必须实现」清单，那是计划的实测错误** —— 与 `dotProduct`（计划说 0、实际非 0）方向相反。**它没有任何内部调用者**（与 `adjoint` 不同 —— 那个是 `inverted` 的 TxProject 路径要用才留成私有 helper，`PkTransform.cpp:1065` 出现的 `isAffine` 只是一条 `static_assert` 的消息字符串）。**收口时才查出来，本 Task 没删**：删一个已实现成员要同时动 `PkTransform.h`、`api_seen.expected`、`transform_api.map`、对拍 `rec()` 与单测五处，属于交付面变更而非收口。**两条出路二选一，由人定**：按判据①删掉，或改判为一条有意的偏离并在这里补上理由。 |
+| 26 | ~~**规则三闸门被导出宏卡死：R-53（`1687a1e`）给八个几何头挂上 `class PK_TYPE_VISIBILITY <类名>` 后，`run_oracle.sh` 的类体正则写死 `class <类名>`，八个类全部解析不出、闸门②③同时失守**~~ —— **R-56 已修，本条不再是偏离** | 与偏离 16/21 同一写法：保留本行让「这条曾经存在、什么时候消的」留在 README 里。原 `run_oracle.sh` 的类体正则只认 `class <类名>`，而 R-53 加的是 `class PK_TYPE_VISIBILITY <类名>` ⇒ 八个类全部落空、`run_oracle.sh` **恒 `exit 1`**（实测 13 条 FAIL）。R-56 把正则放宽成「类名前允许一个『全大写 + 数字/下划线』的可选宏」。**同时记一笔：R-53 自己跑的是 `run_tests.sh`，那条路径走不到这个闸门 ⇒ 它是静默引入的** —— 正是「修好了但没有回归守卫，改回去不会让任何东西变红」那一类，本 README 给它起过名字（见「三条证据链各自的盲区」末尾那句）。 |
 
-### 坐标守卫：`isValidCoord` 不只是 `qIsFinite`（2026-09-12）
+### 坐标守卫：`isValidCoord` 不只是 `qIsFinite`（2026-09-12，R-56 重写）
+
+> **`addRect`：R-56 改过它的形态** —— 下面第 5 点登记了它。R-56 把 `addRect` 从
+> `moveTo + lineTo×3 + closeSubpath()` 改成 Qt 的形态（`moveTo` 之后**直接 append 四个
+> `LineToElement`**，含 `isNull()` 早退）。**这是公开行为的改动、消费者可达**：
+> `codegraph callers "PkPainterPath::addRect"` = **20 个直接调用点**，散布在
+> `libs/brush`、`libs/canvas/tool`、`libs/flake` 等处。代价见第 5 点。
 
 `qpainterpath.cpp:74-89` 的 `isValidCoord` 是 **`qIsFinite(c) && fabs(c) < 1e128`**
 （`qreal==float` 时 `1e16f`）——**不是单纯的有限性检查**。Qt 在 `moveTo` / `lineTo` /
 `cubicTo` / `quadTo` / `arcTo` / `addRect` / `addEllipse` **七个入口**用它把
-「非有限或过大」的坐标**整条丢掉**。`PkPainterPath` 原先一个都没守，S-18 分两刀补齐。
+「非有限或过大」的坐标**整条丢掉**。`PkPainterPath` 原先一个都没守，S-18 分两刀补齐：
 
-第一刀（`mapProjective` 那一轮）：`moveTo` / `lineTo` / `cubicTo` / `addRect` ——
-不补这一刀，`mapRect` 的投影支会在 `w` 溢出到 ±inf 的输入上把 NaN 点塞进路径，
-而 Qt 丢掉了，取包围盒就分家（当时残留 1490 条）。
+- 第一刀（`mapProjective` 那一轮）：`moveTo` / `lineTo` / `cubicTo` / `addRect` ——
+  不补这一刀，`mapRect` 的投影支会在 `w` 溢出到 ±inf 的输入上把 NaN 点塞进路径，
+  而 Qt 丢掉了，取包围盒就分家（当时残留 1490 条）。
+- 第二刀（S-18 本轮）：`quadTo` / `arcTo` / `addEllipse`。**补的时候这三条不在对拍
+  语料里**（语料只用 `moveTo`/`lineTo`/`cubicTo`/`addRect` 构造路径），所以当时只能靠
+  一支独立探针判 —— **那个覆盖洞就是 R-56 要补的东西**（见第 2 点）。
 
-第二刀（本轮）：`quadTo` / `arcTo` / `addEllipse`。**这三条不在对拍语料里**
-（语料只用 `moveTo`/`lineTo`/`cubicTo`/`addRect` 构造路径，走不到），所以补它们
-**不能靠 `run_oracle.sh` 判**，靠的是下面这支独立探针。
+#### 1. 现在：七个入口都有常驻覆盖
 
-#### 探针（可复现：一次性证据，不是常驻闸门）
+`oracle/geometry_difftest.cpp` 的 **`PP::*` 一族**（R-56 加）逐入口压这些守卫：每个
+入口**两种起点**各跑一遍 —— `/empty-subpath`（空路径直接调）与 `/open-subpath`
+（先在 `(1,2)→(3,4)` 上开一段再调），`cmp_pp_entry` 体内就是那两个 `rec()`。语料
+`kPpTok = { 1e200, 1e128, 1e127, ±inf, nan, 5e-324 }` 逐分量扫：`moveTo`/`lineTo`
+各扫 `x` 一格，`cubicTo` 扫 `c1.x`/`c2.x`/`ep.x`（守卫是三个点的**或**），`quadTo`
+扫 `cp.x`/`ep.x`，`addRect`/`addEllipse`/`arcTo` 各扫 rect 的四个分量，`arcTo` 另扫
+`startAngle`/`sweepLength`。**150 次 `cmp_pp_entry` 调用 × 2 种起点 = 300 次 `rec()`**。
+
+#### 2. R-56 之前的覆盖实况（本节就是为补这个洞而写）
+
+按**入口现场数**（不是"四个"）：`moveTo`/`lineTo` 只被 `pkMapProjective` 那条路径
+**间接**压到；`cubicTo`/`quadTo`/`arcTo`/`addRect`/`addEllipse` **五条的守卫分支一次
+都进不去** —— 语料喂的全是小字面量，守卫那条「非有限或过大就 `return`」从没执行过。
+所以七条都得补。
+
+#### 3. 那支探针降格为历史证据（**它不是判据**）
+
+下面那支探针是**一次性、可复现的取数方式**，不是闸门。**判据是 `run_oracle.sh`** ——
+探针当年能跑，是因为那三条入口没有别的覆盖；现在它们进了 `PP::*`，每次 `run_oracle.sh`
+都在压。探针留下的价值是它的**取数方法**（两侧各建一条同样的路径、参数化成表、
+逐元素比），要复现某条守卫边界时照它抄。
+
+#### 4. 探针剩下的那 1 例：**已修（R-56）** —— 另一个根因
+
+`quadTo(cp = (5e-324, 0), ep = (10,0))`（次正规数，**在这把守卫的管辖之外**）两侧
+元素个数相同、**坐标差 1 ulp**：
+
+```
+Qt[2] = 3.3333333333333335      pk[2] = 3.3333333333333339
+```
+
+根因是控制点的算法写法不同：
+
+- Qt（`qpainterpath.cpp:932`）：`QPointF c1((prev.x() + 2*c.x()) / 3, ...)`
+  —— **`(prev + 2c) / 3`**
+- pk 旧写法：`sp.x() + 2./3.*(cp.x()-sp.x())` —— **`prev + (2/3)(c - prev)`**
+
+数学上等价、**浮点上差 1 ulp**。R-56 已把 `PkPainterPath::quadTo` 换成 Qt 的写法。
+判据是**逐位**的（`same_path` 走 `same_double`），1 ulp 就是分家。
+
+**反向证伪（Task 4 的 B 条注入实测）**：把算式改回旧写法，`run_oracle.sh` 立刻红 ——
+4 条未声明 tag（`PP::quadTo {finite,subnormal}/{empty,open}-subpath`），`mismatch`
+从 3 抬到 8、`exit=1`。
+
+**`.x` 还是 `.y`？两个都真**（两轮评审独立复算过）：`cp=(5e-324,0)` 那一支差在 `c2.x`；
+`/open-subpath` 上同一组输入还差在 `c1.y`（`(4 + 0)/3 = 1.3333333333333333` 对
+`4 + (2/3)*(0 - 4) = 1.3333333333333335`）—— 是**不同元素**上的两个 1 ulp，`.y` 只在
+open-subpath 那条上出现，语料两条都命中。
+
+#### 5. R-56 修的第二条根因：**`addRect` 的形态**
+
+Qt 的 `addRect`（`qpainterpath.cpp:1086-1113`）是 `moveTo` 之后**直接 append 四个
+`LineToElement`**（l1/l2/l3/l4，l4 = `(x,y)`），**不经过 `lineTo`、也不调
+`closeSubpath`**；本模块原先走 `moveTo + lineTo×3 + closeSubpath()`，而 `lineTo` 有
+`if (p == m_currentPos) return;` ⇒ 退化矩形（量级悬殊使 `x+w == x`）**少 2 个元素**。
+现已按 Qt 逐句改（含 `isNull()` 早退）。
+
+- **触发条件**：坐标量级悬殊或宽高为 0。消费者面由 `codegraph explore "addRect"` 的
+  blast radius 给出：`PkPainterPath::addRect` 有 **20 个直接调用点**（另有同名但不同类
+  的 `KisRectsGrid::addRect` / `KisOptimizedBrushOutline::addRect` 等，不是本类的）。
+- **代价**：改的是**全仓在用的成员**的退化矩形元素表。这不是偏离（方向是朝 Qt 对齐），
+  但它是**公开行为的改动**，所以在上面那句定位句与本点各登记一次。
+- **判别力**：Task 4 的 E 条注入（整条还原旧写法）红出 8 条 `PP::addRect *` tag
+  （含 `null-rect`/`degenerate-w` 两个专属档）；F 条只删 `isNull()` 早退也红出
+  `null-rect` 一对 —— 证明 `isNull` 那一支**有自己的判别输入**，不是被顺带压出来的。
+
+#### 6. 覆盖边界（**必须登记，不许静默**）：`arcTo` 的大角度档
+
+`arcTo` 的 `startAngle` 落在 **`2^31 ≤ |angle| < 1e128`** 时，两侧都在守卫**之后**
+做越界的 `int(...)` 转换：
+
+- 本模块：`pkCurvesForArc` 里 `int startSegment = int(std::floor(startAngle / 90));`
+- Qt：`qt_find_ellipse_coords:134` 的 `360 * qFloor(angles[i] / 360)`（`qFloor` 返回
+  `int`），随后 `360 * (越界 int)` 又是有符号溢出。
+
+**两侧编译器不同 ⇒ 这个区间上的"Qt 值"是一次 UB 的观测值，不可能稳定对齐**（本 README
+「对拍侧为什么不带 `-fwrapv`」给这类问题起过名字）。所以语料的 `startAngle` 那一格改用
+int 安全值：`|angle| < 2.147e9`（实测取 `1e9`）—— `|360*qFloor(x/360)|` 要落在 `int`
+内就是这个界。守卫的**界外**档（`1e128`/`1e200`/±inf/nan）**照旧全覆盖** —— 它们在
+入口就被 `isValidCoord` 丢掉、根本走不到那段 UB，所以判别力不受损。
+
+> **这一档从此无人常驻守，是登记的缺口** —— 不是静默丢弃：写在这里，也写在
+> `geometry_difftest.cpp` 的 `kArcStartTok` 定义处。
+
+#### 7. 判别力对照（spec 判据③ 要的那一半）
+
+Task 4 在最终 HEAD 上逐条注入缺陷，六条**全红**（`exit=1` + 未声明 tag）；对照条也红，
+但**红在别的族**：
+
+| # | 注入 | 红出的 tag 族 | 结论 |
+|---|---|---|---|
+| A | `quadTo` 守卫整行删 | `PP::quadTo guard-rejected/*` | 红 ✅ |
+| B | `quadTo` 算式还原旧写法 | `PP::quadTo {finite,subnormal}/*` | 红 ✅ |
+| C | `arcTo` 守卫整行删 | `PP::arcTo {guard-rejected,nonfinite}/*` | 红 ✅ |
+| D | `addEllipse` 守卫整行删 | `PP::addEllipse {guard-rejected,nonfinite}/*` | 红 ✅ |
+| E | `addRect` 整条还原旧写法 | `PP::addRect *`（8 条，含 `null-rect`/`degenerate-w`） | 红 ✅ |
+| F | 只删 `addRect` 的 `isNull()` 早退 | `PP::addRect null-rect/*`（2 条） | 红 ✅ |
+| 对照 | `addPolygon` 的 `moveTo(polygon.first())` 改 `moveTo(PkPointF())` | `T::map(PolygonF) txproject-deviation`（**非 `PP::`**） | 红，但**红在别处** |
+
+**分母口径是「命中 N 次里分家 M 次」**（`DIFFTAG <api> <tag> <分子>` /
+`DIFFDEN <api> <tag> <分母>`；分母 = 该 tag 的谓词在输入集里命中过多少次比对）:
+
+| 注入 | tag | 命中 N | 分家 M |
+|---|---|---:|---:|
+| A | `PP::quadTo guard-rejected/{empty,open}-subpath` | 4 / 4 | 1 / 1 |
+| B | `PP::quadTo finite/{empty,open}-subpath` | 2 / 2 | 1 / 2 |
+| B | `PP::quadTo subnormal/{empty,open}-subpath` | 2 / 2 | 1 / 1 |
+| C | `PP::arcTo guard-rejected/{empty,open}-subpath` | 12 / 12 | 4 / 4 |
+| C | `PP::arcTo nonfinite/{empty,open}-subpath` | 18 / 18 | 8 / 8 |
+| D | `PP::addEllipse guard-rejected/{empty,open}-subpath` | 8 / 8 | 2 / 2 |
+| D | `PP::addEllipse nonfinite/{empty,open}-subpath` | 12 / 12 | 4 / 4 |
+| E | `PP::addRect degenerate-w/{empty,open}-subpath` | 1 / 1 | 1 / 1（命中即分家） |
+| E | `PP::addRect null-rect/{empty,open}-subpath` | 1 / 1 | 1 / 1（命中即分家） |
+| E | `PP::addRect {finite,subnormal}/{empty,open}-subpath` | 4 / 4 | 2 / 2 |
+| F | `PP::addRect null-rect/{empty,open}-subpath` | 1 / 1 | 1 / 1 |
+| 对照 | `T::map(PolygonF) txproject-deviation` | 14 | 2（**非 PP 族**） |
+
+**对照条怎么读（如实记）**：`PP::*` 族一条都没红 —— 七个守卫入口那一族**不覆盖**
+`addPolygon`，**判别力是有指向的**。但它**不是 exit=0**：整份 `run_oracle.sh` 另有一处
+压到 `addPolygon`（`T::map(PolygonF)` → `PkTransform::map(PkPolygonF)` →
+`PkPainterPath::addPolygon`），改 `moveTo` 的入参破坏了投影映射的往返闭合，于是从
+**变换族**而非 PP 族红出来。
+
+#### 8. 独立见证：`addRect` 重写**没动**路径布尔运算
+
+R-39 的 pathops 对拍在 `addRect` 改动前后**逐字不变**：`DIFF total=1281589 mismatch=0`、
+**19 条 `FAMILY`**（`FAMILY rectangle` 那条也在）。它是「改的是**元素表形态**、
+不是几何」的独立见证。
+
+#### 探针（一次性的历史证据；判据是 `run_oracle.sh`，不是它）
 
 ```bash
 # 骨架与 pk/geometry/oracle/geometry_difftest.cpp 同形：真 Qt 侧在全局作用域，
@@ -1204,27 +1369,8 @@ c++ -std=c++17 -O2 -I"$QT/lib/QtCore.framework/Headers" -I"$QT/lib/QtGui.framewo
 
 补前那 9 例分家全部集中在 **`|c| ≥ 1e128` 或非有限** 上，正是这把守卫管的范围
 （`1e127` 与 `±inf`/`nan` 那几例两侧本来就一致 —— `nan` 那些是被后面的
-`cubicTo`/`isNull()` 顺带挡住的，不是这条守卫的功劳）。
-
-#### ⚠ 探针剩下的那 1 例：**另一个根因，本轮未修（超出授权范围）**
-
-`quadTo(cp = (5e-324, 0), ep = (10,0))`（次正规数，**在这把守卫的管辖之外**）
-两侧元素个数相同、**坐标差 1 ulp**：
-
-```
-Qt[2] = 3.3333333333333335      pk[2] = 3.3333333333333339
-```
-
-根因是控制点的算法写法不同：
-
-- Qt（`qpainterpath.cpp:932`）：`QPointF c1((prev.x() + 2*c.x()) / 3, ...)`
-  —— **`(prev + 2c) / 3`**
-- pk（`PkPainterPath::quadTo`）：`sp.x() + 2./3.*(cp.x()-sp.x())`
-  —— **`prev + (2/3)(c - prev)`**
-
-数学上等价、**浮点上差 1 ulp**。改法就是把 pk 那行换成 Qt 的写法（一行）。
-**本轮没改**：它不属于「补 `isValidCoord` 守卫」的授权范围，且这条入口**无常驻覆盖**
-（改它同样只有探针能证）。单独开任务。
+`cubicTo`/`isNull()` 顺带挡住的，不是这条守卫的功劳）。第 28 例就是第 4 点那个
+`quadTo` 1 ulp，**R-56 已修**。
 
 ### 偏离清单：**已清空，只剩三条 canary**（2026-09-12）
 
@@ -1234,7 +1380,7 @@ Qt[2] = 3.3333333333333335      pk[2] = 3.3333333333333339
 ```
 $ geometry.deviation 的非注释行      → 3 行，全是 canary（额度 1/1）
 $ run_oracle.sh                      → 通过 —— 全部差异都已声明，canary 齐全
-$ DIFF total=155625778 mismatch=3    → 那 3 条就是三条 canary（故意的）
+$ DIFF total=155626078 mismatch=3    → 那 3 条就是三条 canary（故意的；R-56 加 `PP::*` 族后 +300）
 ```
 
 **闭合过程**（`S线-spec.md`「S-18 撞到的投影偏离：不声明，实现 mapProjective」，
