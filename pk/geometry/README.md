@@ -643,9 +643,11 @@ out-of-line 成员：`PkPolygonF(const PkRectF&)`（矩形四顶点顺时针 + �
 
 **`PkTransform::map(const PkPolygonF&)` 与 `squareToQuad`/`quadToSquare` 顺带
 解开**（T2 交付 `PkPolygonF` 之前做不出来，与 T1 解开 `map(const PkLineF&)` 同一
-模式）。`map(QPolygonF)` 的 `TxProject` 分支与真 Qt 有一处登记在案的偏离（真 Qt
-铺进 `QPainterPath` 做透视裁剪，本类落回逐点无裁剪的 `map(const PkPointF&)`），
-`oracle/geometry.deviation` 的 `T::map(PolygonF) txproject-deviation` 一行。
+模式）。`map(QPolygonF)` 的 `TxProject` 分支**曾**与真 Qt 有一处登记在案的偏离（真 Qt 铺进
+`QPainterPath` 做透视裁剪，本类落回逐点无裁剪的 `map(const PkPointF&)`），
+即 `oracle/geometry.deviation` 曾经的 `T::map(PolygonF) txproject-deviation` 一行。
+**✅ 2026-09-12 已闭合**（S-18 实现了 `mapProjective`），那一行随之从清单删除；
+本类现在在该档走 `pkMapProjective`，与真 Qt 一致。
 
 ### 明确不实现（登记在案的偏离，不是遗漏）
 
@@ -852,7 +854,8 @@ QRegion())` 是空），第一版漏掉这个短路，对拍在退化矩形（`0
 
 | 类型 | 出现次数 | 文件数 | 备注 |
 |---|---:|---:|---|
-| `QPainterPath` | 766 | 168 | **规模最大，是一整个子系统而不是一个类**。R-03 的唯一一条真实偏离就卡在它身上（`mapRect` 的透视裁剪支，偏离 21） |
+| `QPainterPath` | 766 | 168 | **规模最大，是一整个子系统而不是一个类**。R-03 当年唯一一条真实偏离曾卡在它身上（`mapRect` 的透视裁剪支，偏离 21）——
+**✅ 2026-09-12 已闭合**（S-18 实现了 `mapProjective`） |
 | `QLineF` | 585 | 67 | `kis_global.h:232` 无条件 `#include <QLineF>`，紧跟两个**非模板** inline 函数用了 `p1()`/`p2()` —— 于是**任何**包含 `kis_global.h` 的 TU 都要求它是完整类型。试接靠 `graft/stubs/QLineF` 顶住 |
 | `QPolygonF` | 274 | 65 | 真 Qt 里 `class QPolygonF : public QVector<QPointF>` —— 它同时压着 R-02（容器）与几何两条线 |
 | `QPolygon` | 108 | 22 | 整数版；两个试接目标一次都没用到 |
@@ -1094,7 +1097,7 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 18 | **`PkRectF::toAlignedRect` 用 `std::floor` / `std::ceil`，Qt 用 `qFloor` / `qCeil`（`qmath.h`）** | `qmath.h` 的 `qFloor(qreal v)` 就是 `int(std::floor(v))`、`qCeil` 同（只是把 `int(...)` 收进函数里），逐字等价。不把 `qFloor`/`qCeil` 提进 `PkGlobal.h` 是因为它们在保留范围内于 **Rect 族没有调用点** —— 导出去才是违反判据①（与偏离 7 的 `qIsNull` 同一个处理）。`qmath.h` 整体归谁未定，本条同时是给后续线的提醒。取值一致由 149 255 069 次对拍里 `RF::toAlignedRect` 那条 `rec()` 逐输入证明（零真实差异），并被注入实验 C 组反证（抄成 `toRect()` 的实现 → 8 548 次差异、5 个未声明 tag）。 |
 | 19 | **`PkRectF` 的五个构造函数按 Qt 头文件全集实现**，不按实测调用点裁剪 | 与偏离 6（运算符）、偏离 14（`PkRect` 的构造）同一个理由、同一个性质：构造函数无法按调用点 grep 归属。范围 = `qrect.h` 里为 `QRectF` 声明的全部构造，一个不多一个不少（Darwin 专有的 `fromCGRect` 除外，有 `#if defined(Q_OS_DARWIN)` 卫兵且实测 0）。 |
 | 20 | `PkRectF` 的默认构造函数**函数体挪到类体外**（Qt 写在类体里） | 与偏离 17（`PkRect`）逐字同理：取值一字不差（`xp(0.), yp(0.), w(0.), h(0.)`），改的只是位置，为的是让 `run_oracle.sh` 的规则三闸门能从**类体的纯声明**机械解析出重载清单。**无行为差异**，`tests/test_rectf.cpp` 的 `rectfDefaultIsAllZero` 与 `PkRect.cpp` 的 `static_assert(PkRectF().isNull())` 各钉一遍。 |
-| 21 | **`PkTransform::mapRect` 的两个重载在「`type() == TxProject` 且需要透视裁剪」那一支落回四角包围盒，Qt 走 `QPainterPath`** —— R-03 唯一一条**真实**的行为偏离。**✅ 2026-09-12 已闭合（S-18 实现了 `mapProjective`，见下面「偏离清单」一节）** | **已不成立。** 当年登记它的理由是「`QPainterPath` 归属未定、决策文档划在范围外」，而该理由**已过期**：`PkPainterPath` 由 R-22 交付，消费方是活的（`plugins/tools/tool_transform2/kis_perspective_transform_strategy.cpp:274` 的 `handlesTransform.map(handles)` 正是这条路径）。按 `S线-spec.md`「S-18 撞到的投影偏离：不声明，实现 mapProjective」（2026-09-12 人拍板）实现了 Qt 的 `mapProjective` 后，这一族**整族归零**：`geometry.deviation` 回到 canary-only，`DIFF total=155625778 mismatch=3`。当年的实测对照仍值得留着当历史：Qt 给 `(0,0,999999.0000000007,1e7)`、四角包围盒给 `(0,0,1e7,1e7)` —— 现在两侧都给前者。 |
+| 21 | **`PkTransform::mapRect` 的两个重载在「`type() == TxProject` 且需要透视裁剪」那一支落回四角包围盒，Qt 走 `QPainterPath`** —— R-03 唯一一条**真实**的行为偏离。**✅ 2026-09-12 已闭合（S-18 实现了 `mapProjective`，见下面「偏离清单」一节）** | **已不成立。** 当年登记它的理由是「`QPainterPath` 归属未定、决策文档划在范围外」，而该理由**已过期**：`PkPainterPath` 由 R-22 交付，消费方是活的（`plugins/tools/tool_transform2/kis_perspective_transform_strategy.cpp:274` 的 `handlesTransform.map(handles)` 正是这条路径）。按 `S线-spec.md`「S-18 撞到的投影偏离：不声明，实现 mapProjective」（2026-09-12 人拍板）实现了 Qt 的 `mapProjective` 后，这一族**整族归零**：`geometry.deviation` 回到 canary-only，`DIFF total=155625778 mismatch=3`。当年的实测对照仍值得留着当历史：Qt 给 `(0,0,999999.00000000035,1e7)`、四角包围盒给 `(0,0,1e7,1e7)` —— 现在两侧都给前者。 |
 | 22 | **`PkTransform` 不留 Qt5 那个永远是 `nullptr` 的 `Private *d`**，代价是 `sizeof(PkTransform) != sizeof(QTransform)` | 那个字段不经任何 API 露出来（Qt6 已删）。**代价诚实登记**：对拍里 Transform 族**没有** `sizeof` 相等的 `static_assert`，而 Point/Size/Rect 三族都有。**无行为差异**，但「布局一致」这条在这一族上确实弱一档。 |
 | 23 | **`PkTransform` 不复刻 `#ifndef QT_NO_DEBUG` 的七个 NaN 早退分支** | 与偏离 8（`Q_ASSERT`）同一条口径：实测本机 `libQt5Gui.so` 是带 `QT_NO_DEBUG` 编的（探针：`translate(NaN,1)` 之后 `dx == nan`，说明早退分支不在），Krita 的发布构建同样带 `QT_NO_DEBUG`。对齐的是**发布形态**。**未对齐的部分**：Debug 构建下 Qt 会 `nanWarning()` 并早退而 `PkTransform` 不会 —— 行为差异，只是它发生在 Krita 不发布的那种构建里。 |
 | 24 | **`graft/stubs/` 里 14 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |

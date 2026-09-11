@@ -526,6 +526,19 @@ void PkPainterPath::reserve(int size)
 // 路径停在那个 moveTo 上，取包围盒就得到空路径的 (0,0,0,0)。
 // 于是 `persp-clip/*` 残留 1 490 条 —— **根因在这道缺失的守卫，不在
 // mapProjective**。补上即对齐 Qt。
+//
+// ⚠ **守卫目前只覆盖了 Qt 七个入口里的四个**，别把下面这句读成"全覆盖"：
+//   已守：`moveTo` · `lineTo` · `cubicTo` · `addRect`（各自定义行见下）
+//   未守：`quadTo`（经 `cubicTo` **传递**，但边界不同：`cp` 恰为 `1e128`
+//         整值时 Qt 直接丢弃，本类先算出 c1≈6.7e127 再被 cubicTo 接受）·
+//         `arcTo`（rect / startAngle / sweepLength 三个入口都没守）·
+//         `addEllipse`（没守 rect）
+//   （**不写行号**：S-18 加这段守卫本身就把行号挪过一次，再抄一次还会再漂。
+//     要定位就按函数名找。）
+//   **这三处不在 `mapProjective` / `mapRect` 的路径上**（那条路只走
+//   `addRect` + `moveTo`/`lineTo`/`cubicTo`），是**改前就有**的缺口、非 S-18 引入；
+//   对拍语料的路径构造也覆盖不到它们。补它们属于「对齐 Qt」的存量清理，
+//   不在本任务范围 —— 记在这里是**免得下一个读到这段的人以为已经全覆盖**。
 static inline bool pkIsValidCoord(qreal c)
 {
     if (sizeof(qreal) >= sizeof(double))
