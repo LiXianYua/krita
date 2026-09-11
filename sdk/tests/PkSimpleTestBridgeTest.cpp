@@ -52,7 +52,10 @@ void PkSimpleTestBridgeCase::testUnpumpedCallStaysPending()
     bool delivered = false;
     PkThreadCallQueue::post(PkThread::mainThreadId(), [&delivered] { delivered = true; });
 
-    PK_COMPARE(PkThreadCallQueue::pendingCount(), 1);
+    // 显式 size_t：pendingCount() 返回 std::size_t，写字面量 1 会触发
+    // -Wsign-compare（PkTestCompare.h 的 `t1 == t2`）；而 pk/test 不在本任务
+    // locks 内，只能在调用点对齐类型。
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
     PK_VERIFY(!delivered);
 
     PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
