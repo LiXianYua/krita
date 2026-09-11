@@ -17,6 +17,15 @@ struct NonComparableUserType {
     int m_value = 0;
 };
 
+// 复合 UserType：T 的 operator== 由 PkVariant 成员构成——libs/impex 的
+// ThumbnailData/CommentBox 的确切形状（S-12）。比较会回到 PkVariant::operator==，
+// 与 std::vector<int> 那条（比 int）不是同一格。
+struct CompositeUserType {
+    PkVariant m_a;
+    PkVariant m_b;
+    bool operator==(const CompositeUserType &o) const { return m_a == o.m_a && m_b == o.m_b; }
+};
+
 } // namespace
 
 // ── 基础状态 ──────────────────────────────────────────────────────────────
@@ -605,6 +614,47 @@ void VariantCase::userTypeEquality()
     PK_VERIFY(nc2.canConvert<NonComparableUserType>());
     PK_COMPARE(nc2.value<NonComparableUserType>().m_value, 9);
     PK_VERIFY(!(nc2 == nc2));
+}
+
+void VariantCase::userTypeCompositeEquality()
+{
+    CompositeUserType c;
+    c.m_a = PkString("hello");
+    c.m_b = 7;
+
+    PkVariant x = PkVariant::fromValue<CompositeUserType>(c);
+    PK_COMPARE(static_cast<int>(x.type()), static_cast<int>(PkVariant::UserType));
+
+    // 自反性——本格的全部意义
+    PK_VERIFY(x == x);
+    PK_VERIFY(!(x != x));
+
+    // 值语义：两个独立构造的等值对象
+    CompositeUserType c2;
+    c2.m_a = PkString("hello");
+    c2.m_b = 7;
+    PkVariant y = PkVariant::fromValue<CompositeUserType>(c2);
+    PK_VERIFY(x == y);
+    PK_VERIFY(y == x);
+
+    // 只一个成员不同 ⇒ 不相等（不得 fail-open）
+    CompositeUserType c3 = c2;
+    c3.m_b = 8;
+    PkVariant z = PkVariant::fromValue<CompositeUserType>(c3);
+    PK_VERIFY(!(x == z));
+    PK_VERIFY(x != z);
+
+    // 搬运路径：比较器随之走
+    PkVariant copied(x);
+    PK_VERIFY(copied == x);
+    PkVariant movedSource(x);
+    PkVariant moved(std::move(movedSource));
+    PK_VERIFY(moved == x);
+
+    // setValue<T> 是第二个存取点
+    PkVariant sv;
+    sv.setValue(c);
+    PK_VERIFY(sv == x);
 }
 
 // ── 转换边角 ──────────────────────────────────────────────────────────────

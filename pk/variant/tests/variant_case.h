@@ -51,6 +51,7 @@ private Q_SLOTS:
     void canConvert();
     void setValue();
     void userTypeEquality();
+    void userTypeCompositeEquality();
 
     // ── 转换边角 ────────────────────────────────────────────────────
     void conversionEdgeCases();

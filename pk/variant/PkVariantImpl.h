@@ -3,9 +3,8 @@
 #include <type_traits>
 
 // 用户类型的相等可比性检测：比较器只在 T 有 operator== 时才安装。
-// 没有 == 的 T 保持本任务之前的语义：
-// m_anyEqualAccessor 保持 nullptr ⇒ operator== 的 UserType 分支短路为 false
-// （= 与修前的 `default: return false;` 逐字一致）。这是 fail-closed 方向，
+// 没有 == 的 T：m_anyEqualAccessor 保持 nullptr ⇒ operator== 的
+// UserType 分支短路为 false（即「不声称相等」——fail-closed）。
 // **不要**改成「同类型即相等」——那会让「两个不同的值」被判成「没变」而**漏发**通知。
 namespace PkVariantImplDetail {
 
