@@ -459,4 +459,10 @@ inline PkTransform operator+(const PkTransform &a, qreal n)
 inline PkTransform operator-(const PkTransform &a, qreal n)
 { PkTransform t(a); t -= n; return t; }
 
+// QDebug operator<< 的零 Qt 对应物。真 Qt 有 QTransform 的调试运算符（**声明不在
+// qtransform.h 里**，但实测能编能跑，格式见 oracle/debugstream_qt.cpp 文件头的探针输出）。
+// 落位/形状/只前向声明的理由与 PkPoint.h 那一组同（见那里的长注释）。
+class PkDebug;
+PkDebug operator<<(PkDebug dbg, const PkTransform &v);
+
 #endif // PK_GEOMETRY_PKTRANSFORM_H

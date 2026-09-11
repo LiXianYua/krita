@@ -1113,7 +1113,7 @@ tag 按输入形态切成了 23 格**——切细是为了让额度可推导，�
 ## 调试流运算符的登记偏离（S-16，2026-09-11）
 
 `PkPoint/PkPointF/PkSize/PkSizeF/PkRect/PkRectF/PkLine/PkLineF/PkMargins/PkMarginsF/`
-`PkPolygon/PkPolygonF` 的 `PkDebug operator<<` 逐字照抄真 Qt 5.15.7
+`PkPolygon/PkPolygonF/PkTransform` 的 `PkDebug operator<<` 逐字照抄真 Qt 5.15.7
 （取证命令见 `oracle/debugstream_qt.cpp` 文件头），**只有两处有意偏离**：
 
 1. **类型名用 `Pk*`，不用 `Q*`。** 真 Qt 打 `QPointF(1,2)` 是因为真 Qt 里那个类型就叫
@@ -1125,10 +1125,19 @@ tag 按输入形态切成了 23 格**——切细是为了让额度可推导，�
    而它的 `space()` 会吐分隔符、`nospace()` 不吐，逐个插入的写法在 nospace 上下文里
    会多吐一个空格）。实测零调用点在流几何值的同时用这两个操纵符。
 
-**未覆盖、已登记的类型**（Qt 也有运算符，实测零消费方，本轮不做）：
-`PkRegion`、`PkTransform`、`PkPainterPath`、`PkMatrix4x4`、`PkVector2D/3D/4D`，
-以及 `pk/container` 的 `PkVector<T>`。它们的真 Qt 输出是多行/结构化形式，照抄的成本
-与风险远大于本轮收益；**一旦有调用点打到 `<unprintable>`，照本节的形制补。**
+> **`PkTransform` 是修复轮 2 补的（原登记说它是「实测零消费方」，那句是错的）。**
+> 实证：消费点在 `libs/global/kis_algebra_2d.cpp:786` 的
+> `qWarning() << "Cannot decompose matrix!" << t`——`t` 是一个 `PkTransform` **变量**。
+> **漏检原因是摸底判据只看「同一行里同时出现几何类型名」，而那里的操作数是变量名。**
+> 这个判据不可靠（判据自洽要求：有实测消费方的几何值类型就该在覆盖集合里），
+> **下一族补类型时不要沿用旧结论，按本节的教训重新取证消费方。**
+
+**未覆盖、已登记的类型**（Qt 也有运算符，本轮不做）：`PkRegion`、`PkPainterPath`、
+`PkMatrix4x4`、`PkVector2D/3D/4D`，以及 `pk/container` 的 `PkVector<T>`。
+**本轮未逐个取证其消费方**——已知摸底用的「同一行出现类型名」判据会漏掉变量名操作数
+（`PkTransform` 就是这么被误判的）。它们的真 Qt 输出是多行/结构化形式
+（`QPainterPath` 是元素逐行 dump、`QRegion`/`QMatrix4x4` 各有自己的格式），
+照抄的成本与风险高于本任务收益。**补之前先按本节的教训重新取证消费方，不要沿用旧结论。**
 
 ## 覆盖度缺口
 

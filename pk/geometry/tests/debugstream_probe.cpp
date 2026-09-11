@@ -14,6 +14,7 @@
 #include "PkLine.h"
 #include "PkMargins.h"
 #include "PkPolygon.h"
+#include "PkTransform.h"
 
 #include "PkDebug.h"
 #include "PkLogBackend.h"   // PkLogEmit 的**声明**——定义必须与它逐字同签名，
@@ -77,6 +78,18 @@ int main()
     polyf << PkPointF(1, 2) << PkPointF(3, 4) << PkPointF(5, 6);
     CHECK(polyf, std::string("PkPolygonF(PkPointF(1,2)PkPointF(3,4)PkPointF(5,6))"));
     CHECK(PkPolygonF(), std::string("PkPolygonF()"));
+
+    // PkTransform 格式族（S-16 修复轮 2 新增）：期望值 = 真 Qt 探针那八行原文，
+    // 把 QTransform 换成 PkTransform（构造与顺序照 oracle/debugstream_qt.cpp）。
+    // ⚠ 六参的 type=TxShear、九参的是 TxProject —— 照探针抄，不要按"看起来应该是什么"猜。
+    CHECK(PkTransform(),                              std::string("PkTransform(type=TxNone, 11=1 12=0 13=0 21=0 22=1 23=0 31=0 32=0 33=1)"));
+    CHECK(PkTransform(1, 2, 3, 4, 5, 6),              std::string("PkTransform(type=TxShear, 11=1 12=2 13=0 21=3 22=4 23=0 31=5 32=6 33=1)"));
+    CHECK(PkTransform(1.5, 2, 3, 4, 5, 6, 7, 8, 9),   std::string("PkTransform(type=TxProject, 11=1.5 12=2 13=3 21=4 22=5 23=6 31=7 32=8 33=9)"));
+    CHECK(PkTransform().translate(3, 4),              std::string("PkTransform(type=TxTranslate, 11=1 12=0 13=0 21=0 22=1 23=0 31=3 32=4 33=1)"));
+    CHECK(PkTransform().scale(2, 3),                  std::string("PkTransform(type=TxScale, 11=2 12=0 13=0 21=0 22=3 23=0 31=0 32=0 33=1)"));
+    CHECK(PkTransform().rotate(90),                   std::string("PkTransform(type=TxRotate, 11=0 12=1 13=0 21=-1 22=0 23=0 31=0 32=0 33=1)"));
+    CHECK(PkTransform(1, 0, 0, 0, 1, 0, 0.1, 0.2, 1), std::string("PkTransform(type=TxTranslate, 11=1 12=0 13=0 21=0 22=1 23=0 31=0.1 32=0.2 33=1)"));
+    CHECK(PkTransform().scale(-1.25, 1),              std::string("PkTransform(type=TxScale, 11=-1.25 12=0 13=0 21=0 22=1 23=0 31=0 32=0 33=1)"));
 
     // 链式：分隔符由各分量自己的 maybeSpace 负责，运算符不得额外吐空格。
     CHECK(PkPointF(1, 2) << PkLineF(1, 2, 3, 4) << PkRectF(1, 2, 3, 4),

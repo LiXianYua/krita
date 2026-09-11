@@ -21,6 +21,7 @@
 #include "PkLine.h"
 #include "PkMargins.h"
 #include "PkPolygon.h"
+#include "PkTransform.h"
 
 #include "PkDebug.h"
 
@@ -66,6 +67,37 @@ std::string str(const PkPolygonF &p)
     return out + ")";
 }
 
+// PkTransform 的档位名 —— 真 Qt 的 QTransform 调试运算符打出来的就是这六个枚举名
+// （原文见 oracle/debugstream_qt.cpp 的 8 行 QTransform 探针）。
+// switch **写全、不写 default** 是刻意的：将来枚举加了值，-Wswitch 会在编译期逮到，
+// 而不是静默打成别的名字。
+const char *typeName(PkTransform::TransformationType t)
+{
+    switch (t) {
+    case PkTransform::TxNone:      return "TxNone";
+    case PkTransform::TxTranslate: return "TxTranslate";
+    case PkTransform::TxScale:     return "TxScale";
+    case PkTransform::TxRotate:    return "TxRotate";
+    case PkTransform::TxShear:     return "TxShear";
+    case PkTransform::TxProject:   return "TxProject";
+    }
+    return "<unknown>";
+}
+
+// 格式：`PkTransform(type=<档位名>, 11=<a> 12=<b> 13=<c> 21=<d> 22=<e> 23=<f>
+// 31=<g> 32=<h> 33=<i>)` —— `type=` 之后是 `, `（逗号+空格），九个分量之间**一个空格**。
+// ⚠ `type()` 是惰性的（PkTransform.h 文件头「惰性缓存」）：调用它会就地重算并改写
+// m_type/m_dirty。**只调一次**存进局部变量，别在拼接里重复调用。
+std::string str(const PkTransform &t)
+{
+    const PkTransform::TransformationType ty = t.type();
+    return "PkTransform(type=" + std::string(typeName(ty))
+        + ", 11=" + num(t.m11()) + " 12=" + num(t.m12()) + " 13=" + num(t.m13())
+        + " 21=" + num(t.m21()) + " 22=" + num(t.m22()) + " 23=" + num(t.m23())
+        + " 31=" + num(t.m31()) + " 32=" + num(t.m32()) + " 33=" + num(t.m33())
+        + ")";
+}
+
 } // namespace
 
 PkDebug operator<<(PkDebug dbg, const PkPoint &v)    { return dbg << str(v).c_str(); }
@@ -80,3 +112,4 @@ PkDebug operator<<(PkDebug dbg, const PkMargins &v)  { return dbg << str(v).c_st
 PkDebug operator<<(PkDebug dbg, const PkMarginsF &v) { return dbg << str(v).c_str(); }
 PkDebug operator<<(PkDebug dbg, const PkPolygon &v)  { return dbg << str(v).c_str(); }
 PkDebug operator<<(PkDebug dbg, const PkPolygonF &v) { return dbg << str(v).c_str(); }
+PkDebug operator<<(PkDebug dbg, const PkTransform &v) { return dbg << str(v).c_str(); }
