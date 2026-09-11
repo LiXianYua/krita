@@ -301,13 +301,20 @@ kis_define_image_object_lib(kritaimage_bsplines_objects SOURCES
 # —— 顶层核心（KisImage/KisNode/KisPaintDevice/KisPainter 等）——
 
 kis_define_image_object_lib(kritaimage_core_objects SOURCES
-    # [GAP 排除] 3 个核心 GAP 文件（Task 8 批次A/C2 登记，判据⑨ 严格补）：仍依赖
-    # 真实 Qt 头（QImage/QPainter/QFile/QTimer/KConfig 等）。与薄壳 SHELL_SOURCES
-    # 的 [GAP 排除] 一致，从本 OBJECT 库源清单移除：
-    #   KisBezierGradientMesh.cpp           kis_paint_device_debug_utils.cpp
-    #   KisSpatialContainer.cpp
+    # [GAP 排除] 1 个核心 GAP 文件，从本 OBJECT 库源清单移除：
+    #   kis_paint_device_debug_utils.cpp
+    # 实测（M5，2026-09-11，主树自己的编译命令单 TU 编，见 docs/superpowers/plans/M5.md Task 1）：
+    # 该文件仍有 12 处 Q*（PkImage::save()/PkString::arg() 未实现），**留排除**。
+    #
+    # 已收回（同一个实测，理由原文「仍依赖真实 Qt 头」/「kis_grid_interpolation_tools.h
+    # 依赖」都已被证伪——那是登记时写下的理由，不再是现状）：
+    #   KisSpatialContainer.cpp     0 处 Q*，单 TU 编译 exit=0 / 0 error
+    #   KisBezierGradientMesh.cpp   0 处 Q*，单 TU 编译 exit=0 / 0 error
+    #   kis_grid_interpolation_tools.h 0 处 Q*，整条传递闭包无真 Qt
     # GAP 文件不得被其余 OBJECT 强引用；若出现强引用，需迁回 owner 或显式断开纯诊断
-    # 调用。GAP 配套头（kis_grid_interpolation_tools.h 等）不在源清单，无需移除。
+    # 调用。
+    KisSpatialContainer.cpp
+    KisBezierGradientMesh.cpp
     KisBezierTransformMesh.cpp
     kis_cage_transform_worker.cpp
     kis_liquify_transform_worker.cpp
