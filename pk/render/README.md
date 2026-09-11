@@ -233,3 +233,42 @@ Registered deviations / gaps, each with its source and its measured numbers:
    carrot_motion blur.png, carrot_lens blur.png}`), but the runner cannot be built,
    which is why R-52's end-to-end evidence is an in-memory driver instead of that test.
    Source: R-52 plan §6.6 / §7.
+
+## R-55 — text (`setFont` / `drawText`) oracle
+
+`oracle/text_cases.h` + `oracle/text_oracle.cpp` + `oracle/run_text.sh` +
+`oracle/text_golden.txt` + `tests/test_text.cpp` are the text counterpart of the R-51
+shape oracle. Two binaries, one shared case table: the Qt side is hand-compiled by the
+runner with `-DPK_TEXT_QT_ORACLE` and calls `QPainter::setFont/drawText` directly (the
+same mapping as `libs/flake/tests/PkQPainterAdapter.cpp:117-125`); the Pk side is the
+CMake target `text_oracle_pk` going through `PkPainter` + `PkImageRasterBackend`. Case
+shapes copy the two real call sites (`KoSvgTextShape_p_output.cpp:686`,
+`SvgTextCursor.cpp:880`), plus adversarial cases and three explicit `setFont` cases
+(neither real call site calls `setFont`). This is the driver-degradation path of
+`R线-spec`「依赖墙挡住真实测试类时」; **the compile-level evidence for the real test
+classes is still owed**.
+
+**Engine-conditional, like `pk/font/oracle/compare.cmake`.** `run_text.sh` counts
+`QFontEngineFT` in the QtGui it would link before comparing. On this machine that is
+**0 of 9594 `nm` lines** (with `QFontEngineMulti=40` as the discriminating-power
+control), so the runner prints `SKIP: Qt has no FreeType text engine (0)`, does **not**
+run the Qt side, and writes the golden from the **Pk** side. The golden's birth
+certificate therefore reads `# born=Pk` — it is **not** a Qt golden (plan §6 item 6).
+On this machine `tests/test_text.cpp` is a regression guard over Pk's own output
+(`24 cases (21 discriminating, 3 degenerate/no-op)`), **not** a claim of pixel equality
+with Qt. On a FreeType host the runner rewrites the golden from the Qt side and the same
+test becomes a real cross-side assertion.
+
+**Newly discovered divergence (not adjudicated): `\n` in the point overload.**
+Qt's `drawText(QPointF, QString)` discards `\n` completely — no line break, no advance,
+no replacement glyph. Measured on this machine with the Qt-side oracle: `XY` vs `X\nY`
+vs `X\n\nY` vs `\nXY` all give **`ndiff=0`**, and `ABCDEFGHI` vs `ABC\nDEF\nGHI` also
+`ndiff=0`. The Pk side instead gives `\n` an **advance of about 4 px** (no ink): `X\nY`
+and `X\tY` are byte-identical to each other and both differ from `XY`
+(`adv/newline-mid` 1401807435 vs `adv/newline-twin` 2461091307). This is at a **real
+call site**: `KoSvgTextShape_p_output.cpp:686` passes `PkString("#0\n(0)")`. The case
+table keeps the `\n` cases for exactly that reason, and `adv/newline-twin` is the
+witness of the divergence. Two ways out, neither taken by Task 4: drop `\n` in
+`PkImageRasterBackend::drawText` (Qt does it in the painter layer, not the font engine),
+or register it as a deviation. Until it is resolved, `run_text.sh` will legitimately go
+**red** on `adv/newline-mid` and `adv/newline-multi` on a FreeType host.
