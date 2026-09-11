@@ -65,8 +65,9 @@
 // ---- 用在哪 ----
 //
 // **凡是可以当 `PkVariant::m_any` 负载的 pk 类，都要挂这个宏。**
-// `PkVariantList`/`PkVariantHash`/`PkVariantMap` 是 `std::vector<PkVariant>` /
-// `std::map` / `std::unordered_map` 的 **typedef**（`pk/variant/PkVariant.h:46-48`），
+// `PkVariantList` / `PkVariantHash` / `PkVariantMap` 分别是
+// `std::vector<PkVariant>` / `std::unordered_map<PkString, PkVariant>` /
+// `std::map<PkString, PkVariant>` 的 **typedef**（`pk/variant/PkVariant.h:46-48`），
 // **没有 pk 类可挂**——那三个只能靠 `pk/variant` 侧改设计。
 //
 // ⚠ 这套修法**没有机器防线**：新增一个能当负载的类型而忘了挂宏，就会静默重现
