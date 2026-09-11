@@ -239,6 +239,7 @@ bool KisAllTagResourceModel::refresh()
     }
 
     PkVector<KisTagResourceRecord> replacement;
+    PkVector<KisResourceQueryMapper::ThumbnailRequest> thumbnailRequests;
     KisResourceLocator *locator = KisResourceLocator::instance();
     KisAllResourcesModel *resourceModel =
         KisResourceModelProvider::resourceModel(d->resourceType);
@@ -247,6 +248,15 @@ bool KisAllTagResourceModel::refresh()
         record.tagId = query.value(PkString("tag_id")).toInt();
         record.resourceId = query.value(PkString("resource_id")).toInt();
         record.resource = KisResourceQueryMapper::resourceFromQuery(query, true);
+        if (locator) {
+            KisResourceQueryMapper::ThumbnailRequest request;
+            request.resourceId = record.resource.id;
+            request.storageLocation =
+                locator->makeStorageLocationAbsolute(record.resource.location);
+            request.resourceType = record.resource.resourceType;
+            request.filename = record.resource.filename;
+            thumbnailRequests.append(request);
+        }
         record.tagActive = query.value(PkString("tag_active")).toBool();
         record.resourceActive = query.value(PkString("resource_active")).toBool();
         record.resourceStorageActive =
@@ -268,6 +278,13 @@ bool KisAllTagResourceModel::refresh()
         }
         replacement.append(record);
     }
+
+    const PkMap<int, PkImage> thumbnails =
+        KisResourceQueryMapper::thumbnailsForRequests(thumbnailRequests);
+    for (KisTagResourceRecord &record : replacement) {
+        record.resource.thumbnail = thumbnails.value(record.resourceId);
+    }
+
     d->relations = replacement;
     return true;
 }

@@ -48,10 +48,6 @@ PkImage KisResourceQueryMapper::thumbnailFromResourceQuery(const PkSqlQuery &que
     const int resourceId = query.value(columnName(useResourcePrefix,
                                                    "id",
                                                    "resource_id")).toInt();
-    if (resourceId < 0) {
-        return PkImage();
-    }
-
     PkSqlQuery thumbnailQuery;
     if (!thumbnailQuery.prepare(PkString(
             "SELECT thumbnail FROM resources WHERE id = :resource_id"))) {
@@ -97,7 +93,6 @@ KisResourceRecord KisResourceQueryMapper::resourceFromQuery(const PkSqlQuery &qu
     record.storageActive = query.value(columnName(useResourcePrefix,
                                                   "storage_active",
                                                   "resource_storage_active")).toBool();
-    record.thumbnail = thumbnailFromResourceQuery(query, useResourcePrefix);
 
     KisResourceLocator *locator = KisResourceLocator::instance();
     if (locator && record.id >= 0) {
@@ -111,4 +106,92 @@ KisResourceRecord KisResourceQueryMapper::resourceFromQuery(const PkSqlQuery &qu
     }
 
     return record;
+}
+
+PkMap<int, PkImage> KisResourceQueryMapper::thumbnailsForRequests(
+    const PkVector<ThumbnailRequest> &requests)
+{
+    PkMap<int, PkImage> images;
+
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    KisResourceThumbnailCache *cache = KisResourceThumbnailCache::instance();
+    if (!locator || !cache) {
+        return images;
+    }
+
+    // Serve whatever the in-memory cache already holds, and collect the ids
+    // that still need a database round-trip. One resource can legitimately
+    // appear more than once in a single batch (the tag model lists a resource
+    // once per tag), so the id list is de-duplicated before it becomes an
+    // `IN (...)`.
+    PkVector<int> missingIds;
+    PkMap<int, bool> seenIds;
+    for (const ThumbnailRequest &request : requests) {
+        const PkImage cached = cache->originalImage(request.storageLocation,
+                                                    request.resourceType,
+                                                    request.filename);
+        if (!cached.isNull()) {
+            images.insert(request.resourceId, cached);
+            continue;
+        }
+        if (request.resourceId < 0 || seenIds.contains(request.resourceId)) {
+            continue;
+        }
+        seenIds.insert(request.resourceId, true);
+        missingIds.append(request.resourceId);
+    }
+
+    if (missingIds.isEmpty()) {
+        return images;
+    }
+
+    PkString placeholders;
+    for (int i = 0; i < missingIds.size(); ++i) {
+        if (i > 0) {
+            placeholders += PkString(",");
+        }
+        placeholders += PkString("?");
+    }
+
+    PkSqlQuery thumbnailQuery;
+    if (!thumbnailQuery.prepare(PkString("SELECT id, thumbnail FROM resources "
+                                         "WHERE id IN (")
+                                + placeholders + PkString(")"))) {
+        return images;
+    }
+    for (const int id : missingIds) {
+        thumbnailQuery.addBindValue(PkVariant(id));
+    }
+    if (!thumbnailQuery.exec()) {
+        return images;
+    }
+
+    PkMap<int, PkImage> decoded;
+    while (thumbnailQuery.next()) {
+        const PkImage image = KisResourceThumbnailCodec::decodePng(
+            thumbnailQuery.value(PkString("thumbnail")).toByteArray());
+        if (!image.isNull()) {
+            decoded.insert(thumbnailQuery.value(PkString("id")).toInt(), image);
+        }
+    }
+
+    // Cache through the same insert() the single-row path uses, so that a null
+    // image never becomes a cache entry on this path either.
+    for (const ThumbnailRequest &request : requests) {
+        const PkImage image = decoded.value(request.resourceId);
+        if (image.isNull()) {
+            continue;
+        }
+        if (cache->originalImage(request.storageLocation,
+                                 request.resourceType,
+                                 request.filename).isNull()) {
+            cache->insert(request.storageLocation,
+                          request.resourceType,
+                          request.filename,
+                          image);
+        }
+        images.insert(request.resourceId, image);
+    }
+
+    return images;
 }

@@ -419,6 +419,8 @@ bool KisAllResourcesModel::refresh()
     }
 
     PkVector<KisResourceRecord> replacement;
+    PkVector<KisResourceQueryMapper::ThumbnailRequest> thumbnailRequests;
+    KisResourceLocator *locator = KisResourceLocator::instance();
     while (query.next()) {
         KisResourceRecord record =
             KisResourceQueryMapper::resourceFromQuery(query, false);
@@ -427,8 +429,23 @@ bool KisAllResourcesModel::refresh()
                 record.tags.append(tag->name());
             }
         }
+        if (locator) {
+            KisResourceQueryMapper::ThumbnailRequest request;
+            request.resourceId = record.id;
+            request.storageLocation = locator->makeStorageLocationAbsolute(record.location);
+            request.resourceType = record.resourceType;
+            request.filename = record.filename;
+            thumbnailRequests.append(request);
+        }
         replacement.append(record);
     }
+
+    const PkMap<int, PkImage> thumbnails =
+        KisResourceQueryMapper::thumbnailsForRequests(thumbnailRequests);
+    for (KisResourceRecord &record : replacement) {
+        record.thumbnail = thumbnails.value(record.id);
+    }
+
     d->records = replacement;
     d->closed = false;
     return true;
