@@ -64,4 +64,8 @@ void TestFallBackColorTransformation::parametersForward()
   delete fallback;
 }
 
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_TestFallBackColorTransformation.inc"
+#endif
+
 PK_TEST_GUILESS_MAIN(TestFallBackColorTransformation)

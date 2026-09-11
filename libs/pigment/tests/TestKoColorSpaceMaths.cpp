@@ -29,4 +29,8 @@ void TestKoColorSpaceMaths::testScaleToA()
     }
 }
 
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_TestKoColorSpaceMaths.inc"
+#endif
+
 PK_TEST_GUILESS_MAIN(TestKoColorSpaceMaths)

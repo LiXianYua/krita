@@ -601,4 +601,8 @@ void TestKoColorSpaceAbstract::testBitBltCrossColorSpaceWithChannelFlags()
 }
 
 
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_TestKoColorSpaceAbstract.inc"
+#endif
+
 SIMPLE_TEST_MAIN(TestKoColorSpaceAbstract)

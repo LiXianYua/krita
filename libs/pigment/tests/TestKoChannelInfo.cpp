@@ -45,4 +45,8 @@ void TestKoChannelInfo::testdisplayOrderSorted()
     PK_COMPARE(sortedChannels[3]->displayPosition(), 3);
 }
 
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_TestKoChannelInfo.inc"
+#endif
+
 PK_TEST_GUILESS_MAIN(TestKoChannelInfo)

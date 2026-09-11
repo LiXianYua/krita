@@ -52,4 +52,8 @@ void TestBaseColorSpaceRegistry::testProfileByUniqueId()
     PK_COMPARE(*fetchedProfile, *profile);
 }
 
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_TestKoColorSpaceRegistry.inc"
+#endif
+
 SIMPLE_TEST_MAIN(TestBaseColorSpaceRegistry)

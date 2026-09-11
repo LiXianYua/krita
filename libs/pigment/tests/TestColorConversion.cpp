@@ -197,4 +197,8 @@ void TestColorConversion::testRGBHSL()
     PK_COMPARE(b, 0.75f);
 }
 
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_TestColorConversion.inc"
+#endif
+
 PK_TEST_GUILESS_MAIN(TestColorConversion)

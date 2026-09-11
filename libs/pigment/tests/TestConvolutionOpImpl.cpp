@@ -205,4 +205,8 @@ void TestConvolutionOpImpl::testOneFullyTransparent()
 }
 
 
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_TestConvolutionOpImpl.inc"
+#endif
+
 PK_TEST_GUILESS_MAIN(TestConvolutionOpImpl)
