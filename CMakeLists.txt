@@ -1673,6 +1673,9 @@ add_subdirectory(plugins)
 if (BUILD_TESTING)
     add_subdirectory(benchmarks)
 endif()
+# M5 验收载体 paint_smoke：必须排在 libs/plugins 之后（kritaimage / kritaimpex /
+# kritalibkra 的名字要已经存在，才好被 target_link_libraries 引用）。
+add_subdirectory(sdk/smoke)
 add_subdirectory(data)
 
 configure_file(KoConfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/KoConfig.h )
