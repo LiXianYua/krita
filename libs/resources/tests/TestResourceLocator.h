@@ -44,6 +44,7 @@ private Q_SLOTS:
     void testSyncVersions();
 
     void testImportExportResource();
+    void testImportPngExceedsHardcodedMimeTable();
     void testImportDuplicatedResource();
 
     void testOrphanedMetadataRemoval_data();

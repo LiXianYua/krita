@@ -1228,6 +1228,34 @@ void TestResourceLocator::testImportExportResource()
 
 }
 
+void TestResourceLocator::testImportPngExceedsHardcodedMimeTable()
+{
+    // Krita's hardcoded mime table has no png entry, so this suffix is resolved
+    // only by the standard-image fallback table (fillImageFallbackMimeData()).
+    // That is the branch the other import test never reaches: it imports a .kpp,
+    // whose mime the hardcoded table already answers.
+    QTemporaryFile f(QDir::tempPath() + "/testresourcelocator-testimportpng-XXXXXX.png");
+    KIS_ASSERT(f.open());
+    // The bytes are never parsed: KisDummyResourceLoader overrides create() only,
+    // load() comes from the base class. Nothing below asserts on them.
+    f.write("not actually a png");
+    f.close();
+
+    const QString fileName = f.fileName();
+    QVERIFY(fileName.endsWith(".png"));
+
+    // Pin the mime resolution on its own, so should the import below fail, the
+    // failure says whether the fallback table or the loader registration is at fault.
+    QCOMPARE(ResourceTestHelper::toQString(
+                 KisMimeDatabase::mimeTypeForFile(ResourceTestHelper::toPkString(fileName))),
+             QStringLiteral("image/png"));
+
+    KoResourceSP resource = KisResourceLocator::instance()->importResourceFromFile(
+        ResourceType::Brushes, ResourceTestHelper::toPkString(fileName), false);
+    QVERIFY(resource);
+    QVERIFY(resource->valid());
+}
+
 void TestResourceLocator::testImportDuplicatedResource()
 {
     QTemporaryFile f(QDir::tempPath() + "/testresourcelocator-testimportduplicated-XXXXXX.kpp");
