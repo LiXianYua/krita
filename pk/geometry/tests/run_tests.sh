@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 建 pk/geometry 独立工程、跑单测，再跑两条自证：
 #   判据③ —— libpkgeometry.a 里不得有 Qt 未定义符号；
-#   locks  —— 工作树的改动必须全部落在 pk/geometry/ 前缀内。
+#   locks  —— 工作树的改动必须全部落在**本任务的** locks 内（从 .exec/tasks.yaml 读；解析不出时降级 WARN）。
 set -eu
 cd "$(dirname "$0")/../../.." || exit 1     # → fork 仓库根
 
