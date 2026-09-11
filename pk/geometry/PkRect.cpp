@@ -633,11 +633,19 @@ static_assert(sizeof(PkRectF) == 4 * sizeof(qreal), "PkRectF 必须是四个 qre
 static_assert(std::is_trivially_copyable<PkRectF>::value, "PkRectF 必须可平凡拷贝");
 static_assert(std::is_standard_layout<PkRectF>::value, "PkRectF 必须是标准布局");
 
-// ⚠ S-09-g（2026-09-07 用户拍板方案 A）：改为 **explicit**——Qt 的 QRectF(const
-// QRect&) 隐式让 toQRect(PkRect) 在 bridge 中产生 PkRectF 候选歧义（15 处）。t），
-// 反向必须**不是**（QRect 没有吃 QRectF 的构造，只有 toRect()/toAlignedRect()）。
-static_assert(!std::is_convertible<PkRect, PkRectF>::value,
-              "PkRect → PkRectF 必须显式（explicit ctor，防 toQRect 歧义）");
+// ⚠ **S-18 改回与真 Qt 一致（非 explicit）。** 曾记（S-09-g，2026-09-07，方案 A）：
+// 「Qt 的 QRectF(const QRect&) 隐式让 toQRect(PkRect) 在 bridge 中产生 PkRectF
+// 候选歧义（15 处）」。**那个理由实测不复现**：
+//   · `libs/flake/PkFlakeBridge.h` 的 `toQRect(const PkRectF&)`（:197）与
+//     `toQRect(const PkRect&)`（:202）这对重载，实参是 `PkRect` 时**恒等匹配
+//     （identity）压过用户定义转换**，explicit 与否都选得中 PkRect 那条 —— 实测
+//     两种形态 `-fsyntax-only` 都 rc=0，且跑出来分派正确（返回 2+1=3）；
+//   · 唯一实打实歧义的是**花括号实参** `toQRect({0,0,10,10})`，而它在 explicit
+//     形态下**同样歧义**（两个候选各需一次转换），所以它不是 explicit 挡住的。
+// 与 S线-spec「M5 合拢的三条裁决 · C」一致：按注释与真 Qt qrect.h:518 对齐，去掉
+// explicit。反向必须**不是**（QRect 没有吃 QRectF 的构造，只有 toRect()/toAlignedRect()）。
+static_assert(std::is_convertible<PkRect, PkRectF>::value,
+              "PkRect → PkRectF 必须与真 Qt 一样可隐式提升（qrect.h:518）");
 static_assert(!std::is_convertible<PkRectF, PkRect>::value,
               "PkRectF → PkRect 必须**不能**隐式转换 —— 只能走 toRect/toAlignedRect");
 

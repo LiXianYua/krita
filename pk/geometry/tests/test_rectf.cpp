@@ -112,9 +112,15 @@ void PkRectFCase::rectfLayoutIsFourQreal()
     PK_COMPARE(sizeof(PkRectF), sizeof(qreal) * 4);
     PK_VERIFY(std::is_trivially_copyable<PkRectF>::value);
     PK_VERIFY(std::is_standard_layout<PkRectF>::value);
-    // The fork intentionally requires PkRect → PkRectF promotion to be
-    // explicit; the reverse direction still uses toRect/toAlignedRect.
-    PK_VERIFY(!(std::is_convertible<PkRect, PkRectF>::value));
+    // 提升方向与真 Qt 一致：qrect.h:518 的 `QRectF(const QRect &)` **不是
+    // explicit**，整数矩形能隐式变浮点矩形（`QRectF r = someQRect;` 这类调用点
+    // 靠它）；反向不行，只能走 toRect/toAlignedRect。
+    // 本断言曾经把「本 fork 有意要求 explicit」当成事实写成 `!is_convertible`
+    // ——那条与真 Qt 相反，与 PkRect.h:583 自己的注释也相反，已按 S线-spec
+    // 「M5 合拢的三条裁决 · C」订正。
+    // ⚠ 外层括号是必需的：`PK_VERIFY` 是可变参宏，模板实参里的逗号会被当成
+    // 实参分隔符（原来那条写的是 `!(...)`，外层括号本来就在）。
+    PK_VERIFY((std::is_convertible<PkRect, PkRectF>::value));
     PK_VERIFY(!(std::is_convertible<PkRectF, PkRect>::value));
 }
 
