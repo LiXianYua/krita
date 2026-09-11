@@ -138,3 +138,88 @@ linkage predicate without renaming measured public APIs. The runner therefore al
 enforces a reviewed real-Qt class/C-ABI matcher with an explicit compatibility
 allowlist, verifies the final test executable's `readelf`/`ldd` dependency closure, and
 checks Ninja's complete `pkrender` command closure for Qt targets and libraries.
+
+## R-52 — restoring the two blur-filter kernels (registered deviations)
+
+R-52 closes the two `[GAP]` regressions registered under R-51 above:
+`plugins/filters/blur/kis_motion_blur_filter.cpp` and `kis_lens_blur_filter.cpp` again
+build their convolution kernel by rasterising a line / polygon into a `PkImage` and
+reading the red channel back (they had been replaced by an identity kernel, making
+motion blur a no-op and lens blur a constant shift). Evidence layers (R-52 plan §3.5):
+the oracle (`oracle/run_blur_kernel.sh`) reproduces the two kernel constructions for
+**138 cases** Qt-side and the Pk branch is byte-identical; the real filters, driven
+end-to-end on a real `KisPaintDevice`, must (a) change the image and (b) match a
+Qt-side golden kernel fed through `KisConvolutionPainter`; and `nm -u -C
+libkritablurfilter.a` carries zero Qt-class symbols.
+
+**Symbol criterion (R-52 plan §5 ③), measured on `/tmp/r52-build/lib/libkritablurfilter.a`:**
+
+- numerator — `nm -u -C libkritablurfilter.a | grep -E '\bQ[A-Z][A-Za-z0-9_]*\b'` → **0**.
+- denominator — 294 raw `nm -u -C` lines / **282** symbol lines (the rest are member
+  headings) across **7** archive members.
+- discriminating power — the same command on `bin/libkritaflake.dylib` (`otool -L`
+  confirms Qt 5.15.7: QtSvg/QtXml/QtWidgets/QtGui/QtCore) → **39** hits.
+- the old blanket `grep -i qt` is a **false-negative machine**: on that same dylib it
+  finds only **6** of the 39, because most Qt class names (`QAction`, `QChar`, `QEvent`,
+  `QMenu`, `QMetaMethod`, `QPixmap`, `QString`, …) do not contain the literal substring
+  `qt`. It happens to read 0 on this archive, but it would also read 0 if `QImage` or
+  `QString` symbols were present — hence the strong criterion above.
+
+Registered deviations / gaps, each with its source and its measured numbers:
+
+1. **`drawPolygon` cannot express `Qt::WindingFill`** (the general gap is registered
+   under R-51 above). Upstream lens blur calls `drawPolygon(iris, Qt::WindingFill)`;
+   `PkPainter::drawPolygon` has no fill-rule parameter, so the `PkPainterPath` default
+   rule carries it. **Measured equivalent** (probe A, R-52 plan §2.1 P2): `FILLRULE
+   cases=96 mismatches=0`, because the iris polygon is a regular polygon under an affine
+   map (`rotate` + positive `scale`) and is therefore always convex — `CONVEX cases=24
+   nonConvex=0`. Source: R-52 plan §6.1.
+
+2. **`qRed()` has no Pk equivalent** — inlined as `(pixel >> 16) & 0xffu`. Source:
+   `R线-spec`「R-15 遗留缺口」第 3 条 (assigned to S-04 or the first task that needs it);
+   R-52 does not claim it.
+
+3. **The target format is not upstream's `Format_RGB32`.** This repo's
+   `PkImageRasterBackend::fillPath` (`libs/flake/PkImageRasterBackend.cpp:824-826`)
+   accepts only `Format_ARGB32` / `Format_ARGB32_Premultiplied` / `Format_Grayscale8`;
+   `PkImage::Format_RGB32` throws. R-52 uses `Format_ARGB32 + fill(0xff000000)`, which
+   is **byte-identical over all 138 cases** (probe B, §2.2) — a different expression,
+   not a behavioural deviation. **The trap to register**: `fill(0)` differs from real Qt
+   in **126 of the 138 cases** (probe B `argb32_f0 mismatch=126`), because AA coverage
+   written into ARGB32 un-premultiplies back to 255 in the red channel. Source: R-52
+   plan §6.3.
+
+4. **Large kernel sizes fail differently (known deviation — flagged for review).**
+   `PkImage(width, height, format)` (`pk/image/PkImage.cpp:355`) throws `std::bad_alloc`
+   when the pixel allocation fails (the `resize` at `:367`), whereas `QImage` degrades to
+   a null image, its canvas operations become silent no-ops and the kernel stays
+   all-zero. Trigger: `blurLength` / `irisRadius` driven to extreme values by user data
+   (`.kra`, adjustment-layer configuration). R-52 deliberately adds no guard that
+   upstream does not have (a guard would be new behaviour); upstream is itself
+   integer-overflow UB on the same input. Source: R-52 plan §6.4.
+
+5. **The `kritablurfilter` lock is narrower than this batch's landing site.**
+   Batch 5 edits `plugins/filters/blur/`, which is **not** in R-52's `locks`
+   (`.exec/tasks.yaml:213` = `[pk/render, libs/flake/PkImageRasterBackend.cpp]`); the
+   main session is to correct the lock line. Source: R-52 plan §1.4 / §6.5.
+
+6. **Pre-existing breakage (not an R-52 regression; registered, unclaimed).**
+   `plugins/filters/tests/kis_all_filter_test.cpp` and `kis_crash_filter_test.cpp` do
+   **not compile**: they reference `PkImage(fileName)`, `PkImage::save()` and
+   `PkFileStream`, none of which exist in this repo (`PkFileStream` has no definition
+   anywhere; `pk/` only has `pk/textstream/PkTextStream.h`). Neither file is in
+   `.exec/baseline/tests.txt`. Raw symptom, this tree:
+
+   ```
+   plugins/filters/tests/kis_all_filter_test.cpp:28:13: error: no matching constructor for initialization of 'PkImage'
+      28 |     PkImage qimage(PkString(FILES_DATA_DIR) + '/' + "carrot.png");
+   plugins/filters/tests/kis_all_filter_test.cpp:41:5: error: unknown type name 'PkFileStream'; did you mean 'PkStream'?
+      41 |     PkFileStream file(PkString(FILES_DATA_DIR) + '/' + f->id() + ".cfg");
+   ```
+
+   `kis_crash_filter_test.cpp:25/34` fail identically. Repair needs the image file codec
+   closure (`R线-spec`「R-15 遗留缺口」第 1 条) plus a `PkFileStream` — M5 or a later S/R
+   task. The upstream fixture PNGs exist (`plugins/filters/tests/data/{carrot.png,
+   carrot_motion blur.png, carrot_lens blur.png}`), but the runner cannot be built,
+   which is why R-52's end-to-end evidence is an in-memory driver instead of that test.
+   Source: R-52 plan §6.6 / §7.
