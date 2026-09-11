@@ -464,6 +464,27 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
         strokePath(path, m_state.pen);
         return;
     }
+    if (const auto *ellipse = std::get_if<PkDrawEllipseCommand>(&command)) {
+        // QPainter::drawEllipse is pixel-identical to filling and stroking an
+        // addEllipse path (measured against Qt 5.15.7: integer, non-integer,
+        // out-of-bounds, negative-size and degenerate rects all agree).
+        PkPainterPath path;
+        path.addEllipse(ellipse->rect);
+        fillPath(path, m_state.brush);
+        strokePath(path, m_state.pen);
+        return;
+    }
+    if (const auto *polygon = std::get_if<PkDrawPolygonCommand>(&command)) {
+        // QPainter::drawPolygon closes the subpath before stroking: dropping the
+        // closeSubpath() below diverges by 46 pixels on a 4-vertex quad. Filling
+        // is unaffected either way (a fill implicitly closes the contour).
+        PkPainterPath path;
+        path.addPolygon(polygon->polygon);
+        path.closeSubpath();
+        fillPath(path, m_state.brush);
+        strokePath(path, m_state.pen);
+        return;
+    }
     if (const auto *line = std::get_if<PkDrawLineCommand>(&command)) {
         PkPainterPath path(line->line.p1());
         path.lineTo(line->line.p2());
