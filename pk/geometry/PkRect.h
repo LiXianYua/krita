@@ -1000,4 +1000,11 @@ constexpr inline PkRect PkRectF::toRect() const noexcept
                   PkPoint(pkRound(xp + w) - 1, pkRound(yp + h) - 1));
 }
 
+// QDebug operator<< 的零 Qt 对应物（真 Qt 把这两个声明放在 qrect.h，落位与
+// 形状逐条照抄：声明在类型自己的头里、只前向声明 PkDebug、按值收按值还；
+// 定义在 pk/geometry/PkGeometryDebug.cpp）。
+class PkDebug;
+PkDebug operator<<(PkDebug dbg, const PkRect &v);
+PkDebug operator<<(PkDebug dbg, const PkRectF &v);
+
 #endif // PK_GEOMETRY_PKRECT_H

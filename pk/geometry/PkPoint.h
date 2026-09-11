@@ -380,4 +380,17 @@ constexpr inline PkPoint PkPointF::toPoint() const
     return PkPoint(pkRound(xp), pkRound(yp));
 }
 
+// QDebug operator<< 的零 Qt 对应物（真 Qt 把这两个声明放在 qpoint.h:214/418，
+// 落位与形状逐条照抄）。
+//
+// · **只前向声明 PkDebug，不 include pk/log/PkDebug.h**。几何头是全树最热的头
+//   之一（codegraph 实测 PkPointF 的 blast radius 有 846 个调用方），把
+//   <sstream> + PkDebug 的定义拖进每一个消费方是不必要的代价。定义在
+//   pk/geometry/PkGeometryDebug.cpp 里，那里才 include PkDebug.h。
+// · **按值收、按值还**：真 Qt 的签名就是 QDebug operator<<(QDebug, const T&)。
+//   左操作数可能是纯右值（qCritical() << a << b 的第一段），形参写 PkDebug& 绑不上。
+class PkDebug;
+PkDebug operator<<(PkDebug dbg, const PkPoint &v);
+PkDebug operator<<(PkDebug dbg, const PkPointF &v);
+
 #endif // PK_GEOMETRY_PKPOINT_H

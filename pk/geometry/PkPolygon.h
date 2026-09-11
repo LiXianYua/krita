@@ -224,4 +224,11 @@ inline void PkPolygonF::translate(qreal dx, qreal dy)
 inline PkPolygonF PkPolygonF::translated(qreal dx, qreal dy) const
 { return translated(PkPointF(dx, dy)); }
 
+// QDebug operator<< 的零 Qt 对应物（真 Qt 把这两个声明放在 qpolygon.h，落位与
+// 形状逐条照抄：声明在类型自己的头里、只前向声明 PkDebug、按值收按值还；
+// 定义在 pk/geometry/PkGeometryDebug.cpp）。
+class PkDebug;
+PkDebug operator<<(PkDebug dbg, const PkPolygon &v);
+PkDebug operator<<(PkDebug dbg, const PkPolygonF &v);
+
 #endif // PK_GEOMETRY_PKPOLYGON_H

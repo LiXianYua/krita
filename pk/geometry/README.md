@@ -1110,6 +1110,26 @@ tag 按输入形态切成了 23 格**——切细是为了让额度可推导，�
   另外六个类型都是**逐字照抄 Qt 头文件与实现**，逐输入对拍下来本来就该是零差异。
   判别力靠**注入自证**（每族至少三组），不靠 `total` 这个数字本身。
 
+## 调试流运算符的登记偏离（S-16，2026-09-11）
+
+`PkPoint/PkPointF/PkSize/PkSizeF/PkRect/PkRectF/PkLine/PkLineF/PkMargins/PkMarginsF/`
+`PkPolygon/PkPolygonF` 的 `PkDebug operator<<` 逐字照抄真 Qt 5.15.7
+（取证命令见 `oracle/debugstream_qt.cpp` 文件头），**只有两处有意偏离**：
+
+1. **类型名用 `Pk*`，不用 `Q*`。** 真 Qt 打 `QPointF(1,2)` 是因为真 Qt 里那个类型就叫
+   `QPointF`——规则是「打印类型自己的名字」。内核产物里没有 `QPointF`，打它等于给读
+   日志的人指一个不存在的头。两桶打的都是各自桶里真实存在的类型名，这才是一致的规则：
+   真 Qt 桶里 `PkPointF` 经 `PkFlakeBridge.h` 转成真 `QPointF` 后打出的正是 `QPointF(1,2)`。
+2. **`qSetFieldWidth` / `qSetRealNumberPrecision` 不再作用到内部各分量。** 真 Qt 逐个
+   分量插入，这里一次插入整串（**这是必需的**：`PkDebug` 没有 `QDebugStateSaver`，
+   而它的 `space()` 会吐分隔符、`nospace()` 不吐，逐个插入的写法在 nospace 上下文里
+   会多吐一个空格）。实测零调用点在流几何值的同时用这两个操纵符。
+
+**未覆盖、已登记的类型**（Qt 也有运算符，实测零消费方，本轮不做）：
+`PkRegion`、`PkTransform`、`PkPainterPath`、`PkMatrix4x4`、`PkVector2D/3D/4D`，
+以及 `pk/container` 的 `PkVector<T>`。它们的真 Qt 输出是多行/结构化形式，照抄的成本
+与风险远大于本轮收益；**一旦有调用点打到 `<unprintable>`，照本节的形制补。**
+
 ## 覆盖度缺口
 
 「说不出覆盖不到什么的，说明还没想清楚」：

@@ -21,6 +21,7 @@ add_library(pkgeometry STATIC
     PkMatrix4x4.cpp
     PkRegion.cpp
     PkPainterPath.cpp
+    PkGeometryDebug.cpp
     # PkPen（S-07-b 越锁补定义）是纯头 data-carrier，列进源仅为 IDE 可见性；
     # 依赖 PkColor（pk/color），见下方 ../color include。
     PkPen.h
@@ -44,6 +45,11 @@ target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../colo
 # 直接 `#include "PkPolygon.h"` 的都要连带解析到它。与 pk/string/CMakeLists.txt
 # 消费 pk/container 的既有形态一致（那边同样 PUBLIC 加 ../container）。
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../container)
+
+# ../log：PkGeometryDebug.cpp 里 #include "PkDebug.h"。几何头只前向声明 class PkDebug，
+# 所以消费方不需要 pk/log；只有这个 TU 需要。PUBLIC 是照 ../container 的既有形制
+#（oracle/graft/tests 里直接 include 几何头的人不该被这条依赖影响）。
+target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../log)
 
 # ⚠ **-fwrapv 是必需的，不是调优，而且是 PUBLIC**（消费者也要带上）。
 # QPoint::manhattanLength 是 qAbs(x)+qAbs(y)、operator+ 是裸的 int 相加、
@@ -160,3 +166,11 @@ set_source_files_properties(tests/test_region.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_region_case.inc")
 set_source_files_properties(tests/test_painterpath.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_painterpath_case.inc")
+
+# 调试流运算符的期望值断言。自带 main()，自己提供 PkLogEmit 截获整行输出 ——
+# 所以只编 pk/log 的 PkDebug.cpp（不编 PkLogBackend.cpp，也就不需要 spdlog）。
+add_executable(test_pkgeometry_debugstream
+    tests/debugstream_probe.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../log/PkDebug.cpp
+)
+target_link_libraries(test_pkgeometry_debugstream PRIVATE pkgeometry)

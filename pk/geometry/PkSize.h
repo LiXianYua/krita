@@ -349,4 +349,11 @@ constexpr inline PkSize PkSizeF::toSize() const noexcept
     return PkSize(pkRound(wd), pkRound(ht));
 }
 
+// QDebug operator<< 的零 Qt 对应物（真 Qt 把这两个声明放在 qsize.h，落位与
+// 形状逐条照抄：声明在类型自己的头里、只前向声明 PkDebug、按值收按值还；
+// 定义在 pk/geometry/PkGeometryDebug.cpp）。
+class PkDebug;
+PkDebug operator<<(PkDebug dbg, const PkSize &v);
+PkDebug operator<<(PkDebug dbg, const PkSizeF &v);
+
 #endif // PK_GEOMETRY_PKSIZE_H

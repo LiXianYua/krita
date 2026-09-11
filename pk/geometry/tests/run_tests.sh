@@ -13,6 +13,8 @@ cmake --build "$BUILD" -j"$(nproc)" >/dev/null
 
 "./$BUILD/test_pkgeometry"
 
+"$BUILD/test_pkgeometry_debugstream"
+
 # 判据③：替代品本体不得有 Qt 未定义符号。查的是 pk/geometry 编出来的静态库。
 # 与 pk/test 那条同义：静态库允许留未定义符号，真混进 Qt 依赖就会在这里现形
 #（可执行文件那种查法是恒真的，链接行里根本没 Qt 库，见 pk/test/README.md §5）。

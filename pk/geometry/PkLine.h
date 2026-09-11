@@ -357,4 +357,11 @@ constexpr inline bool PkLineF::operator==(const PkLineF &d) const
     return pt1 == d.pt1 && pt2 == d.pt2;
 }
 
+// QDebug operator<< 的零 Qt 对应物（真 Qt 把这两个声明放在 qline.h，落位与
+// 形状逐条照抄：声明在类型自己的头里、只前向声明 PkDebug、按值收按值还；
+// 定义在 pk/geometry/PkGeometryDebug.cpp）。
+class PkDebug;
+PkDebug operator<<(PkDebug dbg, const PkLine &v);
+PkDebug operator<<(PkDebug dbg, const PkLineF &v);
+
 #endif // PK_GEOMETRY_PKLINE_H

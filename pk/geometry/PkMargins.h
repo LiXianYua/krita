@@ -465,4 +465,11 @@ constexpr inline PkMargins PkMarginsF::toMargins() const noexcept
     return PkMargins(pkRound(m_left), pkRound(m_top), pkRound(m_right), pkRound(m_bottom));
 }
 
+// QDebug operator<< 的零 Qt 对应物（真 Qt 把这两个声明放在 qmargins.h，落位与
+// 形状逐条照抄：声明在类型自己的头里、只前向声明 PkDebug、按值收按值还；
+// 定义在 pk/geometry/PkGeometryDebug.cpp）。
+class PkDebug;
+PkDebug operator<<(PkDebug dbg, const PkMargins &v);
+PkDebug operator<<(PkDebug dbg, const PkMarginsF &v);
+
 #endif // PK_GEOMETRY_PKMARGINS_H
