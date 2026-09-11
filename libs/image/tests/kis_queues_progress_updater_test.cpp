@@ -10,7 +10,12 @@
 
 #include "kis_queues_progress_updater.h"
 #include <testutil.h>
+#include <PkThreadCallQueuePumpHost.h>
 
+// 等待必须用 KritaTestSdk::waitFor() 而不是 QTest::qWait()：QTest::qWait 走 Qt 的
+// 事件循环，而 KisQueuesProgressUpdater 的 sigStartTicking/sigStopTicking
+// （PkConnectionType::Queued）与 PkTimer 的回调都只经 PkThreadCallQueue 投递——
+// Qt 的事件循环不驱动 pk 队列，等待期间不 pump 会把这两条一起冻住。
 
 void KisQueuesProgressUpdaterTest::testSlowProgress()
 {
@@ -20,14 +25,14 @@ void KisQueuesProgressUpdaterTest::testSlowProgress()
     updater.updateProgress(200, "test task");
     updater.updateProgress(100, "test task");
 
-    QTest::qWait(100);
+    KritaTestSdk::waitFor(100);
 
     QCOMPARE(progressProxy.min(), 0);
     QCOMPARE(progressProxy.max(), 0);
     QCOMPARE(progressProxy.value(), 0);
     QCOMPARE(progressProxy.format(), QString());
 
-    QTest::qWait(500);
+    KritaTestSdk::waitFor(500);
 
     QCOMPARE(progressProxy.min(), 0);
     QEXPECT_FAIL("", "The max should be 200 but is 0.", Continue);
@@ -39,7 +44,7 @@ void KisQueuesProgressUpdaterTest::testSlowProgress()
 
     updater.updateProgress(0, "test task");
 
-    QTest::qWait(500);
+    KritaTestSdk::waitFor(500);
 
     QCOMPARE(progressProxy.min(), 0);
     QEXPECT_FAIL("", "Max should be 200 but is 100.", Continue);
@@ -62,7 +67,7 @@ void KisQueuesProgressUpdaterTest::testFastProgress()
     updater.updateProgress(200, "test task");
     updater.updateProgress(0, "test task");
 
-    QTest::qWait(20);
+    KritaTestSdk::waitFor(20);
 
     QCOMPARE(progressProxy.min(), 0);
     QEXPECT_FAIL("", "Max should be 0 but is 100.", Continue);
@@ -75,7 +80,7 @@ void KisQueuesProgressUpdaterTest::testFastProgress()
     updater.updateProgress(100, "test task");
     updater.updateProgress(0, "test task");
 
-    QTest::qWait(20);
+    KritaTestSdk::waitFor(20);
 
     QCOMPARE(progressProxy.min(), 0);
     QEXPECT_FAIL("", "Max should be 0 but is 100.", Continue);
@@ -88,7 +93,7 @@ void KisQueuesProgressUpdaterTest::testFastProgress()
     updater.updateProgress(0, "test task");
     updater.updateProgress(0, "test task");
 
-    QTest::qWait(20);
+    KritaTestSdk::waitFor(20);
 
     QCOMPARE(progressProxy.min(), 0);
     QEXPECT_FAIL("", "Max should be 0 but is 100.", Continue);
@@ -98,7 +103,7 @@ void KisQueuesProgressUpdaterTest::testFastProgress()
     QEXPECT_FAIL("", "format() should be empty but is '%p%'.", Continue);
     QCOMPARE(progressProxy.format(), QString());
 
-    QTest::qWait(500);
+    KritaTestSdk::waitFor(500);
 
     QCOMPARE(progressProxy.min(), 0);
     QEXPECT_FAIL("", "Max should be 0 but is 100.", Continue);
