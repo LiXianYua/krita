@@ -255,20 +255,51 @@ control), so the runner prints `SKIP: Qt has no FreeType text engine (0)`, does 
 run the Qt side, and writes the golden from the **Pk** side. The golden's birth
 certificate therefore reads `# born=Pk` — it is **not** a Qt golden (plan §6 item 6).
 On this machine `tests/test_text.cpp` is a regression guard over Pk's own output
-(`24 cases (21 discriminating, 3 degenerate/no-op)`), **not** a claim of pixel equality
+(`44 cases (41 discriminating, 3 degenerate/no-op)`), **not** a claim of pixel equality
 with Qt. On a FreeType host the runner rewrites the golden from the Qt side and the same
 test becomes a real cross-side assertion.
 
-**Newly discovered divergence (not adjudicated): `\n` in the point overload.**
-Qt's `drawText(QPointF, QString)` discards `\n` completely — no line break, no advance,
-no replacement glyph. Measured on this machine with the Qt-side oracle: `XY` vs `X\nY`
-vs `X\n\nY` vs `\nXY` all give **`ndiff=0`**, and `ABCDEFGHI` vs `ABC\nDEF\nGHI` also
-`ndiff=0`. The Pk side instead gives `\n` an **advance of about 4 px** (no ink): `X\nY`
-and `X\tY` are byte-identical to each other and both differ from `XY`
-(`adv/newline-mid` 1401807435 vs `adv/newline-twin` 2461091307). This is at a **real
-call site**: `KoSvgTextShape_p_output.cpp:686` passes `PkString("#0\n(0)")`. The case
-table keeps the `\n` cases for exactly that reason, and `adv/newline-twin` is the
-witness of the divergence. Two ways out, neither taken by Task 4: drop `\n` in
-`PkImageRasterBackend::drawText` (Qt does it in the painter layer, not the font engine),
-or register it as a deviation. Until it is resolved, `run_text.sh` will legitimately go
-**red** on `adv/newline-mid` and `adv/newline-multi` on a FreeType host.
+**Adjudicated and fixed: the point overload's character-visibility rule.**
+Task 4 discovered that Qt's `drawText(QPointF, QString)` discards `\n` completely (no
+line break, no advance, no replacement glyph) while Pk gave it an advance of about 4 px.
+That divergence is **fixed** in `PkImageRasterBackend::drawText`, and the rule turned out
+to be reducible, not a special case for `\n`:
+
+- **Criterion (first-hand Qt source, Qt 5.15.7-lts-lgpl).** `QTextEngine::applyVisibilityRules`
+  (`qtbase/src/corelib/text/qtextengine.cpp:1361`) sets `QGlyphAttributes::dontPrint` on
+  **U+000A `LineFeed`, U+000C `FormFeed`, U+000D `CarriageReturn`, U+2028 `LineSeparator`,
+  U+2029 `ParagraphSeparator`, U+00AD `SoftHyphen`**. `dontPrint` zeroes the advance
+  (`:1606 si.width += glyphs.advances[i] * !glyphs.attributes[i].dontPrint;`) and makes the
+  raster engine skip the glyph. It is called from the live HarfBuzz path
+  (`shapeTextWithHarfbuzzNG`, `:1759`); `qt_useHarfbuzzNG()` defaults to true
+  (`qfontengine.cpp:97-101`). The rule sits in the **text engine, above the font engine**,
+  so it holds on every platform and for every font.
+- **Why only three of the six diverged.** U+2028/U+2029/U+00AD are `Default_Ignorable`, so
+  HarfBuzz already hides them in Pk. LF/FF/CR are not, so Pk advanced the pen for them.
+  `PkImageRasterBackend::drawText` now filters the whole six-codepoint set before calling
+  `PkFontRasterizer::coverage()`. **`pk/font` is untouched** — this is the point overload's
+  behaviour, not the glyph rasteriser's, and `render()`/`outline()` must stay byte-identical
+  (`KisTextBrush` and SVG `<path>` text both consume them).
+- **Sweep, not a probe.** The rule was measured over U+0000..001F, U+007F..009F, U+00A0,
+  U+00AD, U+061C, U+180E, U+2000..200F, U+2028..202F, U+205F..2064, U+2066..206F, U+FEFF,
+  U+FFF9..FFFB, U+110BD, comparing each character's advance *and* ink on both sides. Full
+  table: `.superpowers/sdd/R-55/task-4fix-report.md` §2.
+- **Witnesses in the table.** `adv/newline-mid` ("X\nY") and `adv/newline-twin` ("XY") now
+  have the **same** digest, as do `vis/hidden/lf` and `vis/hidden/lf-twin`; before the fix
+  they differed. The new `vis/hidden/*` cases (one per hidden category) and `vis/kept/*`
+  cases (TAB, VT, space, NBSP, U+3000, U+007F, U+180E) are reverse guards: widening the
+  filter set turns them red.
+
+**Still open, registered — same layer, different implementation.** Not hidden by the rule
+above and **not** fixed here; `run_text.sh` will legitimately go red on these on a FreeType
+host:
+- **TAB** (`vis/kept/tab`). Qt's point overload still runs the text engine's tab stop
+  (`qtextengine.cpp:1341 calculateTabWidth`): measured 80.000 for `\t` alone and 94.656 for
+  `"X\tY"` at DejaVu Sans 24px, versus Pk passing `U+0009` to Raqm (7.000).
+- **U+2066/U+2067/U+2068/U+2069 and U+061C** (`vis/bidi/lri`, `vis/bidi/alm`). Hidden on
+  both sides as single characters, but in a string Qt's output is bit-identical to the
+  control character's absence while Pk's Raqm bidi pass moves the neighbouring glyphs.
+- **U+007F, U+180E, U+FFF9..FFFB, U+0008, U+001D** (`vis/kept/del`, `vis/kept/mvs`). Hidden
+  by Qt's **CoreText** font engine on this machine, not by Qt's text engine; Pk's FreeType
+  path differs. This is the already-registered〈文字类对拍〉platform difference (plan §6
+  item 1), so it is out of scope by construction.

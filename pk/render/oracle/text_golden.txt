@@ -3,17 +3,17 @@
 # backend=PkImageRasterBackend
 # qt=5.15.7
 # reason=Qt on this host has no FreeType text engine (QFontEngineFT=0 of nm_lines=9594); a Qt-born golden is owed, see plan §6 item 6
-DIFFTAG drawText callsite1/glyphdebug/n0 2145909743
-DIFFTAG drawText callsite1/glyphdebug/n1 4080122933
-DIFFTAG drawText callsite1/glyphdebug/n2 1698573123
+DIFFTAG drawText callsite1/glyphdebug/n0 2782181167
+DIFFTAG drawText callsite1/glyphdebug/n1 1917096693
+DIFFTAG drawText callsite1/glyphdebug/n2 292198275
 DIFFTAG drawText callsite2/handlename/scale1.5/ascii 1784056293
 DIFFTAG drawText callsite2/handlename/scale1.5/nonascii 2094043829
 DIFFTAG drawText callsite2/handlename/scale1.5/ascii2 3771225950
 DIFFTAG drawText adv/empty 1332944325
 DIFFTAG drawText adv/newline-only 1332944325
-DIFFTAG drawText adv/newline-mid 1401807435
+DIFFTAG drawText adv/newline-mid 2461091307
 DIFFTAG drawText adv/newline-twin 2461091307
-DIFFTAG drawText adv/newline-multi 3822174430
+DIFFTAG drawText adv/newline-multi 1036533790
 DIFFTAG drawText adv/nonascii 1955592526
 DIFFTAG drawText adv/scale-int2 1512231929
 DIFFTAG drawText adv/scale-frac1.5 4051989485
@@ -24,7 +24,27 @@ DIFFTAG drawText adv/pen-width-7 748849744
 DIFFTAG drawText adv/pen-blue 243341675
 DIFFTAG drawText adv/fractional-pos 3522961472
 DIFFTAG drawText adv/offcanvas 1332944325
+DIFFTAG drawText vis/hidden/lf 33340199
+DIFFTAG drawText vis/hidden/lf-twin 33340199
+DIFFTAG drawText vis/hidden/ff 33340199
+DIFFTAG drawText vis/hidden/cr 33340199
+DIFFTAG drawText vis/hidden/ls 33340199
+DIFFTAG drawText vis/hidden/ps 33340199
+DIFFTAG drawText vis/hidden/shy 33340199
+DIFFTAG drawText vis/hidden/zwsp 33340199
+DIFFTAG drawText vis/hidden/rlo 33340199
+DIFFTAG drawText vis/hidden/wj 33340199
+DIFFTAG drawText vis/hidden/bom 33340199
+DIFFTAG drawText vis/bidi/lri 845082641
+DIFFTAG drawText vis/bidi/alm 3352062549
+DIFFTAG drawText vis/kept/tab 1652558869
+DIFFTAG drawText vis/kept/vt 1417673693
+DIFFTAG drawText vis/kept/space 1008771215
+DIFFTAG drawText vis/kept/nbsp 1008771215
+DIFFTAG drawText vis/kept/ideospace 1403925077
+DIFFTAG drawText vis/kept/del 60261589
+DIFFTAG drawText vis/kept/mvs 1000983222
 DIFFTAG setFont+drawText setfont/dejavu-px24 2252170414
 DIFFTAG setFont+drawText setfont/dejavu-pt18 2252170414
 DIFFTAG setFont+drawText setfont/dejavu-px24-s 1709797966
-DIFF total=24 mismatch=0
+DIFF total=44 mismatch=0

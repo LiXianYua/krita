@@ -1160,6 +1160,90 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
     }
 }
 
+namespace
+{
+
+// Qt's QPainter::drawText(QPointF, QString) — the point overload used by the only
+// two live call sites of PkDrawTextAtPointCommand — runs the full text engine, and
+// the text engine suppresses a fixed set of characters that "should normally be
+// invisible" by setting QGlyphAttributes::dontPrint on them:
+//
+//   qtbase/src/corelib/text/qtextengine.cpp:1361 applyVisibilityRules()
+//     case QChar::LineFeed: case 0x000c /*FormFeed*/: case QChar::CarriageReturn:
+//     case QChar::LineSeparator: case QChar::ParagraphSeparator:  -> dontPrint = true
+//     case QChar::SoftHyphen: (glyph swapped for '-' when the face is not symbol)
+//                                                                 -> dontPrint = true
+//
+// (source read first-hand: Qt 5.15.7-lts-lgpl. This is the live path — it is called
+// from shapeTextWithHarfbuzzNG() at :1759, and qt_useHarfbuzzNG() defaults to true
+// per qfontengine.cpp:97-101.) dontPrint zeroes the character's advance
+// (:1606 `si.width += glyphs.advances[i] * !glyphs.attributes[i].dontPrint;`) and
+// makes the raster engine skip its glyph, which is why the point overload drops
+// these characters without ink *and* without pen advance.
+//
+// This rule lives in the *text engine*, above the font engine, so it holds on every
+// platform and for every font. Pk instead hands the raw string straight to
+// Raqm/HarfBuzz, and so has no such layer. Three of the six codepoints are the ones
+// that actually diverge, because they are not Default_Ignorable and HarfBuzz
+// therefore does not hide them either:
+//
+//   measured on this host (macOS arm64), DejaVu Sans 24px, both sides resolving to
+//   DejaVu Sans, single character advance:
+//     U+000A advance  Qt 0.000  Pk 7.000      "X\nY"  Qt 31.094 (== "XY")  Pk 38.000
+//     U+000C advance  Qt 0.000  Pk 8.000      "#0\n(0)" Qt 69.359 (== "#0(0)") Pk 75.000
+//     U+000D advance  Qt 0.000  Pk 7.000
+//
+// U+2028, U+2029 and U+00AD are Default_Ignorable, so HarfBuzz already zeroes them
+// in Pk as well (verified by the same sweep); filtering them is a no-op kept so the
+// predicate matches the Qt rule in full rather than in the three-codepoint subset
+// that happens to be measurable today.
+//
+// Deliberately *not* done in pk/font: this is the point overload's behaviour, not the
+// glyph rasteriser's. PkFontRasterizer::render()/outline() must stay byte-identical —
+// KisTextBrush and SVG <path> text both consume them.
+// (The other characters that Qt's CoreText font engine hides — U+007F, U+180E,
+// U+FFF9..FFFB, U+0008, U+001D — are font-engine behaviour, not this rule; see
+// pk/render/README.md "R-55 — text oracle".)
+constexpr bool qtHidesInPointOverload(char16_t c)
+{
+    return c == 0x000a // <LF>  LineFeed
+        || c == 0x000c // <FF>  FormFeed
+        || c == 0x000d // <CR>  CarriageReturn
+        || c == 0x2028 // <LS>  LineSeparator
+        || c == 0x2029 // <PS>  ParagraphSeparator
+        || c == 0x00ad; // <SHY> SoftHyphen
+}
+
+// Returns `text` unchanged when nothing is hidden (no allocation on that path).
+//
+// Note on the shape of the rule: Qt keeps the suppressed glyph in the shaping buffer
+// and only zeroes its advance, whereas this removes the character before shaping.
+// For the measured samples the two are equivalent — Qt's advance for "#0\n(0)" and
+// "X\nY" is exactly that of "#0(0)" and "XY". They could differ only where a hidden
+// character takes part in the shaping of its neighbours (kerning across it, Arabic
+// joining, ligature formation); no such sample is known, and none of the two live
+// call sites can produce one.
+PkString qtVisibleText(const PkString &text)
+{
+    int firstHidden = -1;
+    for (int i = 0; i < text.size(); ++i) {
+        if (qtHidesInPointOverload(text.at(i))) {
+            firstHidden = i;
+            break;
+        }
+    }
+    if (firstHidden < 0) return text;
+
+    PkString out;
+    for (int i = 0; i < text.size(); ++i) {
+        const char16_t c = text.at(i);
+        if (!qtHidesInPointOverload(c)) out.append(PkString(c));
+    }
+    return out;
+}
+
+} // namespace
+
 void PkImageRasterBackend::drawText(const PkDrawTextAtPointCommand &command)
 {
     // Text is painted with the pen colour only: neither the pen width nor the
@@ -1180,8 +1264,11 @@ void PkImageRasterBackend::drawText(const PkDrawTextAtPointCommand &command)
     // origin, in the layout of whichever branch it took (identity or transformed);
     // the mapped baseline is added back when the mask is placed below, so both
     // branches land on the same device pixel grid (PkFontRasterizer.h TextCoverage).
-    const auto cov = PkFontRasterizer::coverage(command.text, m_state.font, devicePoint,
-                                               m_state.transform);
+    // Apply the QPainter point-overload visibility rule before shaping (see
+    // qtVisibleText() above): Qt's text engine suppresses these characters, Pk's
+    // Raqm/HarfBuzz pipeline would otherwise advance the pen for them.
+    const auto cov = PkFontRasterizer::coverage(qtVisibleText(command.text), m_state.font,
+                                               devicePoint, m_state.transform);
     if (cov.isEmpty()) return;
     // Anchor the mask on the device pixel grid exactly as the glyph blit does:
     // cell (col, row) covers

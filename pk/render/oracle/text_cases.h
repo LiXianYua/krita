@@ -26,15 +26,34 @@
 // 调用点的实际形态。§6 第 3 条已登记「空 PkFont 的字体解析平台相关」。为覆盖
 // `PkSetFontCommand` 本身，本表另加若干显式 setFont 用例（标注 api=setFont+drawText）。
 //
-// ⚠ 已知覆盖缺口（登记于此与 pk/render/README.md）：
-//   · `\n` 在**点重载**下被 Qt 完全丢弃（plan §2 P1，本机复测 ndiff=0）。本表保留
-//     带 `\n` 的用例，因为**真实调用点 1 的文本就是 "#0\n(0)"**。⚠ 实测 Pk 侧不是
-//     「丢弃」而是「推进约 4px」——见 `adv/newline-twin` 那条注。**这是本工装发现的
-//     真实分歧，尚未裁决**（修 `PkImageRasterBackend::drawText` 还是登记为偏离），
-//     故在无 FreeType 的宿主上它不会让 golden 变红，而在有 FreeType 的宿主上
-//     `run_text.sh` 会因此在 `newline-mid`/`newline-multi` 上如实变红。
+// 本工装第一版发现的真实分歧（点重载下 `\n` 被 Qt 丢弃、Pk 却推进笔位）**已修**：
+// `PkImageRasterBackend::drawText` 现在按 Qt 的 applyVisibilityRules 规则（出处见该文件
+// 的 qtVisibleText() 注释）在送进 coverage() 前滤掉该集合。判据、扫描表与两侧实测数字
+// 见 `.superpowers/sdd/R-55/task-4fix-report.md`。内建见证：`adv/newline-mid`（"X\nY"）
+// 与 `adv/newline-twin`（"XY"）两条摘要**已相等**（修复前不等），`vis/hidden/lf` 与
+// `vis/hidden/lf-twin` 同理。
+//
+// ⚠ 仍是已知分歧（**本批不修，见报告 §5**）：
+//   · `vis/kept/tab`：Qt 的点重载走文本引擎的 tab stop（qtextengine.cpp:1341
+//     calculateTabWidth，本机实测 px24 DejaVu 下 "X\tY" 推进 94.656、单字符 80.000），
+//     Pk 把 U+0009 交给 Raqm（实测 7.000）。同层不同实现，**待裁决**。
+//   · `vis/kept/del`（U+007F）与 `vis/kept/mvs`（U+180E）：Qt 本机走 CoreText 而 Pk 走
+//     FreeType，属已登记的〈文字类对拍〉平台差异（plan §6 第 1 条），不是文本引擎规则。
+//   · `vis/bidi/lri`（U+2066）与 `vis/bidi/alm`（U+061C）：Qt 侧是彻底的无操作，Pk 侧
+//     Raqm 的 bidi 解析会挪动邻字（同 TAB，是 Raqm/Qt-bidi 的实现差异）。**未裁决**。
 //   · `PkDrawTextInRectCommand`（rect+flags 重载）**零活调用点**且命令无 flags 字段，
 //     从 Pk 侧根本表达不出来，本表不覆盖（plan §1.3 / §6 第 2 条）。
+// `vis/*` 两组用例来自本轮的**系统性扫描**（不是 11 个样本的探测）：对 U+0000..U+001F、
+// U+007F..U+009F、U+00A0、U+00AD、U+061C、U+180E、U+2000..U+200F、U+2028..U+202F、
+// U+205F..U+2064、U+2066..U+206F、U+FEFF、U+FFF9..FFFB、U+110BD 逐个测两侧的
+// 「推进量 + 墨迹」；完整表见 task-4fix-report.md §2。分组口径：
+//   · `vis/hidden/*` = Qt 侧推进 0 且无墨（应当被丢掉的类别：C0 控制符、Separator、
+//     bidi/format 控制符）。Pk 侧原本只剩 {LF, FF, CR} 还在推进 —— 这正是本轮修的。
+//   · `vis/kept/*`   = Qt 侧推进非 0（保留的类别：TAB、VT、space 系、U+007F、U+180E）。
+//     这些是**反向守卫**：谁把滤除集合开大（比如连 isPrint==false 一起滤），它们立刻变红。
+//   · `vis/bidi/*`   = 逐字符测是「被隐藏」，但放进串里会挪动邻字落点，故不并入 hidden 组。
+// 每类各取代表；两侧本来就一致的平局字符（U+0000 / U+0008 / U+001D）不单列。
+
 #pragma once
 
 #include <cstdint>
@@ -295,6 +314,55 @@ inline std::vector<Case> table()
         c.penWidth = e.penWidth;
         c.sx = e.sx; c.sy = e.sy; c.tx = e.tx; c.ty = e.ty;
         c.px = e.px; c.py = e.py;
+        cases.push_back(c);
+    }
+
+    // ── 可见性规则扫描：Qt 丢弃的类别 vs 保留的类别（口径见文件头）──────────────────
+    // 形式统一为 "A<c>B"：单测该字符本身的推进量/墨迹，且一旦被丢掉就与 "AB" 同摘要。
+    struct VisCase {
+        const char *tag;
+        const char *text;
+    };
+    const VisCase vis[] = {
+        // Qt 的 applyVisibilityRules 集合（qtextengine.cpp:1361）——**本轮修的**。
+        // 前三条是实测会分歧的（非 Default_Ignorable），后三条 Pk 早已靠 HarfBuzz
+        // 隐藏、滤掉是空操作，一并保留以对齐规则的完整定义。
+        {"vis/hidden/lf",       "A\012B"},
+        {"vis/hidden/lf-twin",  "AB"},          // 与上一条同位置同笔，只差一个 \n
+        {"vis/hidden/ff",       "A\014B"},
+        {"vis/hidden/cr",       "A\015B"},
+        {"vis/hidden/ls",       "A\342\200\250B"},
+        {"vis/hidden/ps",       "A\342\200\251B"},
+        {"vis/hidden/shy",      "A\302\255B"},
+        // 其余被两侧一致隐藏的类别（Cf / bidi）——反向守卫：滤除集合若开大，这里可能连带变红。
+        {"vis/hidden/zwsp",     "A\342\200\213B"},
+        {"vis/hidden/rlo",      "A\342\200\256B"},
+        {"vis/hidden/wj",       "A\342\201\240B"},
+        {"vis/hidden/bom",      "A\357\273\277B"},
+        // 被隐藏**但会挪动邻字落点**的 bidi 控制符：Qt 视作完全无操作（实测 "A<c>B" 的
+        // advance 与墨迹定界与 "AB" 逐像素相同），Pk 走 Raqm 的 bidi 解析后落点不同 ⇒
+        // 这两条的摘要**不等于** vis/hidden/lf-twin。与 vis/kept/tab 同属「同一层、不同
+        // 实现」，本批不修（见报告 §5）。实测两者与 lf-twin 的摘要都不同（见 golden）。
+        // 同一现象还见于 U+2067/U+2068（RSI/FSI）与 U+2069（PDI），本组各取一代表。
+        {"vis/bidi/lri",        "A\342\201\246B"},
+        {"vis/bidi/alm",        "A\330\234B"},
+        // Qt 保留的类别（推进非 0）——**不得**被滤掉；\t 还是本批登记的待裁决分歧。
+        {"vis/kept/tab",        "A\011B"},
+        {"vis/kept/vt",         "A\013B"},
+        {"vis/kept/space",      "A B"},
+        {"vis/kept/nbsp",       "A\302\240B"},
+        {"vis/kept/ideospace",  "A\343\200\200B"},
+        {"vis/kept/del",        "A\177B"},
+        {"vis/kept/mvs",        "A\341\240\216B"},
+    };
+    for (const auto &v : vis) {
+        Case c = baseCase();
+        c.tag = v.tag;
+        c.text = v.text;
+        c.penRgb = 0x000000;
+        c.penWidth = 1.0;
+        c.px = 20.0;
+        c.py = 40.0;
         cases.push_back(c);
     }
 
