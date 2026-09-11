@@ -84,9 +84,9 @@ void ToolReferenceImages::setReferenceImageLayer(KisSharedPtr<KisReferenceImages
                       this, &ToolReferenceImages::slotSelectionChanged);
     KoShapeManager *manager = layer->shapeManager();
     const PkPointer<ToolReferenceImages> guard(this);
-    QObject::connect(manager, &KoShapeManager::selectionChanged, manager,
+    PkObject::connect(manager, &KoShapeManager::selectionChanged, manager,
                      [guard] { if (guard) guard->repaintDecorations(); });
-    QObject::connect(manager, &KoShapeManager::selectionContentChanged, manager,
+    PkObject::connect(manager, &KoShapeManager::selectionContentChanged, manager,
                      [guard] { if (guard) guard->repaintDecorations(); });
 }
 

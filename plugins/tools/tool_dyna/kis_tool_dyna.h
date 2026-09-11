@@ -12,6 +12,7 @@
 #include <PkSet.h>
 #include <PkNamespace.h>
 #include <PkConfigGroup.h>
+#include <PkFlakeBridge.h>
 
 #include "kis_tool_freehand.h"
 

@@ -11,6 +11,7 @@
 
 #include <PkPoint.h>
 #include <PkVector.h>
+#include <PkFlakeBridge.h>
 
 #include "kis_tool_polyline_base.h"
 //#include "flake/kis_node_shape.h"

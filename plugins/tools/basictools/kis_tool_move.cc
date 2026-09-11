@@ -271,8 +271,7 @@ void KisToolMove::notifyGuiAfterMove(bool showFloatingMessage)
         feedback->showFloatingMessage(
             PkString("X: %1 px, Y: %2 px")
                 .arg(KisBasicToolsString::number(currentTopLeft.x()))
-                .arg(KisBasicToolsString::number(currentTopLeft.y())),
-            {}, 1000, KisCanvasFeedback::Priority::High);
+                .arg(KisBasicToolsString::number(currentTopLeft.y())), 1000, KisCanvasFeedback::Priority::High);
     }
 }
 
@@ -317,8 +316,7 @@ void KisToolMove::slotStrokeStartedEmpty()
         KIS_SAFE_ASSERT_RECOVER_NOOP(feedback);
         if (feedback) {
             feedback->showFloatingMessage(
-                PkString("Selected area has no pixels"),
-                {}, 1000, KisCanvasFeedback::Priority::High);
+                PkString("Selected area has no pixels"), 1000, KisCanvasFeedback::Priority::High);
         }
     }
 

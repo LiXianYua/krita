@@ -83,8 +83,8 @@ set(kritatooltransform_PK_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/pk/time
     ${CMAKE_SOURCE_DIR}/pk/variant
     ${CMAKE_SOURCE_DIR}/pk/xml)
-target_include_directories(kritatooltransform_static PRIVATE ${kritatooltransform_PK_INCLUDE_DIRS})
-target_include_directories(kritatooltransform PRIVATE ${kritatooltransform_PK_INCLUDE_DIRS})
+target_include_directories(kritatooltransform_static PRIVATE ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat ${CMAKE_SOURCE_DIR}/pk/global/compat ${CMAKE_SOURCE_DIR}/pk/signal/compat ${kritatooltransform_PK_INCLUDE_DIRS})
+target_include_directories(kritatooltransform PRIVATE ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat ${CMAKE_SOURCE_DIR}/pk/global/compat ${CMAKE_SOURCE_DIR}/pk/signal/compat ${kritatooltransform_PK_INCLUDE_DIRS})
 
 target_link_libraries(kritatooltransform_static
   PUBLIC

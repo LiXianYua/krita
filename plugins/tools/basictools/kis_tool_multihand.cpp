@@ -464,8 +464,7 @@ void KisToolMultihand::updateCanvas()
         feedback->showFloatingMessage(
             PkString("X: %1 px\nY: %2 px")
                 .arg(KisBasicToolsString::numberFixed(this->m_axesPoint.x(), 1))
-                .arg(KisBasicToolsString::numberFixed(this->m_axesPoint.y(), 1)),
-            {}, 1000, KisCanvasFeedback::Priority::High,
+                .arg(KisBasicToolsString::numberFixed(this->m_axesPoint.y(), 1)), 1000, KisCanvasFeedback::Priority::High,
             Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
     }
 }
@@ -485,7 +484,7 @@ PkVector<PkPoint> KisToolMultihand::intervalLocations()
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(feedback, intervalLocations);
         feedback->showFloatingMessage(
             PkString("Multibrush Tool does not support more than %1 brushes; use a larger interval.")
-                .arg(KisBasicToolsString::number(MAXIMUM_BRUSHES)), {}, 4500,
+                .arg(KisBasicToolsString::number(MAXIMUM_BRUSHES)), 4500,
             KisCanvasFeedback::Priority::Medium, Pk::AlignCenter | Pk::TextWordWrap);
         return intervalLocations;
     }

@@ -8,6 +8,8 @@ kis_add_library(kritatoolcrop STATIC ${kritatoolcrop_SOURCES})
 
 set_target_properties(kritatoolcrop PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatoolcrop PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+    ${CMAKE_SOURCE_DIR}/pk/global/compat
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/config
     ${CMAKE_SOURCE_DIR}/pk/geometry

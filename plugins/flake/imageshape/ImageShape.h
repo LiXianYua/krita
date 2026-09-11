@@ -10,6 +10,7 @@
 #include <PkImage.h>
 #include <PkTransform.h>
 #include <PkXmlElement.h>
+#include <PkPainter.h>
 
 #include "ImageShapeState.h"
 #include "KoShape.h"
@@ -26,6 +27,12 @@ public:
     ImageShape &operator=(const ImageShape &) = delete;
 
     KoShape *cloneShape() const override;
+
+    // KoShape::paint 是纯虚（libs/flake/KoShape.h:161 `= 0`）。本类派生
+    // KoShape+SvgShape，工厂要 new 它，所以必须给出实现——否则类仍是抽象类，
+    // ImageShapeFactory 的两个 new 点编不过。渲染语义照 flake 内的同胞实现
+    // libs/flake/shapes/ImageShape.cpp:61-68（同一份 viewBoxTransform + image）。
+    void paint(PkPainter &painter) const override;
 
     // The current Qt painter hook remains transitional and is owned by M5.
     // Do not invent a replacement renderer contract in this value-side class.

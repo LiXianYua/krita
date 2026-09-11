@@ -22,6 +22,9 @@ kis_add_library(kritatoolKnife STATIC ${kritatoolKnife_SOURCES})
 set_target_properties(kritatoolKnife_static kritatoolKnife PROPERTIES
     AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatoolKnife_static PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+    ${CMAKE_SOURCE_DIR}/pk/global/compat
+    ${CMAKE_SOURCE_DIR}/pk/signal/compat
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/config
     ${CMAKE_SOURCE_DIR}/pk/geometry
@@ -31,6 +34,9 @@ target_include_directories(kritatoolKnife_static PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/namespace
     ${CMAKE_SOURCE_DIR}/pk/variant)
 target_include_directories(kritatoolKnife PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+    ${CMAKE_SOURCE_DIR}/pk/global/compat
+    ${CMAKE_SOURCE_DIR}/pk/signal/compat
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/geometry
     ${CMAKE_SOURCE_DIR}/pk/pointer

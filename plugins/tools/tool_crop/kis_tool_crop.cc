@@ -11,6 +11,12 @@
 
 #include "kis_tool_crop.h"
 
+// QCursor：native 桶的桶无关不透明句柄由 libs/flake/flake/noqt-compat/QCursor 提供
+// （规格 2026-09-10 裁定：QCursor 走 KoCanvasCursorHost 句柄载体）。
+// <QCursor> 是私有 TU 的 include，不是公开头（约束 9 只管公开头）；
+// 先例：plugins/tools/tool_enclose_and_fill/subtools/KisToolBasicBrushBase.cpp:8。
+#include <QCursor>
+
 
 #include <PkPainter.h>
 #include <PkPen.h>
@@ -724,13 +730,11 @@ void KisToolCrop::showSizeOnCanvas()
     KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
     if(m_mouseOnHandleType == 9) {
-        feedback->showFloatingMessage(PkString("X: %1\nY: %2").arg(cropX()).arg(cropY()),
-                                      {}, 1000, KisCanvasFeedback::Priority::High,
+        feedback->showFloatingMessage(PkString("X: %1\nY: %2").arg(cropX()).arg(cropY()), 1000, KisCanvasFeedback::Priority::High,
                                       Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
     }
     else {
-        feedback->showFloatingMessage(PkString("Width: %1\nHeight: %2").arg(cropWidth()).arg(cropHeight()),
-                                      {}, 1000, KisCanvasFeedback::Priority::High,
+        feedback->showFloatingMessage(PkString("Width: %1\nHeight: %2").arg(cropWidth()).arg(cropHeight()), 1000, KisCanvasFeedback::Priority::High,
                                       Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
     }
 }

@@ -6,6 +6,10 @@
 
 #include "kis_tool_lazy_brush.h"
 
+// 宿主 GUI 面已剥离：本 TU 走 native 桶，`QCursor` 由 flake 的过渡垫片提供
+// （不透明句柄，见 libs/flake/flake/noqt-compat/QCursor）。
+#include <QCursor>
+
 #include <PkList.h>
 #include <PkStringList.h>
 #include <KoCanvasBase.h>

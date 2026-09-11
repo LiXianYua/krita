@@ -14,6 +14,7 @@ set(kritaexrimport_SOURCES
 
 kis_add_library(kritaexrimport STATIC ${kritaexrimport_SOURCES})
 
+target_include_directories(kritaexrimport PRIVATE ${CMAKE_SOURCE_DIR}/plugins/impex/libkra ${CMAKE_BINARY_DIR}/plugins/impex/libkra)
 target_link_libraries(kritaexrimport PUBLIC kritaimpex_noqt_compile_interface OpenEXR::IlmImf pkconfig)
 target_link_libraries(kritaexrimport INTERFACE $<LINK_ONLY:kritaimpex> $<LINK_ONLY:kritalibkra>)
 add_dependencies(kritaexrimport kritaimpex kritalibkra)
@@ -27,6 +28,7 @@ set(kritaexrexport_SOURCES
 
 kis_add_library(kritaexrexport STATIC ${kritaexrexport_SOURCES})
 
+target_include_directories(kritaexrexport PRIVATE ${CMAKE_SOURCE_DIR}/plugins/impex/libkra ${CMAKE_BINARY_DIR}/plugins/impex/libkra)
 target_link_libraries(kritaexrexport PUBLIC kritaimpex_noqt_compile_interface OpenEXR::IlmImf pkconfig)
 target_link_libraries(kritaexrexport INTERFACE $<LINK_ONLY:kritalibkra> $<LINK_ONLY:kritaimpex>)
 add_dependencies(kritaexrexport kritalibkra kritaimpex)

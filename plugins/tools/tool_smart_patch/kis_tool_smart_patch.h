@@ -10,6 +10,7 @@
 #include <PkScopedPointer.h>
 #include <PkPainterPath.h>
 #include <PkPainter.h>
+#include <PkFlakeBridge.h>
 
 #include "kis_tool_paint.h"
 

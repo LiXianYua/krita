@@ -164,7 +164,7 @@ void KisToolLine::beginPrimaryAction(KoPointerEvent *event)
             return;
         }
         PkString message("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, {}, 4500,
+        feedback->showFloatingMessage(message, 4500,
                                       KisCanvasFeedback::Priority::Medium,
                                       Pk::AlignCenter | Pk::TextWordWrap);
         event->ignore();
@@ -266,8 +266,7 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
             feedback->showFloatingMessage(
                 PkString("X: %1 px\nY: %2 px")
                     .arg(KisBasicToolsString::numberFixed(m_startPoint.x(), 1))
-                    .arg(KisBasicToolsString::numberFixed(m_startPoint.y(), 1)),
-                {}, 1000, KisCanvasFeedback::Priority::High,
+                    .arg(KisBasicToolsString::numberFixed(m_startPoint.y(), 1)), 1000, KisCanvasFeedback::Priority::High,
                 Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
         }
     }
@@ -396,8 +395,7 @@ void KisToolLine::showSize()
     KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
     feedback->showFloatingMessage(
         PkString("Length: %1 px").arg(
-            KisBasicToolsString::numberFixed(PkLineF(m_startPoint, m_endPoint).length(), 1)),
-        {}, 1000, KisCanvasFeedback::Priority::High,
+            KisBasicToolsString::numberFixed(PkLineF(m_startPoint, m_endPoint).length(), 1)), 1000, KisCanvasFeedback::Priority::High,
         Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
 }
 void KisToolLine::paintLine(PkPainter& gc, const PkRect&)

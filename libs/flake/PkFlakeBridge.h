@@ -743,6 +743,7 @@ private:
 #include <PkXmlCompat.h>
 #include <pk/color/PkColor.h>
 #include <pk/geometry/PkPen.h>
+#include <pk/geometry/PkPainterPath.h>
 #include <pk/pointer/PkSharedPointer.h>
 #include <pk/container/PkByteArray.h>
 #include <pk/port/PkStream.h>
@@ -761,6 +762,12 @@ private:
 inline PkColor toPkColor(const PkColor &c) { return c; }
 
 inline PkTransform toPkTransform(const PkTransform &t) { return t; }
+
+// 几何族恒等透传：native 桶里 `KoPointerEvent::point` 已是 PkPointF（见
+// libs/flake/KoPointerEvent.h:199，无 Qt 分支），剥离源直接调用
+// `toPkPointF(pkPointF)` —— KisToolKnife.cpp:117/137/242 实测。与真 Qt 分支的
+// 同名恒等重载（本文件 PkPointF 段）语义一致，故在薄壳侧补齐。
+inline PkPointF toPkPointF(const PkPointF &p) { return p; }
 
 
 inline PkPainterPath toPkPainterPath(const PkPainterPath &p) { return p; }

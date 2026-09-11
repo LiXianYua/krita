@@ -7,7 +7,7 @@ qt_add_resources(kritatoolpolygon_SOURCES tool_polygon.qrc)
 kis_add_library(kritatoolpolygon STATIC ${kritatoolpolygon_SOURCES})
 
 set_target_properties(kritatoolpolygon PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
-target_include_directories(kritatoolpolygon PRIVATE ${CMAKE_SOURCE_DIR}/pk/container ${CMAKE_SOURCE_DIR}/pk/geometry)
+target_include_directories(kritatoolpolygon PRIVATE ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat ${CMAKE_SOURCE_DIR}/pk/global/compat ${CMAKE_SOURCE_DIR}/pk/container ${CMAKE_SOURCE_DIR}/pk/geometry)
 
 target_link_libraries(kritatoolpolygon kritacanvas kritashapemodel pkcontainer pkgeometry)
 

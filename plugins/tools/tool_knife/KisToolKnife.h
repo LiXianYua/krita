@@ -7,9 +7,6 @@
 #ifndef KIS_TOOL_KNIFE_H_
 #define KIS_TOOL_KNIFE_H_
 
-#include <QtCore/QtCore>
-#include <QtGui/QtGui>
-#include <QtWidgets/QtWidgets>
 #include <PkFlakeBridge.h>
 #include <PkScopedPointer.h>
 #include <PkPainterPath.h>
@@ -20,8 +17,6 @@
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <kconfig.h>
-#include <kconfiggroup.h>
 
 class KoCanvasBase;
 class KisPaintInformation;

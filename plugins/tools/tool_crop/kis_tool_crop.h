@@ -17,6 +17,7 @@
 #include <PkSet.h>
 #include <PkString.h>
 #include <PkVariant.h>
+#include <PkFlakeBridge.h>
 
 #include <PkKeySequence.h>
 

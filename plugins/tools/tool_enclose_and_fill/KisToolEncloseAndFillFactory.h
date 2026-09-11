@@ -11,6 +11,7 @@
 
 #include <KisToolPaintFactoryBase.h>
 #include <PkString.h>
+#include <PkFlakeBridge.h>
 
 #include "KisToolEncloseAndFill.h"
 

@@ -12,6 +12,7 @@
 #include <PkScopedPointer.h>
 #include <PkVariant.h>
 #include <PkNamespace.h>
+#include <PkFlakeBridge.h>
 #include "kis_tool_freehand.h"
 
 #include "KisToolPaintFactoryBase.h"

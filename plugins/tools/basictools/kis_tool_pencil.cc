@@ -69,7 +69,7 @@ void KisToolPencil::beginPrimaryAction(KoPointerEvent *event)
             return;
         }
         PkString message("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, {}, 4500,
+        feedback->showFloatingMessage(message, 4500,
                                       KisCanvasFeedback::Priority::Medium,
                                       Pk::AlignCenter | Pk::TextWordWrap);
         event->ignore();

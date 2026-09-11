@@ -11,6 +11,12 @@
 
 #include "kis_tool_polygon.h"
 
+// QCursor：native 桶的桶无关不透明句柄由 libs/flake/flake/noqt-compat/QCursor 提供
+// （规格 2026-09-10 裁定：QCursor 走 KoCanvasCursorHost 句柄载体）。
+// <QCursor> 是私有 TU 的 include，不是公开头（约束 9 只管公开头）；
+// 先例：plugins/tools/tool_enclose_and_fill/subtools/KisToolBasicBrushBase.cpp:8。
+#include <QCursor>
+
 #include <PkTransform.h>
 
 #include <KoPointerEvent.h>

@@ -8,6 +8,9 @@ kis_add_library(kritatooldyna STATIC ${kritatooldyna_SOURCES})
 
 set_target_properties(kritatooldyna PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatooldyna PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+    ${CMAKE_SOURCE_DIR}/pk/global/compat
+    ${CMAKE_SOURCE_DIR}/pk/signal/compat
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/config
     ${CMAKE_SOURCE_DIR}/pk/geometry

@@ -10,6 +10,9 @@ set_target_properties(kritatoollazybrush PROPERTIES AUTOMOC OFF CXX_COMPILER_LAU
 generate_export_header(kritatoollazybrush BASE_NAME kritatoollazybrush)
 
 target_include_directories(kritatoollazybrush PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+    ${CMAKE_SOURCE_DIR}/pk/signal/compat
+    ${CMAKE_SOURCE_DIR}/pk/global/compat
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/pointer
     ${CMAKE_SOURCE_DIR}/pk/variant

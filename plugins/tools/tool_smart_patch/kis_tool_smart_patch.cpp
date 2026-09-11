@@ -6,6 +6,12 @@
 
 #include "kis_tool_smart_patch.h"
 
+// QCursor：native 桶的桶无关不透明句柄由 libs/flake/flake/noqt-compat/QCursor 提供
+// （规格 2026-09-10 裁定：QCursor 走 KoCanvasCursorHost 句柄载体）。
+// <QCursor> 是私有 TU 的 include，不是公开头（约束 9 只管公开头）；
+// 先例：plugins/tools/tool_enclose_and_fill/subtools/KisToolBasicBrushBase.cpp:8。
+#include <QCursor>
+
 #include <PkPainter.h>
 #include <PkPainterPath.h>
 #include <PkPen.h>
@@ -64,7 +70,7 @@ struct KisToolSmartPatch::Private {
 
 
 KisToolSmartPatch::KisToolSmartPatch(KoCanvasBase * canvas)
-    : KisToolPaint(canvas, Qt::BlankCursor),
+    : KisToolPaint(canvas, Pk::BlankCursor),
       m_d(new Private)
 {
     setSupportOutline(true);
@@ -128,8 +134,7 @@ void KisToolSmartPatch::beginPrimaryAction(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-            PkString("Select a paint layer to use this tool"),
-            {}, 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
+            PkString("Select a paint layer to use this tool"), 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
         event->ignore();
         return;
     }

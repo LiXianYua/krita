@@ -8,6 +8,8 @@ kis_add_library(kritatoolSmartPatch STATIC ${kritatoolSmartPatch_SOURCES})
 
 set_target_properties(kritatoolSmartPatch PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatoolSmartPatch PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+    ${CMAKE_SOURCE_DIR}/pk/global/compat
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/geometry
     ${CMAKE_SOURCE_DIR}/pk/pointer

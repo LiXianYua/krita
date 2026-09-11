@@ -111,7 +111,7 @@ KoInputDevice KoInputDevice::eraser()
     return id;
 }
 
-QDebug operator<<(QDebug dbg, const KoInputDevice &device)
+PkDebug operator<<(PkDebug dbg, const KoInputDevice &device)
 {
     if (device.isMouse())
         dbg.nospace() << "mouse";

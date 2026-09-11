@@ -25,6 +25,7 @@ set(kritapsdimport_SOURCES
 
 kis_add_library(kritapsdimport STATIC ${kritapsdimport_SOURCES})
 
+target_include_directories(kritapsdimport PRIVATE ${CMAKE_SOURCE_DIR}/libs/flake/text ${CMAKE_SOURCE_DIR}/pk/font ${CMAKE_SOURCE_DIR}/libs/flake/svg ${CMAKE_SOURCE_DIR}/libs/psd ${CMAKE_BINARY_DIR}/libs/psd)
 target_link_libraries(kritapsdimport PUBLIC kritaimpex_noqt_compile_interface)
 target_link_libraries(kritapsdimport INTERFACE $<LINK_ONLY:kritapsd_static> $<LINK_ONLY:kritaglobal> $<LINK_ONLY:kritaimpex>)
 add_dependencies(kritapsdimport kritapsd_static kritaglobal kritaimpex)

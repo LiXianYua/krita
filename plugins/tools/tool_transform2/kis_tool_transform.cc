@@ -74,6 +74,11 @@
 #include "strokes/transform_stroke_strategy.h"
 #include "strokes/inplace_transform_stroke_strategy.h"
 
+// QCursor：native 桶的桶无关不透明句柄由 libs/flake/flake/noqt-compat/QCursor 提供
+// （规格 2026-09-10 裁定：QCursor 走 KoCanvasCursorHost 句柄载体）。
+// 该 target 的 PRIVATE include 面已含 noqt-compat + pk/global/compat。
+#include <QCursor>
+
 KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
     : KisTool(canvas, {})
     , m_converter(dynamic_cast<const KisCoordinatesConverter *>(canvas->viewConverter()))

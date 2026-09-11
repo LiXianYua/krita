@@ -10,7 +10,7 @@
 
 #include "kritaflake_export.h"
 
-#include <QDebug>
+#include <PkDebug.h>
 #include <PkFlakeBridge.h>
 #include <boost/operators.hpp>
 
@@ -107,7 +107,7 @@ private:
 
 Q_DECLARE_METATYPE(KoInputDevice)
 
-KRITAFLAKE_EXPORT QDebug operator<<(QDebug debug, const KoInputDevice &device);
+KRITAFLAKE_EXPORT PkDebug operator<<(PkDebug debug, const KoInputDevice &device);
 
 inline uint qHash(const KoInputDevice &key)
 {

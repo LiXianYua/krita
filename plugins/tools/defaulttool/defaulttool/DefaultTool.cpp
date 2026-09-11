@@ -1201,8 +1201,7 @@ void DefaultTool::mousePressEvent(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-                PkString("This tool only works on vector layers. You probably want the move tool."),
-                {}, 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
+                PkString("This tool only works on vector layers. You probably want the move tool."), 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
         return;
     }
 

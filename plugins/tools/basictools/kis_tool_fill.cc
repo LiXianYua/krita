@@ -118,8 +118,7 @@ void KisToolFill::beginPrimaryAction(KoPointerEvent *event)
             return;
         }
         feedback->showFloatingMessage(
-            PkString("You cannot use this tool with the selected layer type"),
-            {}, 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
+            PkString("You cannot use this tool with the selected layer type"), 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
         event->ignore();
         return;
     }

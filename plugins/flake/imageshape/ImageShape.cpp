@@ -12,6 +12,7 @@
 #include <SvgUtil.h>
 #include <KoXmlWriter.h>
 #include "kis_dom_utils.h"
+#include <KisQPainterStateSaver.h>
 
 ImageShape::ImageShape() = default;
 
@@ -31,6 +32,18 @@ KoShape *ImageShape::cloneShape() const
 void ImageShape::setSize(const PkSizeF &size)
 {
     KoShape::setSize(size);
+}
+
+void ImageShape::paint(PkPainter &painter) const
+{
+    const ImageShapeState &state = m_state.read();
+
+    KisQPainterStateSaver saver(&painter);
+
+    painter.setRenderHint(PkPainter::SmoothPixmapTransform);
+    painter.setClipRect(PkRectF(PkPointF(), size()), Pk::IntersectClip);
+    painter.setTransform(state.viewBoxTransform, true);
+    painter.drawImage(PkPoint(), state.image);
 }
 
 bool ImageShape::saveSvg(SvgSavingContext &context)
