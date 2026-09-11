@@ -128,11 +128,16 @@ add_library(pkgeometry STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkMatrix4x4.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkRegion.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkPainterPath.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkGeometryDebug.cpp
 )
 target_include_directories(pkgeometry PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry
     ${CMAKE_CURRENT_SOURCE_DIR}/container
     ${CMAKE_CURRENT_SOURCE_DIR}/global
+    # PkGeometryDebug.cpp 里 #include "PkDebug.h"（pk/log）。几何头只前向声明
+    # class PkDebug，所以消费方不需要 pk/log；只有这个 TU 需要。
+    # 与 pk/geometry/CMakeLists.txt 的 ../log 那一条（同名文件、同一理由）对齐。
+    ${CMAKE_CURRENT_SOURCE_DIR}/log
     # PkPen.h（S-07-b 越锁补定义）include <PkColor.h>；纯头 data-carrier，
     # 只补 include 路径不链颜色库（头文件即定义）。
     ${CMAKE_CURRENT_SOURCE_DIR}/color
