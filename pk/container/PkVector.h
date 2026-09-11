@@ -70,6 +70,23 @@ public:
     void remove(int i) { this->pkRemoveAt(i); }
     void remove(int i, int n) { this->pkRemoveRange(i, n); }
 
+    // removeFirst() / removeLast()：S-11 实测缺口——PkList 有、QVector 有，
+    // 唯独 PkVector 没有，于是剥离时撞上的调用点只能写 remove(size()-1) 绕开
+    // （S-11 在 KisSpatialContainer::removePointRec 就这么绕的）。
+    // 对齐 QVector：空容器上 Qt 是 Q_ASSERT + release 下 UB，这里由断言兜住，
+    // 与 PkList 的同名方法同形（同样走共同的 pkRemoveAt）。
+    void removeFirst()
+    {
+        assert(!this->isEmpty());
+        this->pkRemoveAt(0);
+    }
+
+    void removeLast()
+    {
+        assert(!this->isEmpty());
+        this->pkRemoveAt(this->size() - 1);
+    }
+
     // takeLast()：弹出并返回末元素（对齐 QVector::takeLast；Qt 对空容器是断言，
     // 不要求 T 可默认构造——KisForest::ChildIterator 即无默认构造的真实调用点）。
     T takeLast()
