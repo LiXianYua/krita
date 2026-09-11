@@ -53,24 +53,14 @@ int main()
     }
 
     std::vector<std::string> actual;
+    const std::uint32_t blank = pkShapeCases::emptyDigest();
+    int vacuous = 0;
     for (const auto &c : pkShapeCases::table()) {
-        CaseImage image = makeCaseImage();
-        fillCaseImage(image);
-        PkImageRasterBackend backend(image);
-        PkPainter painter(backend);
-        painter.setRenderHint(PkPainter::RenderHint::Antialiasing, true);
-        painter.setPen(c.hasPen ? PkPen(PkColor(Pk::black), c.penWidth) : PkPen(Pk::NoPen));
-        painter.setBrush(c.hasBrush ? PkBrush(PkColor(Pk::red)) : PkBrush(Pk::NoBrush));
-        if (c.polygon) {
-            PkPolygonF polygon;
-            for (const auto &p : c.points) polygon.append(p);
-            painter.drawPolygon(polygon);
-        } else {
-            painter.drawEllipse(c.ellipseRect);
-        }
+        const CaseImage image = pkShapeCases::renderCase(c);
         std::ostringstream line;
         line << c.name << ' ' << pkShapeCases::digest(image);
         actual.push_back(line.str());
+        if (pkShapeCases::digest(image) == blank) ++vacuous;
     }
 
     if (actual.size() != expected.size()) {
@@ -91,6 +81,11 @@ int main()
         return 1;
     }
 
-    std::cout << "shape primitives match Qt 5.15.7 oracle (" << actual.size() << " cases)\n";
+    // 诚实的计数：与空图同摘要的用例是**恒真**的（两边都什么都没画），它们证明的是
+    // 「退化输入不崩、且两侧同样什么都不画」，不是「画得对」。把它们与有判别力的用例
+    // 分开报，免得 36 这个数被读成 36 条独立判别力。
+    std::cout << "shape primitives match Qt 5.15.7 oracle: " << actual.size() << " cases ("
+              << (actual.size() - vacuous) << " discriminating, " << vacuous
+              << " degenerate/no-op)\n";
     return 0;
 }

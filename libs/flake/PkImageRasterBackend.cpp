@@ -475,9 +475,12 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
         return;
     }
     if (const auto *polygon = std::get_if<PkDrawPolygonCommand>(&command)) {
-        // QPainter::drawPolygon closes the subpath before stroking: dropping the
-        // closeSubpath() below diverges by 46 pixels on a 4-vertex quad. Filling
-        // is unaffected either way (a fill implicitly closes the contour).
+        // QPainter::drawPolygon closes the subpath before stroking; addPolygon
+        // produces an open one. Dropping the closeSubpath() below changes 74 / 76
+        // / 106 pixels respectively for the 4-vertex, self-intersecting and
+        // explicitly-closed quads (metric and cases: pk/render/oracle/
+        // shape_primitive_cases.h, 32x32 ARGB32, per-pixel packed-value compare).
+        // Filling is unaffected either way (a fill implicitly closes the contour).
         PkPainterPath path;
         path.addPolygon(polygon->polygon);
         path.closeSubpath();

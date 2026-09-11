@@ -6,6 +6,14 @@
 // 本头被两个 TU 各编一次：
 //   · oracle/shape_primitive_oracle.cpp   -DPK_SHAPE_QT_ORACLE → 真 QPainter
 //   · tests/test_shape_primitive.cpp      （不加宏）        → PkPainter + PkImageRasterBackend
+//
+// ⚠ 已知覆盖缺口（R-51 评审发现，登记于此）：
+//   `Case::fillRule` 永远是 0。**不是因为忘了**——`PkPainter::drawPolygon(const PkPolygonF&)`
+//   没有 fillRule 形参，而真 Qt 的 `QPainter::drawPolygon(const QPolygonF&, Qt::FillRule)`
+//   有；`PkDrawPolygonCommand` 里也没有这个字段。所以 winding 分支**从 Pk 侧根本表达不出来**。
+//   保留范围实测：13 处 drawPolygon 调用点**全部是单实参形式**，0 处用 WindingFill
+//   ——按 R线-spec「判据① 撞上零用量时留着并登记，不要删」，本字段留着，缺口记在这里
+//   与 pk/render/README.md。
 #pragma once
 
 #include <cstdint>
@@ -77,6 +85,50 @@ inline std::uint32_t digest(const CaseImage &image)
         }
     }
     return hash;
+}
+
+// 唯一的渲染实现，两侧共用。**不要在 oracle/*.cpp 或 tests/*.cpp 里再内联一份**——
+// 抄第二份的结果是两边悄悄漂移，对拍就变成「自己跟自己比」。
+inline CaseImage renderCase(const Case &c)
+{
+    CaseImage image = makeCaseImage();
+    fillCaseImage(image);
+#ifdef PK_SHAPE_QT_ORACLE
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(c.hasPen ? QPen(Qt::black, c.penWidth) : QPen(Qt::NoPen));
+    painter.setBrush(c.hasBrush ? QBrush(Qt::red) : QBrush(Qt::NoBrush));
+    if (c.polygon) {
+        QPolygonF polygon;
+        for (const auto &p : c.points) polygon << p;
+        painter.drawPolygon(polygon, c.fillRule ? Qt::WindingFill : Qt::OddEvenFill);
+    } else {
+        painter.drawEllipse(c.ellipseRect);
+    }
+    painter.end();
+#else
+    PkImageRasterBackend backend(image);
+    PkPainter painter(backend);
+    painter.setRenderHint(PkPainter::RenderHint::Antialiasing, true);
+    painter.setPen(c.hasPen ? PkPen(PkColor(Pk::black), c.penWidth) : PkPen(Pk::NoPen));
+    painter.setBrush(c.hasBrush ? PkBrush(PkColor(Pk::red)) : PkBrush(Pk::NoBrush));
+    if (c.polygon) {
+        PkPolygonF polygon;
+        for (const auto &p : c.points) polygon.append(p);
+        painter.drawPolygon(polygon);
+    } else {
+        painter.drawEllipse(c.ellipseRect);
+    }
+#endif
+    return image;
+}
+
+// 空白画布的摘要——用来数「哪些用例其实什么都没画」（摘要 == 空图 = 恒真、无判别力）。
+inline std::uint32_t emptyDigest()
+{
+    CaseImage image = makeCaseImage();
+    fillCaseImage(image);
+    return digest(image);
 }
 
 inline std::vector<Case> table()

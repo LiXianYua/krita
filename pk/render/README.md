@@ -68,13 +68,18 @@ call sites verified by receiver type (not by grep), over the retained range
 
 `drawPolygon` and `drawEllipse` are Qt 5.15.7-pixel-identical to building the
 corresponding `PkPainterPath` and routing it through the existing fill/stroke
-machinery — verified case-by-case by `oracle/run_shape_primitive.sh` (36 cases:
-integer / non-integer / out-of-bounds / negative-size / degenerate rects,
-single-point and two-point polygons, self-intersecting polygons, pen+brush
-combinations). The one empirical trap: `QPainter::drawPolygon` **closes the subpath**
-before stroking; `PkPainterPath::addPolygon` produces an *open* one, and omitting
-`closeSubpath()` diverges by 46 pixels on a 4-vertex quad (it makes 6 of the 36 cases
-diverge).
+machinery — verified case-by-case by `oracle/run_shape_primitive.sh`: **36 cases, of
+which 29 are discriminating and 7 are degenerate/no-op** (integer / non-integer /
+out-of-bounds / negative-size rects, single-point and two-point polygons,
+self-intersecting polygons, pen+brush combinations). The 7 no-op cases are kept as
+"degenerate input draws nothing, on both sides" assertions; they are not independent
+evidence of drawing correctness and the test binary prints the split so the number
+cannot be misread.
+
+The one empirical trap: `QPainter::drawPolygon` **closes the subpath** before
+stroking; `PkPainterPath::addPolygon` produces an *open* one. Omitting `closeSubpath()`
+changes 74 / 76 / 106 pixels for the 4-vertex, self-intersecting and explicitly-closed
+quads (32x32 ARGB32, per-pixel packed-value compare) and turns 6 of the 36 cases red.
 
 **Registered gaps, with their blockers:**
 
@@ -93,6 +98,15 @@ diverge).
 - **`setCompositionMode`** accepts only `SourceOver`/`Source`/`Plus` and throws for the
   rest. **No live call site needs more**: of the 7 retained-range calls, 6 are `Source`
   and 1 is `Plus`. Latent gap, not a live one.
+- **`drawPolygon` cannot express a fill rule.** Real Qt has
+  `QPainter::drawPolygon(const QPolygonF &, Qt::FillRule)`; `PkPainter::drawPolygon`
+  takes only the polygon and `PkDrawPolygonCommand` has no such field, so a
+  `WindingFill` polygon is **not expressible from the Pk side at all**. Registered
+  rather than removed: of the 13 retained-range `drawPolygon` call sites, **all 13 are
+  single-argument** — zero live usage of the missing parameter (R-line rule: at zero
+  measured usage, keep it and register, do not delete). The oracle's `Case::fillRule`
+  field is therefore permanently 0, and the Qt side's winding dispatch is unreachable —
+  noted in `oracle/shape_primitive_cases.h` so nobody mistakes it for an oversight.
 - **`PkSvgPainterBackend`** (`libs/flake/svg/`, the SVG-export backend) marks any
   command it does not model as unsupported, which invalidates the whole document and
   falls back to raster. Ellipse/arc/polygon are not modelled there either.
@@ -107,7 +121,11 @@ diverge).
 they `source` a Linux path (`/mnt/ssd-disk/...`), and the two brush runners pass
 `-Wl,--start-group`/`--end-group`, which GNU ld accepts but ld64 does not.
 `tests/run_tests.sh` additionally calls `readelf`/`ldd` (Linux binutils; `otool -L` is
-the macOS equivalent). `oracle/run_shape_primitive.sh` is written to work on both and
+the macOS equivalent).
+`oracle/run_shape_primitive.sh` rewrites `oracle/shape_primitive_golden.txt` in the
+source tree on every run — that is deliberate (the golden is a checked-in record of the
+Qt measurement, and regenerating it is how it stays honest), and it is idempotent: when
+the two sides agree the file comes back byte-identical and `git status` stays clean. `oracle/run_shape_primitive.sh` is written to work on both and
 locates the dependency env by searching upwards from `pk/render` rather than hardcoding
 a path. The three older scripts are registered here as a gap, not fixed by R-51.
 
