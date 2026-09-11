@@ -605,7 +605,7 @@ void PkPainterPath::cubicTo(const PkPointF &c1, const PkPointF &c2, const PkPoin
 }
 void PkPainterPath::quadTo(const PkPointF &cp, const PkPointF &ep)
 {
-    // qpainterpath.cpp:917（守卫）/ 929-930（控制点）—— 与 moveTo/lineTo/cubicTo 同一把守卫。
+    // qpainterpath.cpp:912（守卫）/ 932-933（控制点）—— 与 moveTo/lineTo/cubicTo 同一把守卫。
     // ⚠ 这里**必须**自己守：本实现是转成 cubicTo 再走，但**守卫边界与 Qt 不同**
     //（下面那半句）；控制点算式已按 Qt 逐字对齐（R-56）：
     //   `cp.x` 恰为 1e128 整值时 Qt 在入口就丢掉整条，而本实现算出的控制点

@@ -335,9 +335,9 @@ def parse_decls(hdr_path, cls):
     # 闸门②③同时失守，run_oracle.sh 恒 exit 1（实测 13 条 FAIL）。
     #
     # ⚠ **只放行「全大写 + 数字/下划线」的单个标识符**，不放 `[A-Za-z_]\w*`：
-    # 放宽到后者会让 `class PkRectF` 之类在取名不同时也能被吃掉，
-    # `class X final {` / `template<class T> class X {` 这些形态也会漏进来，
-    # 闸门就不再守它本来守的那件事（「解析出的声明集是不是这个类的全集」）。
+    # 两者**唯一**的差别是**小写/数字开头的宏名** —— 放宽到后者会把
+    # `class pk_export PkRect` 一类的命名也放行，闸门就不再守它本来守的那件事
+    #（「解析出的声明集是不是这个类的全集」）。
     # 若将来出现小写的导出宏，改的是这条正则**加白名单**，不是放宽这里。
     m = re.search(r'class\s+(?:[A-Z_][A-Z0-9_]*\s+)?%s(?:\s*:\s*[^{]*)?\s*\{(.*?)\n\s*private:'
                   % re.escape(cls), src, re.S)
