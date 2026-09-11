@@ -4606,6 +4606,24 @@ static constexpr int countOf(const T (&)[N]) { return (int)N; }
 // （控制点算式的 1 ulp，见缺口②）—— 别把它当成守卫的输入。
 static const double kPpTok[] = { 1e200, 1e128, 1e127, INFINITY, -INFINITY, NAN, 5e-324 };
 
+// `arcTo` 的 **startAngle 那一格专用**（R-56 Task 3 改动 3）：把 `1e127` 换成
+// `1e9` —— **不是"改语料凑绿"，是有依据的收窄**。
+//
+// 实测 `arcTo(rect=(1,2,3,4), startAngle=1e127, sweepLength=-90)` 两侧都**在守卫之后**
+// 做越界的 `int(...)`：
+//   · pk：`pkCurvesForArc` 里 `int startSegment = int(std::floor(startAngle / 90));`
+//   · Qt：`qt_find_ellipse_coords:134` 的 `360 * qFloor(angles[i] / 360)`（`qFloor` 返回 `int`），
+//         随后 `360 * (越界 int)` 又是有符号溢出。
+// 两侧编译器不同 ⇒ 这个输入上的"Qt 值"是**一次 UB 的观测值**，不可能稳定对齐
+//（本仓 README「对拍侧为什么不带 -fwrapv」给它起过名字）。
+// `|360*qFloor(x/360)|` 要落在 `int` 内 ⇒ `|angle| < 2.147e9` 才安全；`1e9` 满足，
+// 用它证明"守卫没有过度拒绝"。界外档（`1e128`/`1e200`/±inf/nan）在入口就被
+// `isValidCoord` 丢掉、根本走不到那段 UB，**照旧全部保留**，判别力不受损。
+// 代价：`2^31 ≤ |angle| < 1e128` 这一档角度的两侧一致性**从此无人常驻守**（缺口，非静默丢弃）。
+// 注：`sweepLength` 那一格**仍用 `kPpTok`**（`1e127`）—— 两侧都先 clamp 到 ±360、
+// 触发不到 UB，实测它本来就不红。
+static const double kArcStartTok[] = { 1e200, 1e128, 1e9, INFINITY, -INFINITY, NAN, 5e-324 };
+
 static std::string ptok(const char *what, double v)
 { return std::string(what) + "(" + dstr(v) + ")"; }
 
@@ -4699,6 +4717,8 @@ static void cmp_pp_entries()
     // arcTo：**四个维度** —— rect 的四个分量，加 startAngle / sweepLength 两个标量
     //（后两个是 S-18 探针的另两个维度：`arcTo` 对 rect 走 pkHasValidCoords、
     // 对两个角度走 pkIsValidCoord，是两把不同的判据）。
+    // startAngle 用**自己的 token 集** `kArcStartTok`（改动 3：`1e127` 会踩越界 `int` 的 UB，
+    // 见其定义处）；界外档照旧保留。
     for (int i = 0; i < nTok; ++i) {
         const double x = kPpTok[i];
         const double r[4] = { 1.0, 2.0, 3.0, 4.0 };
@@ -4713,12 +4733,15 @@ static void cmp_pp_entries()
                 [x0, y0, w0, h0](QPainterPath &q) { q.arcTo(QRectF(x0, y0, w0, h0), 0.0, -90.0); },
                 [x0, y0, w0, h0](PkPainterPath &p) { p.arcTo(PkRectF(x0, y0, w0, h0), 0.0, -90.0); });
         }
-        cmp_pp_entry("PP::arcTo", shapeOfCoord({1.0, 2.0, 3.0, 4.0, x, -90.0}), "startAngle" + ptok("v", x),
-            [x](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); },
-            [x](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); });
         cmp_pp_entry("PP::arcTo", shapeOfCoord({1.0, 2.0, 3.0, 4.0, 0.0, x}), "sweepLength" + ptok("v", x),
             [x](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), 0.0, x); },
             [x](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), 0.0, x); });
+    }
+    for (int i = 0, nArc = countOf(kArcStartTok); i < nArc; ++i) {
+        const double x = kArcStartTok[i];
+        cmp_pp_entry("PP::arcTo", shapeOfCoord({1.0, 2.0, 3.0, 4.0, x, -90.0}), "startAngle" + ptok("v", x),
+            [x](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); },
+            [x](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); });
     }
 }
 

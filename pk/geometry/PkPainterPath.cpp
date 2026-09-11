@@ -530,20 +530,19 @@ void PkPainterPath::reserve(int size)
 // **Qt 的七个守卫入口现在七个都守了**（S-18 分两刀补齐）：
 //   `moveTo` · `lineTo` · `cubicTo` · `addRect` · `quadTo` · `arcTo` · `addEllipse`
 // ⚠ `quadTo` 那一条**必须自己守、不能靠 cubicTo 传递**：本实现是转成 cubicTo
-// 再走，数值上与 Qt 的 quadTo→cubicTo 等价，但**边界不同** —— `cp.x` 恰为
-// 1e128 整值时 Qt 在入口就丢掉整条，而本实现算出的控制点 c1 = prev + 2/3*(cp-prev)
-// 是 6.7e127，**小于** 1e128，会通过 cubicTo 那把守卫被收下。
+// 再走（控制点算式已按 Qt 的 `(prev + 2*c) / 3` 对齐 —— R-56，见函数体里的注释），
+// 但**守卫边界与 Qt 不同** —— `cp.x` 恰为 1e128 整值时 Qt 在入口就丢掉整条，
+// 而本实现算出的控制点 c1 = (sp + 2*cp)/3 是 6.7e127，**小于** 1e128，
+// 会通过 cubicTo 那把守卫被收下。
 // `arcTo` 要守**三个**：rect 走 `pkHasValidCoords`，startAngle / sweepLength 是标量、
 // 走 `pkIsValidCoord`。
 //
-// ⚠ **这三条入口目前没有常驻覆盖**：对拍的语料只用 moveTo/lineTo/cubicTo/addRect
-// 构造路径，走不到它们；判定它们对齐与否靠下面「坐标守卫」一节记的那支独立探针
-//（一次性证据，不是回归闸门）。改这一段之前先重跑那支探针。
+// ⚠ 这七个入口的**常驻覆盖**在 `oracle/geometry_difftest.cpp` 的 `PP::*` 一族
+//（R-56 加，两种起点各跑一遍）；`pk/geometry/README.md`「坐标守卫」一节记的
+// 那支独立探针是**历史证据，不是判据**。
 // （**注释里不写行号**：S-18 加守卫本身就把行号挪过一次，再抄一次还会再漂。）
-//   **这三处不在 `mapProjective` / `mapRect` 的路径上**（那条路只走
-//   `addRect` + `moveTo`/`lineTo`/`cubicTo`），是**改前就有**的缺口、非 S-18 引入；
-//   对拍语料的路径构造也覆盖不到它们。补它们属于「对齐 Qt」的存量清理，
-//   不在本任务范围 —— 记在这里是**免得下一个读到这段的人以为已经全覆盖**。
+//   **这些入口不在 `mapProjective` / `mapRect` 的路径上**（那条路只走
+//   `addRect` + `moveTo`/`lineTo`/`cubicTo`），是**改前就有**的缺口、非 S-18 引入。
 static inline bool pkIsValidCoord(qreal c)
 {
     if (sizeof(qreal) >= sizeof(double))
@@ -606,15 +605,28 @@ void PkPainterPath::cubicTo(const PkPointF &c1, const PkPointF &c2, const PkPoin
 }
 void PkPainterPath::quadTo(const PkPointF &cp, const PkPointF &ep)
 {
-    // qpainterpath.cpp:912 —— 与 moveTo/lineTo/cubicTo 同一把守卫。
-    // ⚠ 这里**必须**自己守：本实现是转成 cubicTo 再走（数值上与 Qt 的
-    // quadTo→cubicTo 等价），但**边界不同**——`cp.x` 恰为 1e128 整值时 Qt 在
-    // 入口就丢掉整条，而本实现算出的控制点 c1 = sp + 2/3*(cp-sp) 是 6.7e127
-    // **小于** 1e128，会通过 cubicTo 那把守卫被收下。实测就是这么分家的
-    // （探针见 `pk/geometry/README.md` 的「坐标守卫」一节）。
+    // qpainterpath.cpp:917（守卫）/ 929-930（控制点）—— 与 moveTo/lineTo/cubicTo 同一把守卫。
+    // ⚠ 这里**必须**自己守：本实现是转成 cubicTo 再走，但**守卫边界与 Qt 不同**
+    //（下面那半句）；控制点算式已按 Qt 逐字对齐（R-56）：
+    //   `cp.x` 恰为 1e128 整值时 Qt 在入口就丢掉整条，而本实现算出的控制点
+    //   c1 = (sp + 2*cp) / 3 是 6.7e127，**小于** 1e128，会通过 cubicTo 那把
+    //   守卫被收下。实测就是这么分家的（历史探针见 `pk/geometry/README.md`
+    //   的「坐标守卫」一节）。
+    // qpainterpath.cpp:932 —— 控制点写法：`(prev + 2*c) / 3`。
+    // ⚠ **不是数学等价的随便一种写法**：原先写的是 `prev + (2/3)*(c - prev)`，
+    // 数学上一样、浮点上差 1 ulp —— 实测 `quadTo(cp=(5e-324,0), ep=(10,0))` 的
+    // `c2.x`：Qt `(10 + 2*5e-324)/3 = 10/3 = 3.3333333333333335`，
+    // 旧写法 `10 + (2/3)*(5e-324 - 10)` 得 `3.3333333333333339`。
+    //（open-subpath 上同一组输入还会在 `c1.y` 上差 1 ulp：`(4 + 0)/3 = 1.3333333333333333`
+    //  对 `4 + (2/3)*(0 - 4) = 1.3333333333333335` —— 语料两条都命中。）
+    // 判据是**逐位**的（`same_path` 走 `same_double`），1 ulp 就是分家。
     if (!pkHasValidCoords(cp) || !pkHasValidCoords(ep))
         return;
-    const PkPointF sp=m_currentPos; cubicTo(PkPointF(sp.x()+2./3.*(cp.x()-sp.x()),sp.y()+2./3.*(cp.y()-sp.y())),PkPointF(ep.x()+2./3.*(cp.x()-ep.x()),ep.y()+2./3.*(cp.y()-ep.y())),ep); }
+    const PkPointF sp = m_currentPos;
+    const PkPointF c1((sp.x() + 2 * cp.x()) / 3, (sp.y() + 2 * cp.y()) / 3);
+    const PkPointF c2((ep.x() + 2 * cp.x()) / 3, (ep.y() + 2 * cp.y()) / 3);
+    cubicTo(c1, c2, ep);
+}
 void PkPainterPath::closeSubpath()
 {
     if (isEmpty())
@@ -643,9 +655,26 @@ PkPointF PkPainterPath::currentPosition() const { return m_currentPos; }
 
 void PkPainterPath::addRect(const PkRectF &rect)
 {
+    // qpainterpath.cpp:1086-1113 —— 与 Qt 逐句对应：守卫 → `isNull()` 早退 →
+    // `moveTo`（只加一枚 MoveTo）→ **无条件 append 四个 LineToElement**（l1/l2/l3/l4，
+    // l4 = (x, y)）→ `m_requireMoveTo = true` → 同步 currentPos。
+    // ⚠ **不走 `lineTo`**：`lineTo` 有 `if (p == m_currentPos) return;`，退化矩形
+    //（量级悬殊使 `x+w == x`）会被跳过、少 2 个元素；Qt 的 addRect 直接 append、不跳。
+    // ⚠ Qt 还置 `convex = first`（凸性缓存）—— 本类**没有**对应字段，不为它新增状态。
     if (!pkHasValidCoords(rect))
         return;
-    moveTo(rect.x(),rect.y()); lineTo(rect.x()+rect.width(),rect.y()); lineTo(rect.x()+rect.width(),rect.y()+rect.height()); lineTo(rect.x(),rect.y()+rect.height()); closeSubpath(); }
+    if (rect.isNull())
+        return;
+    detachForMutation();
+    moveTo(rect.x(), rect.y());
+    m_elements.append(Element(rect.x() + rect.width(), rect.y(), LineToElement));
+    m_elements.append(Element(rect.x() + rect.width(), rect.y() + rect.height(), LineToElement));
+    m_elements.append(Element(rect.x(), rect.y() + rect.height(), LineToElement));
+    m_elements.append(Element(rect.x(), rect.y(), LineToElement));
+    m_currentPos = PkPointF(rect.x(), rect.y());
+    m_requireMoveTo = true;
+    markDirty();
+}
 void PkPainterPath::addPolygon(const PkPolygonF &polygon)
 {
     if (polygon.isEmpty())
