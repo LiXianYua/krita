@@ -64,5 +64,24 @@ add_test(NAME test_blur_kernel COMMAND test_blur_kernel)
 set_tests_properties(test_blur_kernel PROPERTIES
     ENVIRONMENT "PK_RENDER_BLUR_KERNEL_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/blur_kernel_golden.txt")
 
+# R-55: 文字（setFont / drawText@Point）对拍。
+#   text_oracle_pk —— Pk 侧 oracle 输出体（Qt-free，正常进本工程构建）。
+#   test_text      —— ctest 目标，期望值来自 oracle/text_golden.txt。
+#                     ⚠ 本机那份 golden 由 run_text.sh 在**无 FreeType 宿主**时从
+#                     **Pk 侧**产出（出生证明如实写 Pk，见 plan §6 第 6 条）——
+#                     本机它守的是「Pk 侧自注入以来没漂」，不是「与 Qt 逐像素相等」。
+#                     有 FreeType 的宿主跑一次 run_text.sh 会换成 Qt 出生证明。
+# Qt 侧 oracle 仍然只由脚本手工编译：本工程不得 find_package(Qt...)，也不得链 Qt。
+add_executable(text_oracle_pk oracle/text_oracle.cpp)
+target_link_libraries(text_oracle_pk PRIVATE pkrender)
+target_include_directories(text_oracle_pk PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/oracle)
+
+add_executable(test_text tests/test_text.cpp)
+target_link_libraries(test_text PRIVATE pkrender)
+target_include_directories(test_text PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/oracle)
+add_test(NAME test_text COMMAND test_text)
+set_tests_properties(test_text PROPERTIES
+    ENVIRONMENT "PK_RENDER_TEXT_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/text_golden.txt")
+
 add_library(retained_tools_compile OBJECT tests/retained_tools_compile.cpp)
 target_link_libraries(retained_tools_compile PRIVATE pkrender)
