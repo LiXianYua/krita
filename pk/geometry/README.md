@@ -1103,6 +1103,64 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 24 | **`graft/stubs/` 里 14 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |
 | 25 | **`PkTransform::isAffine()` 实现了，但 Transform 族实测调用点 = 0** —— **这条违反判据①「一项不多」，没有站得住的理由，登记在案等人裁决** | **这不是一条有理由的偏离，是一个未闭合的口子。** 三形态 6 处命中没有一处是 `QTransform`：`kis_transform_mask.cpp:459/512/578/634` 与 `inplace_transform_stroke_strategy.cpp:1003` 是 `KisTransformMaskParamsInterface::isAffine()`，`kis_transform_mask_adapter.cpp:52` 是 `KisTransformMaskAdapter` 自己的定义行。形状与 `unite`/`intersect`（都是 `QSet` 的）一模一样：**实施计划把它列进了「必须实现」清单，那是计划的实测错误** —— 与 `dotProduct`（计划说 0、实际非 0）方向相反。**它没有任何内部调用者**（与 `adjoint` 不同 —— 那个是 `inverted` 的 TxProject 路径要用才留成私有 helper，`PkTransform.cpp:1065` 出现的 `isAffine` 只是一条 `static_assert` 的消息字符串）。**收口时才查出来，本 Task 没删**：删一个已实现成员要同时动 `PkTransform.h`、`api_seen.expected`、`transform_api.map`、对拍 `rec()` 与单测五处，属于交付面变更而非收口。**两条出路二选一，由人定**：按判据①删掉，或改判为一条有意的偏离并在这里补上理由。 |
 
+### 坐标守卫：`isValidCoord` 不只是 `qIsFinite`（2026-09-12）
+
+`qpainterpath.cpp:74-89` 的 `isValidCoord` 是 **`qIsFinite(c) && fabs(c) < 1e128`**
+（`qreal==float` 时 `1e16f`）——**不是单纯的有限性检查**。Qt 在 `moveTo` / `lineTo` /
+`cubicTo` / `quadTo` / `arcTo` / `addRect` / `addEllipse` **七个入口**用它把
+「非有限或过大」的坐标**整条丢掉**。`PkPainterPath` 原先一个都没守，S-18 分两刀补齐。
+
+第一刀（`mapProjective` 那一轮）：`moveTo` / `lineTo` / `cubicTo` / `addRect` ——
+不补这一刀，`mapRect` 的投影支会在 `w` 溢出到 ±inf 的输入上把 NaN 点塞进路径，
+而 Qt 丢掉了，取包围盒就分家（当时残留 1490 条）。
+
+第二刀（本轮）：`quadTo` / `arcTo` / `addEllipse`。**这三条不在对拍语料里**
+（语料只用 `moveTo`/`lineTo`/`cubicTo`/`addRect` 构造路径，走不到），所以补它们
+**不能靠 `run_oracle.sh` 判**，靠的是下面这支独立探针。
+
+#### 探针（可复现：一次性证据，不是常驻闸门）
+
+```bash
+# 骨架与 pk/geometry/oracle/geometry_difftest.cpp 同形：真 Qt 侧在全局作用域，
+# 替代品侧整包塞进 `namespace pkoracle`；两侧各建一条同样的路径，再逐元素比。
+# 完整源码见本文件所在目录的 git 历史（S-18 那一轮的记录里贴了全文）。
+# 覆盖：quadTo(cp.x) / addEllipse(rect.w) / arcTo(startAngle) / arcTo(sweepLength)
+#       各喂 { 1e200, 1e128, 1e127, ±inf, nan, 5e-324 } 七个值，共 28 例。
+c++ -std=c++17 -O2 -I"$QT/lib/QtCore.framework/Headers" -I"$QT/lib/QtGui.framework/Headers" \
+    -I pk/geometry -I pk/global -I pk/color -I pk/container \
+    -o /tmp/guard_probe probe.cpp \
+    -F"$QT/lib" -Wl,-rpath,"$QT/lib" -framework QtCore -framework QtGui
+/tmp/guard_probe
+```
+
+| | 补守卫前 | 补守卫后 |
+|---|---:|---:|
+| Qt 与 pk 逐元素一致 | 19 / 28 | **27 / 28** |
+
+补前那 9 例分家全部集中在 **`|c| ≥ 1e128` 或非有限** 上，正是这把守卫管的范围
+（`1e127` 与 `±inf`/`nan` 那几例两侧本来就一致 —— `nan` 那些是被后面的
+`cubicTo`/`isNull()` 顺带挡住的，不是这条守卫的功劳）。
+
+#### ⚠ 探针剩下的那 1 例：**另一个根因，本轮未修（超出授权范围）**
+
+`quadTo(cp = (5e-324, 0), ep = (10,0))`（次正规数，**在这把守卫的管辖之外**）
+两侧元素个数相同、**坐标差 1 ulp**：
+
+```
+Qt[2] = 3.3333333333333335      pk[2] = 3.3333333333333339
+```
+
+根因是控制点的算法写法不同：
+
+- Qt（`qpainterpath.cpp:932`）：`QPointF c1((prev.x() + 2*c.x()) / 3, ...)`
+  —— **`(prev + 2c) / 3`**
+- pk（`PkPainterPath::quadTo`）：`sp.x() + 2./3.*(cp.x()-sp.x())`
+  —— **`prev + (2/3)(c - prev)`**
+
+数学上等价、**浮点上差 1 ulp**。改法就是把 pk 那行换成 Qt 的写法（一行）。
+**本轮没改**：它不属于「补 `isValidCoord` 守卫」的授权范围，且这条入口**无常驻覆盖**
+（改它同样只有探针能证）。单独开任务。
+
 ### 偏离清单：**已清空，只剩三条 canary**（2026-09-12）
 
 这里曾经有一节「那 23 行怎么读」，讲的是一族 `persp-clip/*` 额度 —— **那一族已经闭合，
@@ -1140,9 +1198,38 @@ $ DIFF total=155625778 mismatch=3    → 那 3 条就是三条 canary（故意�
    **只在 `pkMapProjective` 内部撒种子**，不动 `PkPainterPath` 的表示 ——
    后者是结构改动（`elementCount`/`isEmpty`/`currentPosition`/路径布尔运算全受影响），
    远超本任务。
-3. **判据是 Qt 的二进制，不是 Qt 的源码**：第 2 条是在源码里翻不到的 ——
-   `mapProjective` 的 v5.15.7-lts-lgpl 原文逐字读过，按它推出来「应当是空路径」，
-   而实测的 Qt 给 1 个元素。**对不上时以二进制为准**，那才是这条线说的「Qt 怎么做」。
+3. **判据是 Qt 的二进制，不是 Qt 的源码**：第 2 条在源码里翻不到。
+   **可复现的取数方式**（两条都跑一遍就能自己确认「源码说 0、二进制给 1」）：
+   ```bash
+   # ① 取上游源码，**两个 tag 都取**（确认不是 tag 选错了）
+   curl -sS https://raw.githubusercontent.com/qt/qtbase/5.15/src/gui/painting/qtransform.cpp -o a.cpp
+   curl -sS https://raw.githubusercontent.com/qt/qtbase/v5.15.7-lts-lgpl/src/gui/painting/qtransform.cpp -o b.cpp
+   diff <(awk '/^static QPainterPath mapProjective/,/^}/' a.cpp) \
+        <(awk '/^static QPainterPath mapProjective/,/^}/' b.cpp)   # 无输出 = 两版逐字相同
+   ```
+   读 `mapProjective`：它全程只 `moveTo`/`lineTo`，按源码「整条被裁光」时应当返回**空路径**。
+
+   ② 问**二进制**（这才是判据）——把下面这段存成 `/tmp/p.cpp`：
+
+   ```cpp
+   #include <QPainterPath>
+   #include <QTransform>
+   #include <cstdio>
+   int main(){ QTransform t(1,0,-1, 0,1,0, 0,0,1);
+     QPainterPath p; p.moveTo(5,0); p.lineTo(9,0);   // 整条落在近裁剪面之后
+     printf("n=%d\n", t.map(p).elementCount()); }     // 实测打印 1，不是 0
+   ```
+
+   ```bash
+   c++ -std=c++17 -F"$QT/lib" -I"$QT/lib/QtCore.framework/Headers" \
+       -I"$QT/lib/QtGui.framework/Headers" -o /tmp/p /tmp/p.cpp \
+       -framework QtCore -framework QtGui && DYLD_FRAMEWORK_PATH="$QT/lib" /tmp/p
+   ```
+
+   ③ 为什么是 1：`QPainterPath r; r.setFillRule(Qt::WindingFill);` → `elementCount()==1`
+   —— `ensureData_helper` 塞的那个占位 `(0,0)` MoveTo（`qpainterpath.cpp:598-606`）。
+   （① 与 ② 两步 S-18 现场跑过：① 无输出、② 打印 `n=1`。）
+   **对不上时以二进制为准**，那才是这条线说的「Qt 怎么做」。
 
 ### 对拍侧为什么不带 `-fwrapv`（**给 S 线看**）
 

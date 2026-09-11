@@ -527,14 +527,19 @@ void PkPainterPath::reserve(int size)
 // 于是 `persp-clip/*` 残留 1 490 条 —— **根因在这道缺失的守卫，不在
 // mapProjective**。补上即对齐 Qt。
 //
-// ⚠ **守卫目前只覆盖了 Qt 七个入口里的四个**，别把下面这句读成"全覆盖"：
-//   已守：`moveTo` · `lineTo` · `cubicTo` · `addRect`（各自定义行见下）
-//   未守：`quadTo`（经 `cubicTo` **传递**，但边界不同：`cp` 恰为 `1e128`
-//         整值时 Qt 直接丢弃，本类先算出 c1≈6.7e127 再被 cubicTo 接受）·
-//         `arcTo`（rect / startAngle / sweepLength 三个入口都没守）·
-//         `addEllipse`（没守 rect）
-//   （**不写行号**：S-18 加这段守卫本身就把行号挪过一次，再抄一次还会再漂。
-//     要定位就按函数名找。）
+// **Qt 的七个守卫入口现在七个都守了**（S-18 分两刀补齐）：
+//   `moveTo` · `lineTo` · `cubicTo` · `addRect` · `quadTo` · `arcTo` · `addEllipse`
+// ⚠ `quadTo` 那一条**必须自己守、不能靠 cubicTo 传递**：本实现是转成 cubicTo
+// 再走，数值上与 Qt 的 quadTo→cubicTo 等价，但**边界不同** —— `cp.x` 恰为
+// 1e128 整值时 Qt 在入口就丢掉整条，而本实现算出的控制点 c1 = prev + 2/3*(cp-prev)
+// 是 6.7e127，**小于** 1e128，会通过 cubicTo 那把守卫被收下。
+// `arcTo` 要守**三个**：rect 走 `pkHasValidCoords`，startAngle / sweepLength 是标量、
+// 走 `pkIsValidCoord`。
+//
+// ⚠ **这三条入口目前没有常驻覆盖**：对拍的语料只用 moveTo/lineTo/cubicTo/addRect
+// 构造路径，走不到它们；判定它们对齐与否靠下面「坐标守卫」一节记的那支独立探针
+//（一次性证据，不是回归闸门）。改这一段之前先重跑那支探针。
+// （**注释里不写行号**：S-18 加守卫本身就把行号挪过一次，再抄一次还会再漂。）
 //   **这三处不在 `mapProjective` / `mapRect` 的路径上**（那条路只走
 //   `addRect` + `moveTo`/`lineTo`/`cubicTo`），是**改前就有**的缺口、非 S-18 引入；
 //   对拍语料的路径构造也覆盖不到它们。补它们属于「对齐 Qt」的存量清理，
@@ -600,7 +605,16 @@ void PkPainterPath::cubicTo(const PkPointF &c1, const PkPointF &c2, const PkPoin
     markDirty();
 }
 void PkPainterPath::quadTo(const PkPointF &cp, const PkPointF &ep)
-{ const PkPointF sp=m_currentPos; cubicTo(PkPointF(sp.x()+2./3.*(cp.x()-sp.x()),sp.y()+2./3.*(cp.y()-sp.y())),PkPointF(ep.x()+2./3.*(cp.x()-ep.x()),ep.y()+2./3.*(cp.y()-ep.y())),ep); }
+{
+    // qpainterpath.cpp:912 —— 与 moveTo/lineTo/cubicTo 同一把守卫。
+    // ⚠ 这里**必须**自己守：本实现是转成 cubicTo 再走（数值上与 Qt 的
+    // quadTo→cubicTo 等价），但**边界不同**——`cp.x` 恰为 1e128 整值时 Qt 在
+    // 入口就丢掉整条，而本实现算出的控制点 c1 = sp + 2/3*(cp-sp) 是 6.7e127
+    // **小于** 1e128，会通过 cubicTo 那把守卫被收下。实测就是这么分家的
+    // （探针见 `pk/geometry/README.md` 的「坐标守卫」一节）。
+    if (!pkHasValidCoords(cp) || !pkHasValidCoords(ep))
+        return;
+    const PkPointF sp=m_currentPos; cubicTo(PkPointF(sp.x()+2./3.*(cp.x()-sp.x()),sp.y()+2./3.*(cp.y()-sp.y())),PkPointF(ep.x()+2./3.*(cp.x()-ep.x()),ep.y()+2./3.*(cp.y()-ep.y())),ep); }
 void PkPainterPath::closeSubpath()
 {
     if (isEmpty())
@@ -663,9 +677,18 @@ void PkPainterPath::addPath(const PkPainterPath &path)
 }
 
 void PkPainterPath::addEllipse(const PkRectF &r)
-{ if (r.isNull()) return; PkPointF pts[12]; int pc; PkPointF s=pkCurvesForArc(r,0,-360,pts,&pc); moveTo(s); cubicTo(pts[0],pts[1],pts[2]); cubicTo(pts[3],pts[4],pts[5]); cubicTo(pts[6],pts[7],pts[8]); cubicTo(pts[9],pts[10],pts[11]); m_requireMoveTo = true; }
+{
+    // qpainterpath.cpp:1168 —— 与 addRect 同一把守卫（Qt 就把它放在 `isNull()` 之前）。
+    if (!pkHasValidCoords(r))
+        return;
+    if (r.isNull()) return; PkPointF pts[12]; int pc; PkPointF s=pkCurvesForArc(r,0,-360,pts,&pc); moveTo(s); cubicTo(pts[0],pts[1],pts[2]); cubicTo(pts[3],pts[4],pts[5]); cubicTo(pts[6],pts[7],pts[8]); cubicTo(pts[9],pts[10],pts[11]); m_requireMoveTo = true; }
 void PkPainterPath::arcTo(const PkRectF &rect, qreal sa, qreal sl)
-{ if (rect.isNull()) return; int pc; PkPointF pts[15]; PkPointF cs=pkCurvesForArc(rect,sa,sl,pts,&pc); lineTo(cs); for (int i=0;i<pc;i+=3) cubicTo(pts[i],pts[i+1],pts[i+2]); }
+{
+    // qpainterpath.cpp:983 —— **三个entry都要守**：rect 走 hasValidCoords，
+    // startAngle / sweepLength 走 isValidCoord（单个标量，用单个判据）。
+    if (!pkHasValidCoords(rect) || !pkIsValidCoord(sa) || !pkIsValidCoord(sl))
+        return;
+    if (rect.isNull()) return; int pc; PkPointF pts[15]; PkPointF cs=pkCurvesForArc(rect,sa,sl,pts,&pc); lineTo(cs); for (int i=0;i<pc;i+=3) cubicTo(pts[i],pts[i+1],pts[i+2]); }
 void PkPainterPath::addRoundedRect(const PkRectF &rect, qreal xr, qreal yr, Pk::SizeMode mode)
 { PkRectF r=rect.normalized(); if (r.isNull()) return;
   if (mode==Pk::AbsoluteSize) { qreal w=r.width()/2,h=r.height()/2; xr=w?100*pkMin(xr,w)/w:0; yr=h?100*pkMin(yr,h)/h:0; }
