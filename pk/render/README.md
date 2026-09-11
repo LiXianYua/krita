@@ -117,11 +117,14 @@ quads (32x32 ARGB32, per-pixel packed-value compare) and turns 6 of the 36 cases
 - **Two `[GAP]` regressions in `plugins/filters/blur/`** were not "unimplemented" but
   **deleted**: `kis_motion_blur_filter.cpp` and `kis_lens_blur_filter.cpp` used to build
   their convolution kernel by filling a polygon into a `PkImage` and reading the pixels
-  back; that was replaced with a unit kernel. The unit `1.0` sits at `(h/2, w/2)`, which
-  is the convolution anchor only for the 7x1 motion kernels — **measured**: motion blur
-  stayed byte-identical (a true no-op) while lens blur became a **constant shift** (see
-  R-52 plan §1.1). Restoring them needed polygon fill + readback. **R-52 restores both**
-  (see the R-52 section below).
+  back; that was replaced with a unit kernel. `KisConvolutionPainter` anchors a kernel at
+  `((w-1)/2, (h-1)/2)` (`libs/image/kis_convolution_worker_spatial.h:57-58`), while the
+  unit `1.0` sits at `(h/2, w/2)`; the two coincide exactly when both kernel dimensions
+  are odd. **Motion kernels are odd by construction** (`kernelHalfSize*2 + (1,1)`), so
+  motion blur stayed byte-identical — a true no-op — for every motion configuration,
+  while lens kernels come from a bounding box and may be even, so lens blur became a
+  **shift** (measured; see R-52 plan §1.1). Restoring them needed polygon fill +
+  readback. **R-52 restores both** (see the R-52 section below).
 
 **Host portability of this directory's scripts** (measured on macOS arm64, 2026-09-11):
 `tests/run_tests.sh` and both `oracle/run_brush_*.sh` cannot run there —
