@@ -45,6 +45,13 @@ public:
     static KisStorageModel *instance();
 
     PkVector<KisStorageRecord> storages() const;
+
+    /**
+     * Return the record registered under \p storageId without reading its metadata
+     * (storages() is the path that populates it). An unknown id yields a
+     * default-constructed record, whose id is -1 and therefore never a real one.
+     */
+    KisStorageRecord recordForId(int storageId) const;
     KisResourceStorageSP storageForId(int storageId) const;
     bool setStorageActive(int storageId, bool active);
 

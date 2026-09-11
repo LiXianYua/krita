@@ -36,36 +36,43 @@ PkVector<KisStorageRecord> KisStorageFilterProxyModel::storages() const
     if (!d->source) {
         return result;
     }
-    if (!d->filter.isValid() || d->filter.isNull()) {
-        return d->source->storages();
-    }
 
     for (const KisStorageRecord &record : d->source->storages()) {
-        bool accepted = false;
-        switch (d->filterType) {
-        case ByFileName:
-            accepted = record.location.contains(d->filter.toString());
-            break;
-        case ByStorageType:
-            accepted = d->filter.toStringList().contains(record.storageType);
-            break;
-        case ByActive:
-            accepted = record.active == d->filter.toBool();
-            break;
-        }
-        if (accepted) {
+        if (accepts(record)) {
             result.append(record);
         }
     }
     return result;
 }
 
+bool KisStorageFilterProxyModel::accepts(const KisStorageRecord &record) const
+{
+    if (!d->filter.isValid() || d->filter.isNull()) {
+        return true;
+    }
+
+    switch (d->filterType) {
+    case ByFileName:
+        return record.location.contains(d->filter.toString());
+    case ByStorageType:
+        return d->filter.toStringList().contains(record.storageType);
+    case ByActive:
+        return record.active == d->filter.toBool();
+    }
+    return false;
+}
+
 KisResourceStorageSP KisStorageFilterProxyModel::storageForId(int storageId) const
 {
-    for (const KisStorageRecord &record : storages()) {
-        if (record.id == storageId) {
-            return d->source->storageForId(storageId);
-        }
+    if (!d->source) {
+        return KisResourceStorageSP();
     }
-    return KisResourceStorageSP();
+
+    // Fetch just this one record: storages() copies the whole table and reads the
+    // metadata of every record, which is the O(N) cost this path must not pay.
+    const KisStorageRecord record = d->source->recordForId(storageId);
+    if (record.id != storageId || !accepts(record)) {
+        return KisResourceStorageSP();
+    }
+    return d->source->storageForId(storageId);
 }

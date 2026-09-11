@@ -187,6 +187,16 @@ PkVector<KisStorageRecord> KisStorageModel::storages() const
     return records;
 }
 
+KisStorageRecord KisStorageModel::recordForId(int storageId) const
+{
+    for (const KisStorageRecord &record : d->records) {
+        if (record.id == storageId) {
+            return record;
+        }
+    }
+    return KisStorageRecord();
+}
+
 KisResourceStorageSP KisStorageModel::storageForId(int storageId) const
 {
     KisResourceLocator *locator = KisResourceLocator::instance();

@@ -35,6 +35,12 @@ public:
     KisResourceStorageSP storageForId(int storageId) const;
 
 private:
+    /**
+     * The single place the filter is applied: true when \p record passes the
+     * current filter. An unset filter (invalid or null) accepts every record.
+     */
+    bool accepts(const KisStorageRecord &record) const;
+
     struct Private;
     Private *const d;
 };
