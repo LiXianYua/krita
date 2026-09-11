@@ -33,6 +33,7 @@
 
 void TestStorageFilterProxyModel::initTestCase()
 {
+    ResourceTestHelper::isolateUserConfig();
     ResourceTestHelper::initTestDb();
     ResourceTestHelper::createDummyLoaderRegistry();
 

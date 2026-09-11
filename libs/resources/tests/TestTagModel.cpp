@@ -31,6 +31,7 @@
 
 void TestTagModel::initTestCase()
 {
+    ResourceTestHelper::isolateUserConfig();
     ResourceTestHelper::initTestDb();
     ResourceTestHelper::createDummyLoaderRegistry();
 

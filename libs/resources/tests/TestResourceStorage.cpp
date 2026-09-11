@@ -35,6 +35,7 @@
 
 void TestResourceStorage::initTestCase()
 {
+    ResourceTestHelper::isolateUserConfig();
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
     QDir().mkpath(m_dstLocation);

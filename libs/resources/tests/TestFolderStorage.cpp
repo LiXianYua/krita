@@ -28,6 +28,7 @@
 
 void TestFolderStorage::initTestCase()
 {
+    ResourceTestHelper::isolateUserConfig();
     ResourceTestHelper::initTestDb();
 
     m_srcLocation = QString(FILES_DATA_DIR);

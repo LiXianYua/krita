@@ -47,6 +47,7 @@
 
 void TestResourceLocator::initTestCase()
 {
+    ResourceTestHelper::isolateUserConfig();
     qputenv("KRITA_OVERRIDE_USE_FOREIGN_KEYS", "1");
 
     ResourceTestHelper::initTestDb();

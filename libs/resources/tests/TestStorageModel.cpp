@@ -32,6 +32,7 @@
 
 void TestStorageModel::initTestCase()
 {
+    ResourceTestHelper::isolateUserConfig();
     ResourceTestHelper::initTestDb();
     ResourceTestHelper::createDummyLoaderRegistry();
 

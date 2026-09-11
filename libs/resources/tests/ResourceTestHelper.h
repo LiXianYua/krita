@@ -8,6 +8,8 @@
 
 #include <QImageReader>
 #include <QDir>
+#include <QCoreApplication>
+#include <QFileInfo>
 #include <QStandardPaths>
 #include <QDirIterator>
 
@@ -53,6 +55,28 @@ inline PkStringList toPkStringList(const QStringList &values)
         result.append(toPkString(value));
     }
     return result;
+}
+
+// 让本测试进程的 kritarc 落在进程私有的临时目录里，不碰用户的
+// ~/.config/kritarc。PkConfigStore 是进程级单例且析构时无条件 sync()
+// （pk/config/PkConfigStore.cpp），不隔离的话测试进程一退出就把
+// ResourceDirectory=<测试 dst 目录> 落进用户的全局配置，静默改道同机后续
+// 所有进程的资源解析。
+//
+// PkConfigStore::genericConfigPath() 已经支持 XDG_CONFIG_HOME
+// （pk/config/PkConfigStore.cpp），pk/config 自己的测试也是这么隔离的
+// （pk/config/tests/test_config_group.cpp）。
+//
+// 必须早于本进程第一次构造 PkConfigStore 才有效，所以调用点必须是
+// initTestCase() 的第一条语句。
+inline void isolateUserConfig()
+{
+    const QString configRoot = QDir::tempPath() + "/krita-resource-tests/"
+        + QFileInfo(QCoreApplication::applicationFilePath()).fileName();
+    QDir().mkpath(configRoot);
+    // 上一轮跑剩的文件清掉，保证每次从空配置开始。
+    QFile::remove(configRoot + "/kritarc");
+    qputenv("XDG_CONFIG_HOME", configRoot.toUtf8());
 }
 
 const QString &filesDestDir() {
