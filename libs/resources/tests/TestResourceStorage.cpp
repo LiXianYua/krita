@@ -13,6 +13,9 @@
 #include <QUuid>
 #include <QBuffer>
 
+#include <PkFileStream.h>
+#include <PkMemoryStream.h>
+
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
 
@@ -45,25 +48,25 @@ void TestResourceStorage::initTestCase()
 void TestResourceStorage ::testStorage()
 {
     {
-        KisResourceStorage storage(QString(FILES_DATA_DIR));
+        KisResourceStorage storage(ResourceTestHelper::toPkString(QString(FILES_DATA_DIR)));
         QVERIFY(storage.type() == KisResourceStorage::StorageType::Folder);
         QVERIFY(storage.valid());
     }
 
     {
-        KisResourceStorage storage(QString(FILES_DATA_DIR) + "/bundles/test1.bundle");
+        KisResourceStorage storage(ResourceTestHelper::toPkString(QString(FILES_DATA_DIR) + "/bundles/test1.bundle"));
         QVERIFY(storage.type() == KisResourceStorage::StorageType::Bundle);
         QVERIFY(storage.valid());
     }
 
     {
-        KisResourceStorage storage(QString(FILES_DATA_DIR) + "/bundles/test2.bundle");
+        KisResourceStorage storage(ResourceTestHelper::toPkString(QString(FILES_DATA_DIR) + "/bundles/test2.bundle"));
         QVERIFY(storage.type() == KisResourceStorage::StorageType::Bundle);
         QVERIFY(storage.valid());
     }
 
     {
-        KisResourceStorage storage(QUuid().toString());
+        KisResourceStorage storage(ResourceTestHelper::toPkString(QUuid().toString()));
         QVERIFY(storage.type() == KisResourceStorage::StorageType::Memory);
         QVERIFY(storage.valid());
     }
@@ -97,51 +100,51 @@ void TestResourceStorage::testImportExportResource()
         f.close();
     }
 
-    const QString md5 = KoMD5Generator::generateHash(ba);
+    const PkString md5 = KoMD5Generator::generateHash(PkByteArray(ba.constData(), ba.size()));
 
     {
-        QDir().mkpath(m_dstLocation + "/" + ResourceType::Patterns);
-        KisResourceStorage folderStorage(m_dstLocation);
+        QDir().mkpath(m_dstLocation + "/" + ResourceTestHelper::toQString(ResourceType::Patterns));
+        KisResourceStorage folderStorage(ResourceTestHelper::toPkString(m_dstLocation));
 
-        QFile f("testpattern.png");
-        KIS_ASSERT(f.open(QFile::ReadOnly));
+        PkFileStream f("testpattern.png");
+        KIS_ASSERT(f.open(PkStream::ReadOnly));
         bool r = folderStorage.importResource("patterns/testpattern.png", &f);
         QVERIFY(r);
         QCOMPARE(md5, folderStorage.resourceMd5("patterns/testpattern.png"));
 
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
         r = folderStorage.exportResource("patterns/testpattern.png", &buffer);
         QVERIFY(r);
         buffer.close();
-        QCOMPARE(KoMD5Generator::generateHash(buffer.data()), md5);
+        QCOMPARE(KoMD5Generator::generateHash(PkByteArray(buffer.data(), int(buffer.size()))), md5);
     }
 
     {
-        QFile f("testpattern.png");
-        KIS_ASSERT(f.open(QFile::ReadOnly));
+        PkFileStream f("testpattern.png");
+        KIS_ASSERT(f.open(PkStream::ReadOnly));
         KisResourceStorage memoryStorage("memory");
         bool r = memoryStorage.importResource("patterns/testpattern.png", &f);
         QVERIFY(r);
         QCOMPARE(md5, memoryStorage.resourceMd5("patterns/testpattern.png"));
 
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
         r = memoryStorage.exportResource("patterns/testpattern.png", &buffer);
         QVERIFY(r);
         buffer.close();
-        QCOMPARE(KoMD5Generator::generateHash(buffer.data()), md5);
+        QCOMPARE(KoMD5Generator::generateHash(PkByteArray(buffer.data(), int(buffer.size()))), md5);
     }
 
     {
-        QFile f("testpattern.png");
-        KIS_ASSERT(f.open(QFile::ReadOnly));
-        KisResourceStorage bundleStorage(QString(FILES_DATA_DIR) + "/bundles/test1.bundle");
+        PkFileStream f("testpattern.png");
+        KIS_ASSERT(f.open(PkStream::ReadOnly));
+        KisResourceStorage bundleStorage(ResourceTestHelper::toPkString(QString(FILES_DATA_DIR) + "/bundles/test1.bundle"));
         bool r = bundleStorage.importResource("patterns/testpattern.png", &f);
         QVERIFY(!r);
 
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
         r = bundleStorage.exportResource("patterns/testpattern.png", &buffer);
         QVERIFY(r);
     }
@@ -149,12 +152,11 @@ void TestResourceStorage::testImportExportResource()
 
 void TestResourceStorage::testAddResource()
 {
-    QDir().mkpath(m_dstLocation + "/" + ResourceType::Patterns);
-    KisResourceStorage folderStorage(m_dstLocation);
+    QDir().mkpath(m_dstLocation + "/" + ResourceTestHelper::toQString(ResourceType::Patterns));
+    KisResourceStorage folderStorage(ResourceTestHelper::toPkString(m_dstLocation));
 
-    QImage img(256, 256, QImage::Format_ARGB32);
-    QPainter gc(&img);
-    gc.fillRect(0, 0, 256, 256, Qt::red);
+    PkImage img(256, 256, PkImage::Format_ARGB32);
+    img.fill(Pk::red);
 
     KoResourceSP res(new KoPattern(img, "testpattern2", "testpattern2.png"));
     Q_ASSERT(res->resourceType().first == ResourceType::Patterns);
@@ -165,29 +167,28 @@ void TestResourceStorage::testAddResource()
 void TestResourceStorage::testStorageVersioningHelperCounting()
 {
     // create the resource
-    QDir().mkpath(m_dstLocation + "/" + ResourceType::Patterns);
+    QDir().mkpath(m_dstLocation + "/" + ResourceTestHelper::toQString(ResourceType::Patterns));
 
-    QImage img(256, 256, QImage::Format_ARGB32);
-    QPainter gc(&img);
-    gc.fillRect(0, 0, 256, 256, Qt::red);
+    PkImage img(256, 256, PkImage::Format_ARGB32);
+    img.fill(Pk::red);
     KoResourceSP res(new KoPattern(img, "testpattern", "testpattern.png"));
     Q_ASSERT(res->resourceType().first == ResourceType::Patterns);
 
     // function that returns false for everything
-    auto noResourcesExisting = [] (QString a) {Q_UNUSED(a); return false;};
-    QString resNewFilename = KisStorageVersioningHelper::chooseUniqueName(res, 0, noResourcesExisting);
+    auto noResourcesExisting = [] (PkString a) {Q_UNUSED(a); return false;};
+    PkString resNewFilename = KisStorageVersioningHelper::chooseUniqueName(res, 0, noResourcesExisting);
     //QCOMPARE(resNewFilename, "testpattern.png");
     QCOMPARE(resNewFilename, "testpattern.0000.png");
 
     // function that returns true for the same resource but false for everything else
-    auto onlyFirstVersionExists = [] (QString a) {
+    auto onlyFirstVersionExists = [] (PkString a) {
         return a == "testpattern.png" || a == "testpattern.0000.png";
     };
     resNewFilename = KisStorageVersioningHelper::chooseUniqueName(res, 0, onlyFirstVersionExists);
     QCOMPARE(resNewFilename, "testpattern.0001.png");
 
     // function that returns true for first 10 versions of the resource but false for everything else
-    auto firstTenVersionExists = [] (QString a) {
+    auto firstTenVersionExists = [] (PkString a) {
         if (a == "testpattern.png") return true;
         if (a == "testpattern.0000.png") return true;
         if (a == "testpattern.0001.png") return true;

@@ -61,7 +61,9 @@ void TestFolderStorage ::testStorage()
     int count = 0;
     while (iter->hasNext()) {
         iter->next();
-        qDebug() << iter->url() << iter->type() << iter->lastModified();
+        qDebug() << ResourceTestHelper::toQString(iter->url())
+                 << ResourceTestHelper::toQString(iter->type())
+                 << QString::fromStdString(iter->lastModified().toString());
         count++;
     }
     QVERIFY(count == 1);

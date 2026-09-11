@@ -234,10 +234,10 @@ int countCurrentResourcesForResourceId(int resourceId)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -255,10 +255,10 @@ int countVersionedResourcesForResourceId(int resourceId)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -276,10 +276,10 @@ int countStorageRecordsForStorageId(int storageId)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -297,10 +297,10 @@ int countStorageRecordsInTagsStoragesForStorageId(int storageId)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -318,10 +318,10 @@ int countTagRecordsInTags(int tagId)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -339,10 +339,10 @@ int countTagRecordsInTagTranslations(int tagId)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -360,10 +360,10 @@ int countTagRecordsInResourceTags(int tagId)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -381,10 +381,10 @@ int countTagRecordsInTagStorages(int tagId)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -1360,10 +1360,10 @@ void TestResourceLocator::testOrphanedMetadataRemoval()
 
         KisResourceCacheDb::setForeignKeysStateImpl(true);
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
 
         QFAIL("SQL query failed");
     }
@@ -1384,15 +1384,15 @@ void TestResourceLocator::testOrphanedMetadataRemoval()
             transactionLock.commit();
 
         } catch (const KisSqlQueryLoader::FileException &e) {
-            qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-            qWarning().noquote() << "       file:" << e.filePath;
-            qWarning().noquote() << "       file-error:" << e.fileErrorString;
+            qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+            qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
+            qWarning().noquote() << "       file-error:" << ResourceTestHelper::toQString(e.fileErrorString);
             QFAIL("SQL query failed");
         } catch (const KisSqlQueryLoader::SQLException &e) {
-            qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-            qWarning().noquote() << "       file:" << e.filePath;
+            qWarning().noquote() << "ERROR: failed to execute query:" << ResourceTestHelper::toQString(e.message);
+            qWarning().noquote() << "       file:" << ResourceTestHelper::toQString(e.filePath);
             qWarning().noquote() << "       statement:" << e.statementIndex;
-            qWarning().noquote() << "       error:" << e.sqlError.text();
+            qWarning().noquote() << "       error:" << ResourceTestHelper::toQString(e.sqlError.text());
             QFAIL("SQL query failed");
         }
     }
