@@ -2688,8 +2688,8 @@ static std::string psum(const PkPainterPath &p)
 static void cmp_tf_map_painterpath(const double m[9])
 {
     // 四种元素类型各来一段（MoveTo/LineTo/CurveTo/CurveToData），外加 closeSubpath
-    // 与 addRect（addRect 走的是 moveTo/lineTo×3/closeSubpath 那条路径，顺带把
-    // 「闭合子路径」也压进去）。
+    // 与 addRect（addRect 是 `moveTo` 后**直接 append 四个 `LineToElement`**，不走
+    // `lineTo`、也不调 `closeSubpath`；顺带把「闭合子路径」也压进去）。
     QPainterPath q;
     q.moveTo(1.0, 2.0);
     q.lineTo(3.0, 4.0);

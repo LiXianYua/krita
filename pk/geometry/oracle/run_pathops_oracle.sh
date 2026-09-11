@@ -61,7 +61,9 @@ else
 fi
 INCS+=("pk/geometry" "pk/global" "pk/container")
 
-[ -f "${QT_ARTIFACTS[0]}" ] || { echo "找不到真 Qt 的库：${QT_ARTIFACTS[0]}" >&2; exit 1; }
+for a in "${QT_ARTIFACTS[@]}"; do
+    [ -f "$a" ] || { echo "找不到真 Qt 的库：$a" >&2; exit 1; }
+done
 [ -d "${QT_HDRS[1]}" ] || { echo "找不到真 Qt 的头：${QT_HDRS[1]}" >&2; exit 1; }
 
 # ⚠ **-I 里绝不能出现 compat**（照抄 run_oracle.sh:105-131 的同一条硬闸门，成本为零）：

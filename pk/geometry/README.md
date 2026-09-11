@@ -99,7 +99,7 @@ grep -i qt` 必须无输出（判据③）→ 自证改动全部落在**本任�
 | 运行输出 `Totals` 行 | 15 / 26 / 33 / 40 / 48 / 58 | harness 的口径：每个测试类的 slot 数 + `initTestCase` + `cleanupTestCase`，**不是**测试函数数，也不是断言数。六个类合计 220 |
 | 翻译单元 | 13 | `test_main` `test_global` `test_point` `test_size` `test_rect` `test_rectf` `test_transform` + 三个 `coexist_*` + 三个 `*_macro_proof` |
 | 对拍比对次数 | 155 626 078 | **R-56 现场重测。** `run_oracle.sh` 输出的 `DIFF total=`，`mismatch=3`（**全部是那三条 canary**）。R-56 相对上一版 **+300**：来源是新增的 `PP::*` 一族（七个坐标守卫入口各两种起点，见「坐标守卫」一节），150 次 `cmp_pp_entry` 调用 × 2 种起点 = 300 次 `rec()`（其中 Task 2 的 `cubicTo`/`quadTo`/`arcTo`/`addRect`/`addEllipse` +294、Task 3 的退化/空矩形专属档 +6）。**「新增覆盖」（7 个入口）与「新增比对次数」（300）是两个数，别混用。** |
-| 规则三 map 的声明数 | `point` 56 / `size` 56 / `rect` 66 / `rectf` 68 / `transform` 48 / `line` 43 / `margins` 40 / `polygon` 16 / `vectornd` 137 / `matrix4x4` 27 / `region` 41 | **11 份 map** 的非注释行数（顺序同上），与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` **603 行（同口径：非注释非空行；裸 `wc -l` 是 613，差的 10 行是注释或空行）**。**本行是 R-56 现场重测的**：上一版写的 5 份 map / 303 行是 R-03–R-21 时代的快照，已随 R-21 的六族与 R-22 的 `PkPainterPath` 过期。 |
+| 规则三 map 的声明数 | `point` 56 / `size` 56 / `rect` 66 / `rectf` 68 / `transform` 48 / `line` 43 / `margins` 40 / `polygon` 16 / `vectornd` 137 / `matrix4x4` 27 / `region` 41 | **11 份 map** 的非注释行数（顺序同上），与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` **603 行（同口径：非注释非空行；裸 `wc -l` 是 613，差的 10 行是注释或空行）**。⚠ 但**闸门① 打印的是「APISEEN 597 个（期望 597）」**—— 两个数口径不同、**都是真的**：闸门①按**集合**比（`seen != expected`，`run_oracle.sh:275`；`expected` 在 `:270` 是集合推导、自动去重），而 `api_seen.expected` 里有 **6 行既有重复**（`R::intersected` / `R::intersects` / `R::isEmpty` / `R::isNull` / `R::operator&=` / `R::united`），去重后正是 **597**。**那 6 行非本轮引入，本轮一字节不动**（`api_seen.expected` 是冻结文件）。**本行是 R-56 现场重测的**：上一版写的 5 份 map / 303 行是 R-03–R-21 时代的快照，已随 R-21 的六族与 R-22 的 `PkPainterPath` 过期。 |
 
 **优化档矩阵**（`-fwrapv` 由 `CMakeLists.txt` 的 `target_compile_options(... PUBLIC)`
 统一带上；`-fno-wrapv` 那一列是手工编译出来的对照，不是可用配置）：
@@ -1195,7 +1195,7 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 23 | **`PkTransform` 不复刻 `#ifndef QT_NO_DEBUG` 的七个 NaN 早退分支** | 与偏离 8（`Q_ASSERT`）同一条口径：实测本机 `libQt5Gui.so` 是带 `QT_NO_DEBUG` 编的（探针：`translate(NaN,1)` 之后 `dx == nan`，说明早退分支不在），Krita 的发布构建同样带 `QT_NO_DEBUG`。对齐的是**发布形态**。**未对齐的部分**：Debug 构建下 Qt 会 `nanWarning()` 并早退而 `PkTransform` 不会 —— 行为差异，只是它发生在 Krita 不发布的那种构建里。 |
 | 24 | **`graft/stubs/` 里 14 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |
 | 25 | **`PkTransform::isAffine()` 实现了，但 Transform 族实测调用点 = 0** —— **这条违反判据①「一项不多」，没有站得住的理由，登记在案等人裁决** | **这不是一条有理由的偏离，是一个未闭合的口子。** 三形态 6 处命中没有一处是 `QTransform`：`kis_transform_mask.cpp:459/512/578/634` 与 `inplace_transform_stroke_strategy.cpp:1003` 是 `KisTransformMaskParamsInterface::isAffine()`，`kis_transform_mask_adapter.cpp:52` 是 `KisTransformMaskAdapter` 自己的定义行。形状与 `unite`/`intersect`（都是 `QSet` 的）一模一样：**实施计划把它列进了「必须实现」清单，那是计划的实测错误** —— 与 `dotProduct`（计划说 0、实际非 0）方向相反。**它没有任何内部调用者**（与 `adjoint` 不同 —— 那个是 `inverted` 的 TxProject 路径要用才留成私有 helper，`PkTransform.cpp:1065` 出现的 `isAffine` 只是一条 `static_assert` 的消息字符串）。**收口时才查出来，本 Task 没删**：删一个已实现成员要同时动 `PkTransform.h`、`api_seen.expected`、`transform_api.map`、对拍 `rec()` 与单测五处，属于交付面变更而非收口。**两条出路二选一，由人定**：按判据①删掉，或改判为一条有意的偏离并在这里补上理由。 |
-| 26 | ~~**规则三闸门被导出宏卡死：R-53（`1687a1e`）给四个几何头里的八个类挂上 `class PK_TYPE_VISIBILITY <类名>` 后，`run_oracle.sh` 的类体正则写死 `class <类名>`，八个类全部解析不出、闸门②③同时失守**~~ —— **R-56 已修，本条不再是偏离** | 与偏离 16/21 同一写法：保留本行让「这条曾经存在、什么时候消的」留在 README 里。原 `run_oracle.sh` 的类体正则只认 `class <类名>`，而 R-53 加的是 `class PK_TYPE_VISIBILITY <类名>` ⇒ 八个类全部落空、`run_oracle.sh` **恒 `exit 1`**（实测 13 条 FAIL）。R-56 把正则放宽成「类名前允许一个『全大写 + 数字/下划线』的可选宏」。**同时记一笔：该闸门只活在 `run_oracle.sh` 里**（`grep -n 'API_GATE\|规则三\|APIEXP' pk/geometry/oracle/run_oracle.sh` 有命中，`tests/run_tests.sh` 里同名 grep 零命中 ⇒ 那条路径走不到它）**；R-53（`1687a1e`）的收尾没有跑到这个脚本**（它的 commit message 举的绿证据是 `./test_pk_cross_image`、落点在 `pk/geometry` 的 RTTI 可见性上，未提 `run_oracle.sh`）**⇒ 它引出的那 13 条 FAIL 是静默引入的** —— 正是「修好了但没有回归守卫，改回去不会让任何东西变红」那一类，本 README 给它起过名字（见「三条证据链各自的盲区」末尾那句）。 |
+| 26 | ~~**规则三闸门被导出宏卡死：R-53（`1687a1e`）给四个几何头里的八个类挂上 `class PK_TYPE_VISIBILITY <类名>` 后，`run_oracle.sh` 的类体正则写死 `class <类名>`，八个类全部解析不出、闸门②③同时失守**~~ —— **R-56 已修，本条不再是偏离** | 与偏离 16/21 同一写法：保留本行让「这条曾经存在、什么时候消的」留在 README 里。原 `run_oracle.sh` 的类体正则只认 `class <类名>`，而 R-53 加的是 `class PK_TYPE_VISIBILITY <类名>` ⇒ 八个类全部落空、`run_oracle.sh` **恒 `exit 1`**（实测 13 条 FAIL）。R-56 把正则放宽成「类名前允许一个『全大写 + 数字/下划线』的可选宏」。**同时记一笔：该闸门只活在 `run_oracle.sh` 里**（`grep -n 'API_GATE\|规则三\|APIEXP' pk/geometry/oracle/run_oracle.sh` 有命中，`tests/run_tests.sh` 里同名 grep 零命中 ⇒ 那条路径走不到它）**；而标准收尾路径 `tests/run_tests.sh` 只调 `run_pathops_oracle.sh`、从不调 `run_oracle.sh`**（`grep -n 'run_oracle\|run_pathops_oracle' pk/geometry/tests/run_tests.sh` 只命中 `run_pathops_oracle.sh` 一行）**⇒ 规则三闸门在标准收尾路径上根本够不着**。（旁证：R-53（`1687a1e`）的收尾 commit message 举的绿证据是 `./test_pk_cross_image`、落点在 `pk/geometry` 的 RTTI 可见性上，未提 `run_oracle.sh`。）**⇒ 它引出的那 13 条 FAIL 是静默引入的** —— 正是「修好了但没有回归守卫，改回去不会让任何东西变红」那一类，本 README 给它起过名字（见「三条证据链各自的盲区」末尾那句）。 |
 
 ### 坐标守卫：`isValidCoord` 不只是 `qIsFinite`（2026-09-12，R-56 重写）
 
@@ -1303,9 +1303,25 @@ int 安全值：`|angle| < 2.147e9`（实测取 `1e9`）—— `|360*qFloor(x/36
 > **这一档从此无人常驻守，是登记的缺口** —— 不是静默丢弃：写在这里，也写在
 > `geometry_difftest.cpp` 的 `kArcStartTok` 定义处。
 
+**单记一笔（本条是 pk **自己**的可达 UB，与上面「两侧都 UB」不同 —— 它不依赖 Qt，也不在
+「观测不可比」的掩护下）**：`pkCurvesForArc` 里除上面的 `int startSegment` 外还有两处：
+
+- `PkPainterPath.cpp:263` `int startSegment = int(std::floor(startAngle / 90));`
+- `PkPainterPath.cpp:264` `int endSegment = int(std::floor((startAngle + sweepLength) / 90));`
+  —— 这两处 `int(double)` 在 `|startAngle/90|`（或 `|(startAngle+sweepLength)/90|`）超出
+  `int` 可表示范围时是**未定义行为（C++ `[conv.fpint]`）**；
+- `PkPainterPath.cpp:273` `int end = endSegment + delta;` —— `endSegment == INT_MIN` 且
+  `delta == -1` 时有符号 `int` 溢出（同属 UB）。
+
+**为什么单列**：任何调 `arcTo(rect, 大角度, sweep)` 的调用者（用户数据）都能走到这段 —— **不需要
+Qt 参与**。它现在**没有独立闸门、也没进对拍的可观测档**（那一段 pk 值本身就是 UB 的观测值）。
+**本轮不修**：收口要动这些算式的形态，属交付面变更；且对拍语料已把该档的 `startAngle` 换成
+int 安全值（`1e9`），改了没有判别输入背书。**归 PkPainterPath / geometry 线，等人裁决**是否
+按「转换前先夹取到 `int` 范围」收口。
+
 #### 7. 判别力对照（spec 判据③ 要的那一半）
 
-Task 4 在最终 HEAD 上逐条注入缺陷，六条**全红**（`exit=1` + 未声明 tag）；对照条也红，
+Task 4 在最终 HEAD 上逐条注入缺陷，六条**全红**（`exit=1` + 未声明 tag）；**终审修复波补注入第 7 条 `cubicTo`（G），同样红**；对照条也红，
 但**红在别的族**：
 
 | # | 注入 | 红出的 tag 族 | 结论 |
@@ -1316,6 +1332,7 @@ Task 4 在最终 HEAD 上逐条注入缺陷，六条**全红**（`exit=1` + 未�
 | D | `addEllipse` 守卫整行删 | `PP::addEllipse {guard-rejected,nonfinite}/*` | 红 ✅ |
 | E | `addRect` 整条还原旧写法 | `PP::addRect *`（8 条，含 `null-rect`/`degenerate-w`） | 红 ✅ |
 | F | 只删 `addRect` 的 `isNull()` 早退 | `PP::addRect null-rect/*`（2 条） | 红 ✅ |
+| G | `cubicTo` 守卫整行删（**终审修复波补做**） | `PP::cubicTo {guard-rejected,nonfinite}/*` | 红 ✅ |
 | 对照 | `addPolygon` 的 `moveTo(polygon.first())` 改 `moveTo(PkPointF())` | `T::map(PolygonF) txproject-deviation`（**非 `PP::`**） | 红，但**红在别处** |
 
 **分母口径是「命中 N 次里分家 M 次」**（`DIFFTAG <api> <tag> <分子>` /
@@ -1334,7 +1351,11 @@ Task 4 在最终 HEAD 上逐条注入缺陷，六条**全红**（`exit=1` + 未�
 | E | `PP::addRect null-rect/{empty,open}-subpath` | 1 / 1 | 1 / 1（命中即分家） |
 | E | `PP::addRect {finite,subnormal}/{empty,open}-subpath` | 4 / 4 | 2 / 2 |
 | F | `PP::addRect null-rect/{empty,open}-subpath` | 1 / 1 | 1 / 1 |
+| G | `PP::cubicTo guard-rejected/{empty,open}-subpath` | 6 / 6 | 6 / 6 |
+| G | `PP::cubicTo nonfinite/{empty,open}-subpath` | 9 / 9 | 9 / 9 |
 | 对照 | `T::map(PolygonF) txproject-deviation` | 14 | 2（**非 PP 族**） |
+
+**G 条（终审修复波补做）怎么读**：`cubicTo` 的守卫（三个点的**或**）在 R-56 之前**一次都进不去**，本轮新增的 `PP::*` 语料是它**唯一**的覆盖 —— 终审因此指出它缺一条注入背书，故补。**实测**：删守卫整行后 `run_oracle.sh` `exit=1`，`DIFF total=155626078 mismatch=` 从基线的 **3 抬到 33**（4 条未声明 tag 共 +30），`DIFFTAG` 红出 `PP::cubicTo guard-rejected/{empty,open}-subpath`（6/6）与 `PP::cubicTo nonfinite/{empty,open}-subpath`（9/9）；复原（`git checkout --`）后 `git status` 空。**`moveTo`/`lineTo` 未单独注入**：它们的守卫另有一条**常驻**旁证 —— `pkMapProjective` 那条路径**间接**压着（见第 2 点），删它的守卫会同时牵动 `T::map(...)` 一族、判别指向不唯一；`cubicTo` 没有这层间接覆盖，所以它缺注入背书最要紧。
 
 **对照条怎么读（如实记）**：`PP::*` 族一条都没红 —— 七个守卫入口那一族**不覆盖**
 `addPolygon`，**判别力是有指向的**。但它**不是 exit=0**：整份 `run_oracle.sh` 另有一处

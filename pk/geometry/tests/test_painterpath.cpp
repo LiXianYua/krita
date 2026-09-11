@@ -538,7 +538,7 @@ void PkPainterPathCase::addRect()
     path.addRect(PkRectF(0, 0, 100, 50));
     PK_VERIFY(!path.isEmpty());
     PK_VERIFY(path.isClosed());
-    PK_COMPARE(path.elementCount(), 5); // moveTo + 3 lineTo + closeSubpath 的 lineTo
+    PK_COMPARE(path.elementCount(), 5); // moveTo + 4 lineTo（新实现直接 append 四条 LineToElement，不走 lineTo、不调 closeSubpath）
     PK_COMPARE(path.boundingRect(), PkRectF(0, 0, 100, 50));
 
     // qreal 重载
