@@ -108,6 +108,17 @@ PkImage KisResourceThumbnailCache::Private::getOriginal(const ResourceKey &key) 
 
 void KisResourceThumbnailCache::Private::insertOriginal(const ResourceKey &key, const PkImage &image)
 {
+    // A null image is not a cache entry. Callers ask whether a thumbnail is cached by
+    // testing originalImage(...).isNull(), so storing a null would occupy the key while
+    // staying invisible to that test: the key would look absent forever and the next
+    // insert for it would trip the assert below. Callers may legitimately pass a null
+    // (KoResource::thumbnail() is null whenever the resource has no image), so drop it
+    // here rather than storing it -- this is the single point every insertion path
+    // funnels through, which is what keeps the null test equivalent to a containment test.
+    if (image.isNull()) {
+        return;
+    }
+
     // Someone else has added the image to this cache, when the only path to here is from a method which
     // checks whether this cache contains it or not.
     KIS_ASSERT(!originalImageCache.contains(key));
