@@ -112,6 +112,30 @@ bool writeStorageFile(const fs::path &source,
 
 } // namespace
 
+// The storage model keeps a snapshot of the rows in the database, but the
+// metadata of a storage is owned by the storage object itself and can change
+// behind the model's back (KisResourceStorage::setMetaData has no signal to
+// announce it). Upstream read the metadata live on every access; keep that
+// semantics by re-reading it whenever a record leaves the model. This is a
+// member rather than a free function because metaDataForStorage() is private
+// and KisStorageModel is the registered friend.
+void KisStorageModel::populateMetaData(KisStorageRecord &record)
+{
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    if (locator) {
+        record.metaData = locator->metaDataForStorage(record.location);
+    }
+
+    record.displayName = record.location;
+    PkString name = record.metaData.value(KisResourceStorage::s_meta_name).toString();
+    if (name.isEmpty()) {
+        name = record.metaData.value(KisResourceStorage::s_meta_title).toString();
+    }
+    if (!name.isEmpty()) {
+        record.displayName = name;
+    }
+}
+
 struct KisStorageModel::Private
 {
     PkVector<KisStorageRecord> records;
@@ -156,7 +180,11 @@ KisStorageModel *KisStorageModel::instance()
 
 PkVector<KisStorageRecord> KisStorageModel::storages() const
 {
-    return d->records;
+    PkVector<KisStorageRecord> records = d->records;
+    for (KisStorageRecord &record : records) {
+        populateMetaData(record);
+    }
+    return records;
 }
 
 KisResourceStorageSP KisStorageModel::storageForId(int storageId) const
@@ -334,7 +362,6 @@ bool KisStorageModel::refresh()
     }
 
     PkVector<KisStorageRecord> replacement;
-    KisResourceLocator *locator = KisResourceLocator::instance();
     KisResourceThumbnailCache *cache = KisResourceThumbnailCache::instance();
     while (query.next()) {
         KisStorageRecord record;
@@ -344,17 +371,7 @@ bool KisStorageModel::refresh()
         record.timestamp = query.value(PkString("timestamp")).toLongLong();
         record.preInstalled = query.value(PkString("pre_installed")).toBool();
         record.active = query.value(PkString("active")).toBool();
-        if (locator) {
-            record.metaData = locator->metaDataForStorage(record.location);
-        }
-        record.displayName = record.location;
-        PkString name = record.metaData.value(KisResourceStorage::s_meta_name).toString();
-        if (name.isEmpty()) {
-            name = record.metaData.value(KisResourceStorage::s_meta_title).toString();
-        }
-        if (!name.isEmpty()) {
-            record.displayName = name;
-        }
+        populateMetaData(record);
 
         if (cache) {
             record.thumbnail = cache->originalImage(record.location,

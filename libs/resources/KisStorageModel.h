@@ -66,6 +66,9 @@ private:
                                       bool dryRun,
                                       const PkByteArray &data);
 
+    /// Resolves the live metadata of \p record from its storage.
+    static void populateMetaData(KisStorageRecord &record);
+
     void addStorage(const PkString &location);
     void removeStorage(const PkString &location);
     void slotStoragesBulkSynchronizationFinished();
