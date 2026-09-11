@@ -466,6 +466,81 @@ void TestConfigGroup::writeFailureKeepsPendingMemoryState()
     PK_VERIFY(!fs::exists(fs::path(invalidRoot.u8string() + "/kritarc")));
 }
 
+void TestConfigGroup::pureReadDoesNotManufactureTheLockFile()
+{
+    // The lock file's existence is the inter-process signal for "a writer is
+    // active" — KoResourcePaths' lock-free read path gives up the moment it
+    // sees one. A process that only reads therefore must not create it, or
+    // every later reader is forced through the exclusive protocol forever.
+    TemporaryConfigRoot root;
+    const fs::path configPath = root.path() / "kritarc";
+    const fs::path lockPath = root.path() / "kritarc.lock";
+
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"write", "ReadOnlySuite", "marker", "persisted"}), 0);
+    PK_VERIFY(fs::is_regular_file(configPath));
+    PK_VERIFY(fs::is_regular_file(lockPath));
+
+    // Back to the pure-read starting point: kritarc on disk, no lock at all.
+    std::error_code error;
+    fs::remove(lockPath, error);
+    PK_VERIFY(!fs::exists(lockPath));
+
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read", "ReadOnlySuite", "marker", "persisted"}), 0);
+    PK_VERIFY(!fs::exists(lockPath));
+    PK_VERIFY(fs::is_regular_file(configPath));
+}
+
+void TestConfigGroup::readOnlyConfigDirectoryKeepsPersistedValues()
+{
+    // KConfig stays readable when the config directory is read-only, and so
+    // must this backend. Failing to take (or create) the lock is a statement
+    // about locking only; it must not downgrade the whole in-memory state to
+    // "no configuration at all", which silently turns every read into a
+    // default.
+    TemporaryConfigRoot root;
+    const fs::path configPath = root.path() / "kritarc";
+    const fs::path lockPath = root.path() / "kritarc.lock";
+
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"write", "ReadOnlySuite", "marker", "persisted"}), 0);
+    PK_VERIFY(fs::is_regular_file(configPath));
+
+    std::error_code error;
+    fs::remove(lockPath, error);
+    PK_VERIFY(!fs::exists(lockPath));
+
+    const fs::perms originalPermissions = fs::status(root.path()).permissions();
+    const fs::perms readOnlyPermissions = fs::perms::owner_read | fs::perms::owner_exec;
+
+    // The fixture must actually bite. A suite running as root can still create
+    // files in a read-only directory, and then the check below would pass for
+    // the wrong reason. TemporaryConfigRoot needs write permission on the
+    // directory to remove the tree, so every chmod here is paired with a
+    // restore before anything can return.
+    fs::permissions(root.path(), readOnlyPermissions, fs::perm_options::replace);
+    bool directoryStillWritable = false;
+    {
+        std::ofstream probe(root.path() / "permission-probe");
+        directoryStillWritable = static_cast<bool>(probe);
+    }
+    fs::permissions(root.path(), originalPermissions, fs::perm_options::replace);
+    if (directoryStillWritable) {
+        std::error_code probeError;
+        fs::remove(root.path() / "permission-probe", probeError);
+        PK_SKIP("directory permissions do not restrict this user; the read-only fixture cannot bite");
+    }
+
+    fs::permissions(root.path(), readOnlyPermissions, fs::perm_options::replace);
+    const int readResult = runConfigHelper(root.path(),
+                                           {"read", "ReadOnlySuite", "marker", "persisted"});
+    fs::permissions(root.path(), originalPermissions, fs::perm_options::replace);
+
+    PK_COMPARE(readResult, 0);
+    PK_VERIFY(fs::is_regular_file(configPath));
+}
+
 void TestConfigGroup::typedAndDeletionSemanticsSurviveRestart()
 {
     // Catches persistence that bypasses the typed codec or journals only sets.

@@ -72,6 +72,12 @@ public:
     void deleteEntry(const PkString &key);
     // 与 KConfigGroup::deleteGroup() 一致：只删除当前 group 的全部 key。
     void deleteGroup();
+    // 这条 key 有没有「本进程写下、尚未合并进 kritarc」的待办。
+    bool hasPendingWrite(const PkString &key) const;
+    // 读侧镜像：把从 kritarc 观察到的值记进内存，**不产生待写变更**——
+    // adopt 是读，不是写，不能因此让本进程在退出时重写共享文件。
+    void adoptPersistedValue(const PkString &key, const PkString &value);
+    void dropPersistedValue(const PkString &key);
     void sync();
     PkString name() const;
 

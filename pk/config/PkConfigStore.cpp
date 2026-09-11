@@ -128,13 +128,17 @@ fs::path directoryForFileOperations(const fs::path &path)
 class ConfigFileLock
 {
 public:
-    explicit ConfigFileLock(const fs::path &configPath)
+    // createIfMissing=false 时只**加入**已经存在的写者协议，不制造锁文件：
+    // 锁文件的存在本身就是「有写者在活动」的信号，纯读者建出它会让所有后续
+    // 读者被迫走排他协议（同 KoResourcePaths.cpp 的 ResourceConfigLock）。
+    explicit ConfigFileLock(const fs::path &configPath, bool createIfMissing = true)
     {
         const fs::path path = lockFilePath(configPath);
 #ifdef _WIN32
         m_handle = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE,
                                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                               nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+                               nullptr, createIfMissing ? OPEN_ALWAYS : OPEN_EXISTING,
+                               FILE_ATTRIBUTE_NORMAL, nullptr);
         if (m_handle == INVALID_HANDLE_VALUE) return;
         OVERLAPPED overlapped = {};
         if (!LockFileEx(m_handle, LOCKFILE_EXCLUSIVE_LOCK, 0,
@@ -144,7 +148,7 @@ public:
             return;
         }
 #else
-        m_fd = ::open(path.c_str(), O_RDWR | O_CREAT, 0600);
+        m_fd = ::open(path.c_str(), O_RDWR | (createIfMissing ? O_CREAT : 0), 0600);
         if (m_fd < 0) return;
         struct flock lock = {};
         lock.l_type = F_WRLCK;
@@ -577,9 +581,14 @@ PkConfigStore::PkConfigStore()
         m_persistentStateValid = false;
         return;
     }
-    ConfigFileLock lock(m_configPath);
+    // Join the writer protocol without manufacturing state: a reader that finds
+    // no lock file must not create one. Reading the file does not depend on the
+    // lock, so a lock we could not take says nothing about whether the file is
+    // readable — treating the two as one silently discarded the whole
+    // configuration whenever the config directory was read-only.
+    ConfigFileLock lock(m_configPath, /*createIfMissing=*/false);
     ParsedConfig parsed;
-    m_persistentStateValid = lock.isLocked() && readConfig(m_configPath, &parsed);
+    m_persistentStateValid = readConfig(m_configPath, &parsed);
     if (m_persistentStateValid) m_data = std::move(parsed.data);
 }
 
@@ -629,6 +638,40 @@ void PkConfigStore::clearGroup(const PkString &group)
     const std::lock_guard<std::mutex> lock(m_mutex);
     m_data.erase(group);
     m_pending.push_back({MutationKind::ClearGroup, group, PkString(), PkString()});
+}
+
+bool PkConfigStore::hasPendingMutationLocked(const PkString &group, const PkString &key) const
+{
+    for (const Mutation &mutation : m_pending) {
+        if (mutation.group != group) continue;
+        if (mutation.kind == MutationKind::ClearGroup) return true;
+        if (mutation.key == key) return true;
+    }
+    return false;
+}
+
+bool PkConfigStore::hasPendingMutation(const PkString &group, const PkString &key) const
+{
+    const std::lock_guard<std::mutex> lock(m_mutex);
+    return hasPendingMutationLocked(group, key);
+}
+
+void PkConfigStore::adoptPersistedValue(const PkString &group, const PkString &key,
+                                        const PkString &value)
+{
+    const std::lock_guard<std::mutex> lock(m_mutex);
+    if (hasPendingMutationLocked(group, key)) return;
+    m_data[group][key] = value;
+}
+
+void PkConfigStore::dropPersistedValue(const PkString &group, const PkString &key)
+{
+    const std::lock_guard<std::mutex> lock(m_mutex);
+    if (hasPendingMutationLocked(group, key)) return;
+    const auto groupIt = m_data.find(group);
+    if (groupIt == m_data.end()) return;
+    groupIt->second.erase(key);
+    if (groupIt->second.empty()) m_data.erase(groupIt);
 }
 
 bool PkConfigStore::sync() noexcept

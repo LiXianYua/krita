@@ -23,6 +23,8 @@ private Q_SLOTS:
     void concurrentProcessWritersDoNotLoseKeys();
     void corruptOwnedSectionFailsClosed();
     void writeFailureKeepsPendingMemoryState();
+    void pureReadDoesNotManufactureTheLockFile();
+    void readOnlyConfigDirectoryKeepsPersistedValues();
     void typedAndDeletionSemanticsSurviveRestart();
     void symmetricWireSizeLimitIsRetryable();
     void testPathOverrideContainsParentAndHelperWrites();

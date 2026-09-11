@@ -229,6 +229,21 @@ void PkConfigGroup::deleteGroup()
     PkConfigStore::instance().clearGroup(m_groupName);
 }
 
+bool PkConfigGroup::hasPendingWrite(const PkString &key) const
+{
+    return PkConfigStore::instance().hasPendingMutation(m_groupName, key);
+}
+
+void PkConfigGroup::adoptPersistedValue(const PkString &key, const PkString &value)
+{
+    PkConfigStore::instance().adoptPersistedValue(m_groupName, key, value);
+}
+
+void PkConfigGroup::dropPersistedValue(const PkString &key)
+{
+    PkConfigStore::instance().dropPersistedValue(m_groupName, key);
+}
+
 void PkConfigGroup::sync()
 {
     // KConfigGroup::sync() has no result channel. The store keeps dirty

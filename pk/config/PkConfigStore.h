@@ -38,6 +38,19 @@ public:
     void remove(const PkString &group, const PkString &key);
     void clearGroup(const PkString &group);
 
+    // Whether this (group, key) holds a value written by this process that has
+    // not been merged into the persistent file yet. Read-side callers use it to
+    // tell "this process owns the value" apart from "this is only a copy of
+    // what the file already held when the process started".
+    bool hasPendingMutation(const PkString &group, const PkString &key) const;
+
+    // Read-side mirroring of persistent state. Neither of these journals a
+    // mutation: adopting what the file already holds is a read, and a read must
+    // not make this process rewrite the shared file on teardown. A key that
+    // already has a pending mutation keeps its process-owned value.
+    void adoptPersistedValue(const PkString &group, const PkString &key, const PkString &value);
+    void dropPersistedValue(const PkString &group, const PkString &key);
+
     // Atomically merges pending mutations into the shared kritarc. Failure
     // leaves both the previous file and the pending in-memory mutations intact
     // so a later call can retry.
@@ -69,5 +82,7 @@ private:
     Data m_data;
     std::vector<Mutation> m_pending;
     std::filesystem::path m_configPath;
+    bool hasPendingMutationLocked(const PkString &group, const PkString &key) const;
+
     bool m_persistentStateValid = true;
 };
