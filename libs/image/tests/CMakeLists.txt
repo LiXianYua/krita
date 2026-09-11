@@ -32,6 +32,17 @@ add_executable(KisPathRasterizerPkProbe
 target_link_libraries(KisPathRasterizerPkProbe PRIVATE pkgeometry pkcolor pkrender)
 ecm_mark_as_test(KisPathRasterizerPkProbe)
 
+# --no-as-needed 是 ELF 链接器的说法。Mach-O 默认就把命令行上列出的每个 dylib
+# 都记进 LC_LOAD_DYLIB（没有 ELF 的 --as-needed 语义），所以这两个开关在 Apple
+# 工具链上既无效（clang 报 `unknown options`）也不需要——按平台置空即可。
+if(APPLE)
+    set(KRITA_LCMS_NO_AS_NEEDED "")
+    set(KRITA_AS_NEEDED "")
+else()
+    set(KRITA_LCMS_NO_AS_NEEDED "-Wl,--no-as-needed")
+    set(KRITA_AS_NEEDED "-Wl,--as-needed")
+endif()
+
 kis_add_test(
     KisPathCoverageMaskTest.cpp
     LINK_LIBRARIES kritatestsdk
@@ -150,7 +161,7 @@ kis_add_tests(
     KisFourPointInterpolatorTest.cpp
     KisSpatialContainerTest.cpp
     KisGridInterpolationToolsTest.cpp
-    LINK_LIBRARIES kritaimage kritatestsdk -Wl,--no-as-needed kritalcmsengine -Wl,--as-needed
+    LINK_LIBRARIES kritaimage kritatestsdk ${KRITA_LCMS_NO_AS_NEEDED} kritalcmsengine ${KRITA_AS_NEEDED}
     )
 
 # KisBezierGradientMesh.cpp is excluded from kritaimage, but
