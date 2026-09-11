@@ -136,9 +136,17 @@ void KisTileDataPooler::kick()
 void KisTileDataPooler::terminatePooler()
 {
     std::unique_lock<std::mutex> lock(m_stateMutex);
-    m_shouldExitFlag = true;
 
+    // ⚠ **`m_shouldExitFlag = true` 必须在循环体内，不能提到循环外。**
+    // 上游的形态是 `do { m_shouldExitFlag = true; kick(); } while(!wait(100))`
+    // ——**每 100ms 重下发一次**。那个重下发不是冗余：
+    // `run()` 起手有一句 `m_shouldExitFlag = false;`（上游原样，见 run() 开头），
+    // 线程刚 spawn 就被要求退出时，那一句会把**唯一一次**退出请求抹掉，
+    // 此后 `while(1)` 里 `if (m_shouldExitFlag) break;` 恒不成立、`m_running`
+    // 永不为 false，下面的 `while (m_running)` 就**永不退出**（实测挂死 ~50%）。
+    // 提到循环外 = 把上游唯一修复这个抹除的机制删掉。改回循环内即对齐上游。
     while (m_running) {
+        m_shouldExitFlag = true;
         kick();
         m_stateCond.wait_for(lock, std::chrono::milliseconds(100));
     }
