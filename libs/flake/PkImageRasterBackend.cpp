@@ -1217,7 +1217,9 @@ constexpr bool qtHidesInPointOverload(char16_t c)
 // Returns `text` unchanged when nothing is hidden (no allocation on that path).
 //
 // Note on the shape of the rule: Qt keeps the suppressed glyph in the shaping buffer
-// and only zeroes its advance, whereas this removes the character before shaping.
+// and merely keeps its advance out of the pen advance that positions the following
+// glyph (qtextengine.cpp:1606 `si.width += advances[i] * !dontPrint`; it does NOT
+// zero the advance itself), whereas this removes the character before shaping.
 // For the measured samples the two are equivalent — Qt's advance for "#0\n(0)" and
 // "X\nY" is exactly that of "#0(0)" and "XY". They could differ only where a hidden
 // character takes part in the shaping of its neighbours (kerning across it, Arabic

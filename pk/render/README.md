@@ -322,6 +322,13 @@ to be reducible, not a special case for `\n`:
   they differed. The new `vis/hidden/*` cases (one per hidden category) and `vis/kept/*`
   cases (TAB, VT, space, NBSP, U+3000, U+007F, U+180E) are reverse guards: widening the
   filter set turns them red.
+- **Modelling difference, registered.** Qt keeps the suppressed glyph in the shaping
+  buffer and only keeps its advance out of the *following* glyph's position
+  (`qtextengine.cpp:1606`); this implementation removes the character before shaping.
+  Equivalent on every measured sample, and could differ only where a hidden character
+  participates in its neighbours' shaping (kerning across it, Arabic joining, ligature
+  formation) — neither live call site can produce that. Registered in full as item **C10**
+  in `pk/font/README.md`, together with the rest of the R-55 deviation table.
 
 **Still open, registered — same layer, different implementation.** Not hidden by the rule
 above and **not** fixed here; `run_text.sh` will legitimately go red on these on a FreeType

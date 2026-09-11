@@ -86,7 +86,43 @@ target_include_directories(test_text PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/oracle)
 # 但没有 export FONTCONFIG_PATH 时 ctest 红、导出了就绿）。ctest **不继承**我们
 # source 过的 env 脚本，所以把值烘进测试环境：优先用现成的 FONTCONFIG_PATH，
 # 否则从 CMAKE_PREFIX_PATH 推 <prefix>/etc/fonts。
+# 定位顺序（2026-09-12 全分支评审后订正：原先只看 $ENV{FONTCONFIG_PATH} 与
+# CMAKE_PREFIX_PATH，两者都靠「配置时那个 shell 恰好 export 过」——换一个 shell
+# 重新 configure 就会静默退化成宿主默认配置，症状是 test_text 假红。而
+# CMAKE_PREFIX_PATH 根本不是 CMakeCache 条目，实测重新 configure 后它为空）：
+#   1. $ENV{FONTCONFIG_PATH}          —— 显式覆盖，最优先
+#   2. 从本文件逐级向上找 `<父目录>/krita-ci-env/etc/fonts`
+#      —— 与 oracle/run_shape_primitive.sh 的 find_env_script 同一约定
+#      （R-51 踩过「数层数」的坑，所以这里也是向上搜索而不是写死相对层级）
+#   3. CMAKE_PREFIX_PATH 里的 <prefix>/etc/fonts
 set(PK_RENDER_FONTCONFIG_PATH "$ENV{FONTCONFIG_PATH}")
+if(NOT PK_RENDER_FONTCONFIG_PATH)
+    set(_pk_probe "${CMAKE_CURRENT_SOURCE_DIR}")
+    while(TRUE)
+        # 两个候选都要试：依赖前缀的实际路径是 <工作空间>/../krita-ci-env/_install，
+        # 而 `run_shape_primitive.sh` 的 find_env_script 找的是 `<X>/krita-ci-env/env`
+        # ——找的是 env 脚本，不是 fonts 目录，所以两处层级并不一样（2026-09-12 实测：
+        # 只写 `krita-ci-env/etc/fonts` 找不到，configure 静默退化成宿主默认配置）。
+        foreach(_pk_try "${_pk_probe}/krita-ci-env/_install/etc/fonts"
+                        "${_pk_probe}/krita-ci-env/etc/fonts")
+            if(EXISTS "${_pk_try}")
+                set(PK_RENDER_FONTCONFIG_PATH "${_pk_try}")
+                break()
+            endif()
+        endforeach()
+        if(PK_RENDER_FONTCONFIG_PATH)
+            break()
+        endif()
+        # 到根就停：`get_filename_component("/" DIRECTORY)` 返回 "/"，用
+        # `MATCHES "/"` 当条件会死循环（2026-09-12 实测踩到一次，configure 卡死）。
+        # 判据取「父目录 == 自己」这个不动点。
+        get_filename_component(_pk_parent "${_pk_probe}" DIRECTORY)
+        if(_pk_parent STREQUAL _pk_probe)
+            break()
+        endif()
+        set(_pk_probe "${_pk_parent}")
+    endwhile()
+endif()
 if(NOT PK_RENDER_FONTCONFIG_PATH)
     foreach(_pk_prefix IN LISTS CMAKE_PREFIX_PATH)
         if(EXISTS "${_pk_prefix}/etc/fonts")
@@ -128,6 +164,12 @@ target_include_directories(text_draw_driver PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/graft/stubs)  # kritaflake_export.h 桩
 # 不给它 add_test：它是判据② 的试接证据，不是一条判据。跑法见 task-5-report.md。
 # 期望值同样取 PK_RENDER_TEXT_GOLDEN（手工跑时自己 export，见报告里的命令行）。
+#
+# ⚠ 手工跑时必须同时设 FONTCONFIG_PATH（plan §6 第 5 条，文件头也写了）——不设
+#   fontconfig 读不到默认配置，字体回退会漂，digest 全变，**症状是三例 C1 FAIL，
+#   看起来像真回归**（2026-09-12 主会话实测踩到一次：同一二进制，只差这一个变量，
+#   一个 FAIL failures=3、一个 ok failures=0）。ctest 那几条已由 add_test 的
+#   ENVIRONMENT 烘进去，唯独本 driver 不接 ctest，所以只能靠这一行提醒。
 
 add_library(retained_tools_compile OBJECT tests/retained_tools_compile.cpp)
 target_link_libraries(retained_tools_compile PRIVATE pkrender)

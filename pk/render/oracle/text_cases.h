@@ -262,7 +262,13 @@ inline std::vector<Case> table()
     for (int i = 0; i < 3; ++i) {
         Case c = baseCase();
         c.tag = std::string("callsite2/handlename/scale1.5/") + nameTags[i];
-        c.penRgb = 0x3f3f3f;   // bgColorForCaret(selectionColor,255) 的灰
+        // NOTE: 0x3f3f3f is a deliberate stand-in, NOT what the call site produces.
+        // `bgColorForCaret()` (SvgTextCursor.cpp:786-789) is a two-branch ternary that
+        // returns only black or white; for this case's selectionColor=0x2a6fd6 it
+        // returns WHITE (0xffffffff). Measured by the Task 5 driver. The value is left
+        // as-is on purpose (a fully-transparent pen would make the case degenerate);
+        // only this comment was wrong. See pk/render/README.md "Task 5" section.
+        c.penRgb = 0x3f3f3f;
         c.penWidth = 1.0;
         c.hasBrush = true;
         c.brushRgb = 0x2a6fd6; // selectionColor

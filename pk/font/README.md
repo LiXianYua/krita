@@ -152,8 +152,13 @@ QtGui」这个语义，且不依赖 `CMAKE_PREFIX_PATH` 在测试运行时还在
      `format == "CFF"` 时为真（`:267`、`:376`）。非 gamma 路径下
      `coverage.mask[i] = 255 - raster.stored[i]`（`:539`）**即覆盖率本身**。
    - **为什么保留并登记**：gamma 路径下该式是否等于 Qt 的 alpha map，**本机无 FreeType
-     宿主可证** —— 与第 1 条同源，是判据④不可达的直接后果。零用量：本批用例覆盖到的
-     字体里没有一个 CFF-format 彩色字形。
+     宿主可证** —— 与第 1 条同源，是判据④不可达的直接后果。
+   - **这条不是「死代码」**（2026-09-12 全分支评审订正）：gamma 分支**被用例集踩到**——
+     变异组 E（`gammaCorrect` 恒 false）在 `test_text` 上命中 3 例
+     （`callsite2/handlename/scale1.5/nonascii`、`adv/nonascii`、`vis/bidi/lri`）。
+     缺的只是 **Qt 侧的彩色合成参照系**，不是这条分支没有用量。原文「零用量：本批用例
+     覆盖到的字体里没有一个 CFF-format 彩色字形」字面不假（命中的是 CFF **单色回退**字形，
+     非 COLR/CBDT 彩色字形），但会被读成「死代码」，故订正。
    - 源：plan §3.1 / §6-4。
 
 5. **fontconfig 配置必须显式设**（plan §6-5；与 Task 2 登记的「环境事实」同条）。
