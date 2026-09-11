@@ -172,13 +172,12 @@ public:
     // 越界/未定位/下标不存在一律返回 Invalid 的 PkVariant，不设错误
     // （§0 P2，PkSqlCursor::value() 已经是这个语义，这里直接透传）。
     PkVariant value(int col) const;
-    // 具名查找：精确匹配 `sqlite3_column_name` 报出的列名（**不带表前缀**——
-    // 本任务已用真实 SQL 核实：`SELECT tags.id` 这种未加 `AS` 别名的限定名
-    // 写法，sqlite3_column_name 报出的是裸列名 "id"，不是 "tags.id"；
-    // `KisResourceLocator.cpp:260-261` 那两处 `value("tags.id")`/
-    // `value("resource_types.id")` 因此在真实 Qt 环境下也永远查不到列、返回
-    // Invalid——本类原样复刻这个（真实存在的）行为，不是本类引入的偏差，
-    // 详见 task-2-report.md 的探针记录）。
+    // 具名查找：走 `PkSqlCursor::columnIndex()`，**与 `QSqlRecord::indexOf()`
+    // 等价**——支持 `"table.field"` 限定名（先整名比，再在第一个 '.' 处切分、
+    // 比 fieldName + 列所属表名），比较大小写无关。表名来自
+    // `sqlite3_column_table_name()`，只有编了 SQLITE_ENABLE_COLUMN_METADATA
+    // 的 sqlite 才有；拿不到表名的构建降级为「切前缀、只比 fieldName」。
+    // 契约与退化语义详见 PkSqlCursor.h 与 pk/sql/README.md。
     PkVariant value(const PkString &name) const;
 
 private:

@@ -282,15 +282,18 @@ column_count=8
 [7] name=[id]              ← resource_types.id，与 [0] 同名冲突
 ```
 
-**`sqlite3_column_name` 报出的是裸列名，不带表前缀**——`"tags.id"`/
-`"resource_types.id"` 这两个字面串在结果列名里根本不存在。也就是说
-`KisResourceLocator.cpp:260-261` 的 `query.value("tags.id")`/
-`query.value("resource_types.id")` 在真实 Qt/SQLite 环境下**也查不到列、返回
-Invalid**——核对了这两行赋值给的局部变量 `tagId`/`resourceTypeId`，函数其余部分
-（`tagForUrlNoCache()`）从未读取过它们，是已经存在于 Krita 里的死代码，不是
-`pk/sql` 引入的偏差。`pk/sql` 的 `PkSqlQuery::value(PkString)` 按裸列名精确匹配
-实现（第一个同名列优先，对应第 265 行 `value("id")` 命中 `tags.id` 那一列的真实
-行为），原样复刻，不做"智能识别限定名"的特殊处理。
+**`sqlite3_column_name` 报出的是裸列名，不带表前缀**——但**这推不出「限定名查
+不到」**：`QSqlQuery::value(QString)` 走 `QSqlRecord::indexOf()`，它在整名比不中
+时会切出 `table.field`，除了比 `QSqlField::name()` **还比 `QSqlField::tableName()`**
+（Qt 源码 `qtbase/src/sql/kernel/qsqlrecord.cpp:233-255`，`:250` 就是那条表名比较），
+而 sqlite 驱动的 `QSqlField::tableName` 正是 `sqlite3_column_table_name16()` 喂的
+（`src/plugins/sqldrivers/sqlite/qsql_sqlite.cpp:205-250`）。上面这份 dump 只证明了
+「列名不含前缀」这一件事——真实 Qt5Sql 探针实测 `value("resources.id")` /
+`value("tags.id")` / `value("resource_types.id")` **都取得到值**（impact-map §6）。
+**本段原来的结论（「真实 Qt 也查不到列」「是死代码」）已被 Q-10 证伪**：`pk/sql`
+现在按 `QSqlRecord::indexOf()` 的语义**支持**限定名（切第一个 `.` 后同时比 field
+名与列所属表名），见 `PkSqlCursor.h` 的 `columnIndex()` 注释与
+`docs/Qt替代品选型.md` §6.10（Q-10）。
 
 ### 位置批量 `execBatch` 探针（Task 3 补做，`sql_probe4_execbatch_positional.cpp`）
 
@@ -416,10 +419,11 @@ statement → 重试 `PkClose()`。本任务的 SQLite 探针原始输出显示 
 | `boundValues()` | 40（全部用途是 `qWarning()` 诊断打印，不参与逻辑分支） | 返回一个可
   遍历的绑定值集合 | 是（最小实现：`PkVariantMap`，key 是占位符名/位置） |
 | `value(int)` / `value(PkString name)` | 174（121 具名 + 47 位置，另 6 处经
-  `KisSqlQueryLoader::query().value()`） | **具名查找要支持 `KisResourceLocator.cpp`
-  的 `"tags.id"`/`"resource_types.id"` 这种带表前缀写法——实测确认这两处在真实
-  Qt/SQLite 上本来就查不到列，是既有死代码（§0），`pk/sql` 按裸列名精确匹配即可，
-  不做限定名智能识别 | 是 |
+  `KisSqlQueryLoader::query().value()`） | **具名查找要支持 `"table.field"` 限定
+  名**——与 `QSqlRecord::indexOf()` 等价（`qsqlrecord.cpp:233-255`：切**第一个**
+  `.` 后，要求 field 名比中**且**列所属表名比中，比较大小写无关）。表名靠
+  `sqlite3_column_table_name()` 拿，本仓 vendored sqlite 已开
+  `SQLITE_ENABLE_COLUMN_METADATA` | 是 |
 | `isActive()`/`finish()`/`driver()`/`isNull(int/name)` | 0 | **不实现** |
 
 ### `QSqlError` → `PkSqlError`
@@ -812,12 +816,12 @@ execBatch/单参构造函数用例）。`ctest --test-dir build` 层面是 `1/1 
    凭直觉实现（"约束冲突当然是语句错误"）会实现错，`KisResourceCacheDb::
    initialize()` 里那个对 5 个 `ErrorType` 分支处理人类可读消息的 `switch`
    就会走错分支。
-4. **`value(PkString)` 的两处限定名调用点是死代码**：`KisResourceLocator.cpp`
-   的 `value("tags.id")`/`value("resource_types.id")` 在真实 Qt 环境下就已经
-   查不到列（`sqlite3_column_name` 报的是裸列名），赋值给的局部变量后续从未
-   被读取。第一反应可能会想"要不要支持限定名查找让这两行工作起来"——**不该
-   这么做**，那样反而与真实 Qt 行为不一致，是当前实现故意保留的偏离方向
-   （复刻死代码的死性，不是修复它）。
+4. ~~`value(PkString)` 的两处限定名调用点是死代码~~ **已被 Q-10 证伪并修复**：
+   `value("tags.id")` / `value("resource_types.id")` 在真实 Qt 下**能**查到列
+   （`QSqlRecord::indexOf()` 会退到比 `QSqlField::tableName()`，
+   `qsqlrecord.cpp:250`），而且 `KisResourceLocator.cpp:578-579` 取到的
+   `tagId` / `resourceTypeId` 在 `:630-631` 被 `bindValue` 用掉了，不是死代码。
+   `pk/sql` 现已按 `QSqlRecord::indexOf()` 的语义支持限定名。
 
 ### 哪些是猜的（不是探针实测，需要留意）
 

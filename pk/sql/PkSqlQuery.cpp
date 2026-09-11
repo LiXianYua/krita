@@ -148,11 +148,27 @@ bool PkSqlQuery::prepare(const PkString &sql)
     m_isSelect = colCount > 0;
     std::vector<PkString> colNames;
     colNames.reserve(static_cast<std::size_t>(colCount));
+#ifdef PK_SQLITE_HAS_COLUMN_METADATA
+    // 列所属表名：PkSqlCursor::columnIndex() 的限定名匹配要与
+    // QSqlRecord::indexOf() 等价就必须有它（Qt 的 qsqlrecord.cpp:250 直接比
+    // currentField.tableName()），而 QSqlField 的表名在 sqlite 驱动里正是
+    // sqlite3_column_table_name16() 喂的（qsql_sqlite.cpp:205-250）。
+    // 未定义该宏的构建不取表名 ⇒ PkSqlCursor 走降级路径。
+    std::vector<PkString> colTables;
+    colTables.reserve(static_cast<std::size_t>(colCount));
+#endif
     for (int i = 0; i < colCount; ++i) {
         const char *cn = sqlite3_column_name(m_stmt, i);
         colNames.push_back(cn ? utf8ToPk(cn, static_cast<int>(std::strlen(cn))) : PkString());
+#ifdef PK_SQLITE_HAS_COLUMN_METADATA
+        const char *tn = sqlite3_column_table_name(m_stmt, i);
+        colTables.push_back(tn ? utf8ToPk(tn, static_cast<int>(std::strlen(tn))) : PkString());
+#endif
     }
     m_cursor.setColumnNames(colNames);
+#ifdef PK_SQLITE_HAS_COLUMN_METADATA
+    m_cursor.setColumnTables(colTables);
+#endif
 
     m_lastError = PkSqlError();
     return true;

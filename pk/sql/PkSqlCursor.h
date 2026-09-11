@@ -40,13 +40,33 @@ public:
     void clearRows();
 
     void setColumnNames(const std::vector<PkString> &names);
+
+    // 与 m_columnNames 一一对应的**列所属表名**（`sqlite3_column_table_name`）。
+    // 可选：只有 sqlite 编了 SQLITE_ENABLE_COLUMN_METADATA 的构建里
+    // PkSqlQuery::prepare() 才会调它。不调（或传空 vector）⇒ 表名不可得 ⇒
+    // columnIndex() 的限定名匹配降级为「只比切出来的列名」（语义差异见
+    // pk/sql/README.md）。生命周期与 setColumnNames 一致：clear() 一并清掉，
+    // clearRows() 不动。
+    void setColumnTables(const std::vector<PkString> &tables);
+
     void appendRow(const PkVariantList &row);
 
     int rowCount() const;
     int columnCount() const;
-    // 具名查找：线性扫描列名找第一个精确匹配（`operator==`，非大小写无关——
-    // PkString 没有大小写折叠 API，且本任务全部真实调用点的具名 value()
-    // 用法都是精确大小写匹配，不需要那条能力，见 PkSqlQuery.cpp 头部注释）。
+    // 具名查找，**与 `QSqlRecord::indexOf()` 等价**（Qt 源码
+    // qtbase/src/sql/kernel/qsqlrecord.cpp:233-255）：
+    //   1. 先拿**整个 name** 去比列名（列名里真含 '.' 的别名走这条）
+    //   2. 整名比不中、且 name 含 '.' 时，在**第一个** '.' 处切成
+    //      tableName/fieldName，要求列的 fieldName 比中 **且** 列所属表名
+    //      比中 tableName（`"a.b.c"` ⇒ table="a"、field="b.c"，与 Qt 一致）
+    // 比较一律**大小写无关**（Qt 用 `Qt::CaseInsensitive`；Pk 侧用
+    // `PkString::toLower()`——同一份 Unicode 大小写映射表）。多列都比中时取
+    // **最小下标**（Qt 逐列循环的语义）。
+    //
+    // 第 2 条要求「列所属表名」可得，它来自 `sqlite3_column_table_name()`，
+    // 只在 sqlite 编了 SQLITE_ENABLE_COLUMN_METADATA 时才存在。拿不到表名的
+    // 构建（m_columnTables 与 m_columnNames 长度不一致）降级为
+    // 「切前缀、只比 fieldName」——语义差异见 pk/sql/README.md。
     // 找不到返回 -1。
     int columnIndex(const PkString &name) const;
 
@@ -63,6 +83,8 @@ public:
 
 private:
     std::vector<PkString> m_columnNames;
+    // 与 m_columnNames 一一对应；空（或长度不一致）= 本构建拿不到表名。
+    std::vector<PkString> m_columnTables;
     std::vector<PkVariantList> m_rows;
     int m_pos;
 };

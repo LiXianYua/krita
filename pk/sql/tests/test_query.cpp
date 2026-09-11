@@ -3,6 +3,7 @@
 #include "../PkSqlDatabase.h"
 #include "../PkSqlError.h"
 #include "../PkSqlQuery.h"
+#include "../PkSqlCursor.h"
 
 #include <sqlite3.h>
 
@@ -186,32 +187,130 @@ void TestQuery::seekJumpsBackwardAfterRandomAccessNext()
     PK_COMPARE(q.value(0).toString(), PkString("row0"));
 }
 
-void TestQuery::namedValueLookupIsUnqualifiedColumnNameOnly()
+void TestQuery::namedValueLookupResolvesQualifiedNames()
 {
-    // brief 要求核对的一点：KisResourceLocator.cpp 的 value("tags.id")/
-    // value("resource_types.id") 用的是带表前缀的限定名写法。本任务用真实
-    // sqlite3 C API 探针核实过（task-2-report.md）：sqlite3_column_name
-    // 报出的是**裸列名**（"id"），不带 "tags."/"resource_types." 前缀——
-    // 两处限定名查找在真实 Qt 环境下也查不到列、返回 Invalid（且这两个局部
-    // 变量在 KisResourceLocator.cpp 里赋值后从未被使用，是已存在的死代码，
-    // 不是本类引入的偏差）。本类原样复刻：具名查找精确匹配裸列名。
+    // Q-10：PkSqlQuery::value("table.field") 必须与 QSqlRecord::indexOf()
+    // 等价——限定名要能查到列，且落**位对应的那一列**，不是第一个同名列。
+    // Qt 依据：qtbase/src/sql/kernel/qsqlrecord.cpp:233-255（:248-251 的
+    // `currentField.tableName().compare(tableName)`），表名来源见
+    // src/plugins/sqldrivers/sqlite/qsql_sqlite.cpp:205-250。
     sqlite3_exec(PkSqlDatabase::database().PkHandle(),
                  "CREATE TABLE tags (id INTEGER PRIMARY KEY, name TEXT);"
                  "CREATE TABLE resource_types (id INTEGER PRIMARY KEY, name TEXT);"
-                 "INSERT INTO tags (id, name) VALUES (1, 'tagname');"
-                 "INSERT INTO resource_types (id, name) VALUES (2, 'brush');",
+                 "INSERT INTO tags (id, name) VALUES (11, 'tagname');"
+                 "INSERT INTO resource_types (id, name) VALUES (22, 'brush');",
                  nullptr, nullptr, nullptr);
 
     PkSqlQuery q;
-    PK_VERIFY(
-        q.exec("SELECT tags.id, tags.name, resource_types.id FROM tags, resource_types"));
+    PK_VERIFY(q.exec("SELECT tags.id, tags.name, resource_types.id, resource_types.name "
+                     "FROM tags, resource_types"));
     PK_VERIFY(q.next());
 
-    PK_VERIFY(!q.value(PkString("tags.id")).isValid());
-    PK_VERIFY(!q.value(PkString("resource_types.id")).isValid());
-    // 裸列名 "id" 命中第一个同名列（列 0，即 tags.id 那一列）。
-    PK_COMPARE(q.value(PkString("id")).toInt(), 1);
-    PK_COMPARE(q.value(PkString("name")).toString(), PkString("tagname"));
+#ifdef PK_SQLITE_HAS_COLUMN_METADATA
+    // 表名可得：限定名各自落到自己表那一列（resource_types.id 是列 2，不是列 0）
+    PK_COMPARE(q.value(PkString("tags.id")).toInt(), 11);
+    PK_COMPARE(q.value(PkString("resource_types.id")).toInt(), 22);
+    PK_COMPARE(q.value(PkString("tags.name")).toString(), PkString("tagname"));
+    PK_COMPARE(q.value(PkString("resource_types.name")).toString(), PkString("brush"));
+    // 大小写无关（Qt 用 Qt::CaseInsensitive）
+    PK_COMPARE(q.value(PkString("TAGS.ID")).toInt(), 11);
+    // 表名对不上 ⇒ 查不到（不是「退化成第一个同名列」）
+    PK_VERIFY(!q.value(PkString("storages.id")).isValid());
+#else
+    // 拿不到表名（未编 SQLITE_ENABLE_COLUMN_METADATA）的降级语义：切掉
+    // "table." 前缀后只比列名 ⇒ "resource_types.id" 退化成第一个 "id"。
+    // 这条降级语义的**独立覆盖**在
+    // cursorQualifiedLookupWithoutTableMetadataFallsBackToFieldName()。
+    PK_COMPARE(q.value(PkString("tags.id")).toInt(), 11);
+    PK_COMPARE(q.value(PkString("resource_types.id")).toInt(), 11);
+    PK_COMPARE(q.value(PkString("tags.name")).toString(), PkString("tagname"));
+    // 降级路径同样分不清同名列：也落回第一个 "name"（列 1，tags.name）
+    PK_COMPARE(q.value(PkString("resource_types.name")).toString(), PkString("tagname"));
+#endif
+
+    // 裸名：第一个同名列（列 0），两条路径下一致
+    PK_COMPARE(q.value(PkString("id")).toInt(), 11);
+    // 列名对不上 ⇒ 查不到，两条路径下一致
+    PK_VERIFY(!q.value(PkString("tags.filename")).isValid());
+
+    // 单表场景（记录只来自一张表、无重名歧义）：限定名与裸名都给同一个列
+    PkSqlQuery single;
+    PK_VERIFY(single.exec("SELECT tags.id, tags.name FROM tags"));
+    PK_VERIFY(single.next());
+    PK_COMPARE(single.value(PkString("tags.id")).toInt(), 11);
+    PK_COMPARE(single.value(PkString("tags.name")).toString(), PkString("tagname"));
+    PK_COMPARE(single.value(PkString("id")).toInt(), 11);
+#ifdef PK_SQLITE_HAS_COLUMN_METADATA
+    PK_VERIFY(!single.value(PkString("resource_types.id")).isValid());
+#else
+    // 降级路径下 resource_types.id 切出 "id"，命中唯一那一列
+    PK_COMPARE(single.value(PkString("resource_types.id")).toInt(), 11);
+#endif
+}
+
+void TestQuery::cursorQualifiedLookupMatchesOwningTable()
+{
+    // 直接对 PkSqlCursor 造「表名可得」的状态（列名与表名一一对应），
+    // 等价于编了 SQLITE_ENABLE_COLUMN_METADATA 的构建跑完 prepare() 后的形态。
+    // 契约 = QSqlRecord::indexOf()（qsqlrecord.cpp:233-255）。
+    PkSqlCursor c;
+    std::vector<PkString> names;
+    names.push_back(PkString("id"));    // tags.id
+    names.push_back(PkString("name"));  // tags.name
+    names.push_back(PkString("id"));    // resource_types.id
+    names.push_back(PkString("name"));  // resource_types.name
+    c.setColumnNames(names);
+
+    std::vector<PkString> tables;
+    tables.push_back(PkString("tags"));
+    tables.push_back(PkString("tags"));
+    tables.push_back(PkString("resource_types"));
+    tables.push_back(PkString("resource_types"));
+    c.setColumnTables(tables);
+
+    // 限定名落到位对应的列，不是第一个同名列
+    PK_COMPARE(c.columnIndex(PkString("tags.id")), 0);
+    PK_COMPARE(c.columnIndex(PkString("tags.name")), 1);
+    PK_COMPARE(c.columnIndex(PkString("resource_types.id")), 2);
+    PK_COMPARE(c.columnIndex(PkString("resource_types.name")), 3);
+    // 裸名：第一个同名列
+    PK_COMPARE(c.columnIndex(PkString("id")), 0);
+    PK_COMPARE(c.columnIndex(PkString("name")), 1);
+    // 大小写无关
+    PK_COMPARE(c.columnIndex(PkString("TAGS.ID")), 0);
+    PK_COMPARE(c.columnIndex(PkString("Resource_Types.Id")), 2);
+    // 表名或列名对不上 ⇒ -1
+    PK_COMPARE(c.columnIndex(PkString("storages.id")), -1);
+    PK_COMPARE(c.columnIndex(PkString("tags.filename")), -1);
+    PK_COMPARE(c.columnIndex(PkString("nope")), -1);
+}
+
+void TestQuery::cursorQualifiedLookupWithoutTableMetadataFallsBackToFieldName()
+{
+    // 拿不到表名的构建（未编 SQLITE_ENABLE_COLUMN_METADATA）：不调
+    // setColumnTables() ⇒ 降级为「在第一个 '.' 处切分、只比 fieldName」。
+    PkSqlCursor c;
+    std::vector<PkString> names;
+    names.push_back(PkString("id"));    // tags.id
+    names.push_back(PkString("name"));  // tags.name
+    names.push_back(PkString("id"));    // resource_types.id
+    names.push_back(PkString("name"));  // resource_types.name
+    c.setColumnNames(names);
+
+    // 降级后无法区分同名列：一律命中第一个同名列
+    PK_COMPARE(c.columnIndex(PkString("tags.id")), 0);
+    PK_COMPARE(c.columnIndex(PkString("resource_types.id")), 0);
+    PK_COMPARE(c.columnIndex(PkString("tags.name")), 1);
+    PK_COMPARE(c.columnIndex(PkString("resource_types.name")), 1);
+    // 裸名行为与表名可得时一致
+    PK_COMPARE(c.columnIndex(PkString("id")), 0);
+    PK_COMPARE(c.columnIndex(PkString("name")), 1);
+    // 大小写无关在这条路径下同样成立
+    PK_COMPARE(c.columnIndex(PkString("TAGS.ID")), 0);
+    // 列名对不上仍是 -1（切前缀不是「无脑命中最前面的列」）
+    PK_COMPARE(c.columnIndex(PkString("tags.filename")), -1);
+    PK_COMPARE(c.columnIndex(PkString("tags.nope")), -1);
+    PK_COMPARE(c.columnIndex(PkString("nope")), -1);
 }
 
 void TestQuery::clearResetsToEmptyQueryReadyForReprepare()

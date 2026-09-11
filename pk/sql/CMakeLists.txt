@@ -9,6 +9,11 @@ project(pksql CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# 根工程 CMakeLists.txt:89 把 CMAKE_POSITION_INDEPENDENT_CODE 置 ON，本工程是
+# 独立 configure 的，拿不到那条全局设置——而本工程把 STATIC 的 pkstring 链进
+# SHARED 的 pksql（pktest 会带出 pk/string），不置 PIC 会在链接期撞
+# "relocation R_X86_64_PC32 ... can not be used when making a shared object"。
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -46,7 +51,34 @@ if (NOT SQLite3_FOUND)
     # 仓库级 -fvisibility=hidden 同样会把它的 API 藏起来（实测 dynsym 里一个
     # sqlite3_* 都没有），下游就链不上了——同 pkconcurrent/pkconfig/pkport。
     target_compile_options(sqlite3_vendored PRIVATE -fvisibility=default)
+    # 列元数据 API（sqlite3_column_table_name 一族）：PkSqlCursor 的限定名匹配
+    # 要与 QSqlRecord::indexOf() 等价就必须有表名（qtbase 的
+    # src/sql/kernel/qsqlrecord.cpp:250 直接比 currentField.tableName()），
+    # 而 QSqlField 的表名在 sqlite 驱动里正是 sqlite3_column_table_name16()
+    # 喂的（src/plugins/sqldrivers/sqlite/qsql_sqlite.cpp:205-250）。
+    # amalgamation 默认不开这个宏（Qt 自带的 sqlite 就是开的：
+    # src/3rdparty/sqlite.pri:3），本仓显式打开。
+    target_compile_definitions(sqlite3_vendored PRIVATE SQLITE_ENABLE_COLUMN_METADATA)
+    # 这棵 sqlite 是本仓自己编的，一定带该 API——不需要链接探测。
+    # 允许显式压成降级路径（"表名不可得"语义，等价于命中一棵没编
+    # SQLITE_ENABLE_COLUMN_METADATA 的系统库），供两条路径各编一次：
+    #   -DPK_SQLITE_HAS_COLUMN_METADATA=FALSE
+    if (NOT DEFINED PK_SQLITE_HAS_COLUMN_METADATA)
+        set(PK_SQLITE_HAS_COLUMN_METADATA TRUE)
+    endif()
     add_library(SQLite::SQLite3 ALIAS sqlite3_vendored)
+else()
+    # 命中系统库：**必须真链一下**——sqlite3.h 对这几个函数是**无条件声明**
+    # 的（amalgamation 3.50.4 的 sqlite3.h:5079-5080），照头文件探测不出能力，
+    # 只有链一次才知道库里到底有没有。探测不过 ⇒ PkSqlQuery 不取表名 ⇒
+    # PkSqlCursor 的限定名匹配走降级路径（语义差异见 pk/sql/README.md）。
+    include(CheckCXXSourceCompiles)
+    set(CMAKE_REQUIRED_INCLUDES ${SQLite3_INCLUDE_DIRS})
+    set(CMAKE_REQUIRED_LIBRARIES ${SQLite3_LIBRARIES})
+    check_cxx_source_compiles("
+#include <sqlite3.h>
+int main(void) { sqlite3_stmt *s = 0; return sqlite3_column_table_name(s, 0) != 0; }
+" PK_SQLITE_HAS_COLUMN_METADATA)
 endif()
 
 # 测试用 R-11 的 PK_* harness，只是消费它，一个字节都不改。**先加它，再定义
@@ -161,6 +193,10 @@ target_link_libraries(pksql PUBLIC pkstring pkvariant pkcontainer)
 # 仓库级的隐藏可见性开关（-fvisibility=hidden）会把共享库的公开 API 也藏
 # 起来，下游就链不上了——同 pkconcurrent/pkconfig/pkport 的处理。
 target_compile_options(pksql PRIVATE -fvisibility=default)
+# 列元数据能力（见上面 sqlite3 那段）：只有它可用时才让 PkSqlQuery 去取表名。
+if (PK_SQLITE_HAS_COLUMN_METADATA)
+    target_compile_definitions(pksql PRIVATE PK_SQLITE_HAS_COLUMN_METADATA)
+endif()
 set_target_properties(pksql PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # PRIVATE：<sqlite3.h> 只出现在 .cpp 里，公开头文件只前置声明 `struct sqlite3;`
 # （PkSqlError.h/PkSqlDatabase.h 顶部注释），不需要传递给 pksql 的使用者。
@@ -184,6 +220,10 @@ target_include_directories(test_pksql PRIVATE
 # 因为 Task 1 还没有 PkSqlQuery（Task 2 的范围）——所以 test_pksql 额外链
 # SQLite::SQLite3 并需要它的 include 路径，不能只靠 pksql 内部 PRIVATE 链接。
 target_link_libraries(test_pksql PRIVATE pksql pktest SQLite::SQLite3)
+# 测试要能对「表名可得」与「表名不可得」两条路径分别断言，所以它也得知道能力。
+if (PK_SQLITE_HAS_COLUMN_METADATA)
+    target_compile_definitions(test_pksql PRIVATE PK_SQLITE_HAS_COLUMN_METADATA)
+endif()
 set_source_files_properties(tests/test_error.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_error.inc")
 set_source_files_properties(tests/test_database.cpp PROPERTIES

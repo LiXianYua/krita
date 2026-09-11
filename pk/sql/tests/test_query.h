@@ -26,7 +26,9 @@ private Q_SLOTS:
     void seekJumpsBackwardAfterForwardOnlyNext();
     void seekJumpsBackwardAfterRandomAccessNext();
 
-    void namedValueLookupIsUnqualifiedColumnNameOnly();
+    void namedValueLookupResolvesQualifiedNames();
+    void cursorQualifiedLookupMatchesOwningTable();
+    void cursorQualifiedLookupWithoutTableMetadataFallsBackToFieldName();
 
     void clearResetsToEmptyQueryReadyForReprepare();
 

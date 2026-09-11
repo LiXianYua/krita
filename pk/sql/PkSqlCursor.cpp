@@ -1,5 +1,18 @@
 #include "PkSqlCursor.h"
 
+namespace {
+
+// Qt 的 indexOf() 用 Qt::CaseInsensitive 比列名与表名。PkString::toLower()
+// 走的是 pk/string 的 Unicode 大小写映射表（PkString_query.cpp），与 Qt 的
+// case-insensitive 比较同一量级，不是 ASCII-only 的近似。
+// 先比原串：绝大多数命中都是精确匹配，省掉两次 toLower()。
+bool pkNameEquals(const PkString &a, const PkString &b)
+{
+    return a == b || a.toLower() == b.toLower();
+}
+
+} // namespace
+
 PkSqlCursor::PkSqlCursor() : m_pos(-1)
 {
 }
@@ -7,6 +20,7 @@ PkSqlCursor::PkSqlCursor() : m_pos(-1)
 void PkSqlCursor::clear()
 {
     m_columnNames.clear();
+    m_columnTables.clear();
     m_rows.clear();
     m_pos = -1;
 }
@@ -20,6 +34,11 @@ void PkSqlCursor::clearRows()
 void PkSqlCursor::setColumnNames(const std::vector<PkString> &names)
 {
     m_columnNames = names;
+}
+
+void PkSqlCursor::setColumnTables(const std::vector<PkString> &tables)
+{
+    m_columnTables = tables;
 }
 
 void PkSqlCursor::appendRow(const PkVariantList &row)
@@ -39,8 +58,28 @@ int PkSqlCursor::columnCount() const
 
 int PkSqlCursor::columnIndex(const PkString &name) const
 {
+    // 切分规则照抄 Qt（qsqlrecord.cpp:236-241）：只在**第一个** '.' 处切，
+    // 剩余部分整段算列名——"a.b.c" ⇒ tableName="a"、fieldName="b.c"。
+    PkString tableName;
+    PkString fieldName = name;
+    const int idx = name.indexOf(PkString("."));
+    if (idx != -1) {
+        tableName = name.left(idx);
+        fieldName = name.mid(idx + 1);
+    }
+
+    // 表名可得与否：只有 setColumnTables() 给的 vector 与列名一一对应才算数。
+    // 长度为 0 且列名也为 0 时循环不执行，那个退化情形无影响。
+    const bool tableNamesKnown = m_columnTables.size() == m_columnNames.size();
+
     for (std::size_t i = 0; i < m_columnNames.size(); ++i) {
-        if (m_columnNames[i] == name) {
+        // Qt 的判据（qsqlrecord.cpp:248-251）：整名先比（列名真的带 '.' 的
+        // 别名走这条），再比限定名切分后的 fieldName + 列所属表名。
+        // 表名不可得时跳过表名那半条比较（降级路径）。
+        if (pkNameEquals(m_columnNames[i], name)
+            || (idx != -1
+                && pkNameEquals(m_columnNames[i], fieldName)
+                && (!tableNamesKnown || pkNameEquals(m_columnTables[i], tableName)))) {
             return static_cast<int>(i);
         }
     }

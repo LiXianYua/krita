@@ -508,11 +508,38 @@ if (NOT SQLite3_FOUND)
     # 仓库级 -fvisibility=hidden 同样会把它的 API 藏起来（实测 dynsym 里一个
     # sqlite3_* 都没有），下游就链不上了——同 pkconcurrent/pkconfig/pkport。
     target_compile_options(sqlite3_vendored PRIVATE -fvisibility=default)
+    # 列元数据 API（sqlite3_column_table_name 一族）：PkSqlCursor 的限定名匹配
+    # 要与 QSqlRecord::indexOf() 等价就必须有表名（qtbase 的
+    # src/sql/kernel/qsqlrecord.cpp:250 直接比 currentField.tableName()），
+    # 而 QSqlField 的表名在 sqlite 驱动里正是 sqlite3_column_table_name16()
+    # 喂的（src/plugins/sqldrivers/sqlite/qsql_sqlite.cpp:205-250）。
+    # amalgamation 默认不开这个宏（Qt 自带的 sqlite 就是开的：
+    # src/3rdparty/sqlite.pri:3），本仓显式打开。
+    target_compile_definitions(sqlite3_vendored PRIVATE SQLITE_ENABLE_COLUMN_METADATA)
+    # 这棵 sqlite 是本仓自己编的，一定带该 API——不需要链接探测。
+    # 允许显式压成降级路径（"表名不可得"语义，等价于命中一棵没编
+    # SQLITE_ENABLE_COLUMN_METADATA 的系统库），供两条路径各编一次：
+    #   -DPK_SQLITE_HAS_COLUMN_METADATA=FALSE
+    if (NOT DEFINED PK_SQLITE_HAS_COLUMN_METADATA)
+        set(PK_SQLITE_HAS_COLUMN_METADATA TRUE)
+    endif()
     add_library(SQLite::SQLite3 ALIAS sqlite3_vendored)
     install(TARGETS sqlite3_vendored
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+else()
+    # 命中系统库：**必须真链一下**——sqlite3.h 对这几个函数是**无条件声明**
+    # 的（amalgamation 3.50.4 的 sqlite3.h:5079-5080），照头文件探测不出能力，
+    # 只有链一次才知道库里到底有没有。探测不过 ⇒ PkSqlQuery 不取表名 ⇒
+    # PkSqlCursor 的限定名匹配走降级路径（语义差异见 pk/sql/README.md）。
+    include(CheckCXXSourceCompiles)
+    set(CMAKE_REQUIRED_INCLUDES ${SQLite3_INCLUDE_DIRS})
+    set(CMAKE_REQUIRED_LIBRARIES ${SQLite3_LIBRARIES})
+    check_cxx_source_compiles("
+#include <sqlite3.h>
+int main(void) { sqlite3_stmt *s = 0; return sqlite3_column_table_name(s, 0) != 0; }
+" PK_SQLITE_HAS_COLUMN_METADATA)
 endif()
 
 # pk/sql 依赖已定义的 pkvariant、pkgeometry、pkstring target。
@@ -540,6 +567,10 @@ target_link_libraries(pksql PUBLIC SQLite::SQLite3 pkvariant pkgeometry pkstring
 # 仓库级的隐藏可见性开关（编译行里的 -fvisibility=hidden）会把共享库的公开
 # API 也藏起来，下游就链不上了——同 pkconcurrent/pkconfig/pkport 的处理。
 target_compile_options(pksql PRIVATE -fvisibility=default)
+# 列元数据能力（见上面 sqlite3 那段）：只有它可用时才让 PkSqlQuery 去取表名。
+if (PK_SQLITE_HAS_COLUMN_METADATA)
+    target_compile_definitions(pksql PRIVATE PK_SQLITE_HAS_COLUMN_METADATA)
+endif()
 set_target_properties(pksql PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 install(TARGETS pksql
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
