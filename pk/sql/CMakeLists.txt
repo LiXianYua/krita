@@ -13,8 +13,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # 零 Qt：本工程不得出现 find_package(Qt...)。判据③ 靠
-#   nm -u -C build/libpksql.a | grep -i qt
-# 自证——静态库允许留未定义符号，真混进 Qt 依赖就会在那里现形。
+#   nm -u -C build/libpksql.so | grep -i qt
+# 自证——共享库允许留未定义符号，真混进 Qt 依赖就会在那里现形。
+# （形态由 STATIC 改 SHARED，理由见下面 pksql 那段；S线-spec 判据①明确
+#   两种形态都收：nm -u -C <target>.a 与 nm -u -C lib<target>.so。）
 #
 # **Task 1 的产物只有 PkSqlError.cpp/PkSqlDatabase.cpp**（PkSqlQuery 是
 # Task 2 的范围），所以那一步的 nm -u 检查只覆盖了这两个类型；Task 2 新增
@@ -34,8 +36,16 @@ if (NOT SQLite3_FOUND)
         URL https://sqlite.org/2025/sqlite-amalgamation-3500400.zip
         URL_HASH SHA256=1d3049dd0f830a025a53105fc79fd2ab9431aea99e137809d064d8ee8356b032)
     FetchContent_MakeAvailable(sqlite3_amalgamation)
-    add_library(sqlite3_vendored STATIC ${sqlite3_amalgamation_SOURCE_DIR}/sqlite3.c)
+    # SHARED：SQLite 的进程级全局状态是每份拷贝一份，而消费方会把
+    # PkSqlDatabase::PkHandle() 交出的 sqlite3* 直接喂给裸 sqlite3 C API
+    # （libs/resources/KisResourceCacheDb.cpp:3332），跨份调用同一个连接对象
+    # 是 sqlite3 明确不支持的。共享一份才安全，也与「命中系统 libsqlite3」
+    # 那条路径形态一致（系统 SQLite3::SQLite3 本来就是共享库）。
+    add_library(sqlite3_vendored SHARED ${sqlite3_amalgamation_SOURCE_DIR}/sqlite3.c)
     target_include_directories(sqlite3_vendored PUBLIC ${sqlite3_amalgamation_SOURCE_DIR})
+    # 仓库级 -fvisibility=hidden 同样会把它的 API 藏起来（实测 dynsym 里一个
+    # sqlite3_* 都没有），下游就链不上了——同 pkconcurrent/pkconfig/pkport。
+    target_compile_options(sqlite3_vendored PRIVATE -fvisibility=default)
     add_library(SQLite::SQLite3 ALIAS sqlite3_vendored)
 endif()
 
@@ -133,7 +143,14 @@ if (NOT TARGET pkvariant)
     target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime)
 endif()
 
-add_library(pksql STATIC
+# SHARED，不是 STATIC：SQLite 连接是**进程级**状态——PkSqlDatabase.cpp 的
+# (anonymous namespace)::state() 是函数局部静态对象，每个链进 libpksql.a
+# 的二进制各得一份，宿主/共享库/插件互相看不见对方的连接。共享一份才是设计
+# 意图（R-17 plan Architecture「单一全局连接的门面」），与
+# pkconfig/pkconcurrent/pkport/pkimageio 这些持进程级状态的 pk 库同一形态。
+# 主树 pk/CMakeLists.txt 同步改（两处必须同形态，否则薄壳与主树量到的不是
+# 同一个东西）。
+add_library(pksql SHARED
     PkSqlError.cpp
     PkSqlDatabase.cpp
     PkSqlQuery.cpp
@@ -141,6 +158,10 @@ add_library(pksql STATIC
 )
 target_include_directories(pksql PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PKCONTAINER_DIR})
 target_link_libraries(pksql PUBLIC pkstring pkvariant pkcontainer)
+# 仓库级的隐藏可见性开关（-fvisibility=hidden）会把共享库的公开 API 也藏
+# 起来，下游就链不上了——同 pkconcurrent/pkconfig/pkport 的处理。
+target_compile_options(pksql PRIVATE -fvisibility=default)
+set_target_properties(pksql PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # PRIVATE：<sqlite3.h> 只出现在 .cpp 里，公开头文件只前置声明 `struct sqlite3;`
 # （PkSqlError.h/PkSqlDatabase.h 顶部注释），不需要传递给 pksql 的使用者。
 target_link_libraries(pksql PRIVATE SQLite::SQLite3)
