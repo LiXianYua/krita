@@ -60,8 +60,8 @@ public:
     // 值语义相等：两个成员逐个比。**这不是可选装饰**——PkVariant 的
     // UserType 比较器只在 T 有 operator== 时安装（PkVariantImpl.h 的
     // HasEqualityOperator 闸门），没有它 PkVariant 对 CommentBox 的比较
-    // 就恒为 false（x != x），KoResourceManager::setResource 的
-    // 「源有没有变」守卫会因此恒判「变了」、多发一次通知。
+    // 就恒为 false（x != x）；任何拿 PkVariant 比较当「变没变」判据的守卫
+    // 都会因此恒判「变了」。
     bool operator==(const CommentBox &other) const
     {
         return content == other.content && scrollValue == other.scrollValue;
@@ -101,8 +101,8 @@ public:
     // 值语义相等：两个成员逐个比。**这不是可选装饰**——PkVariant 的
     // UserType 比较器只在 T 有 operator== 时安装（PkVariantImpl.h 的
     // HasEqualityOperator 闸门），没有它 PkVariant 对 ThumbnailData 的比较
-    // 就恒为 false（x != x），KoResourceManager::setResource 的
-    // 「源有没有变」守卫会因此恒判「变了」、多发一次通知。
+    // 就恒为 false（x != x）；任何拿 PkVariant 比较当「变没变」判据的守卫
+    // 都会因此恒判「变了」。
     bool operator==(const ThumbnailData &other) const
     {
         return frameNum == other.frameNum && pixmap == other.pixmap;

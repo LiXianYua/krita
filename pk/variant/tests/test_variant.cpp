@@ -10,9 +10,7 @@
 
 namespace {
 
-// 修复轮 1 的编译期回归闸门：一个**没有** operator== 的用户类型
-// （libs/impex 的 `ThumbnailData` / `CommentBox` **曾经**是这种类型，
-// S-12 已给它们补上 `operator==`，因此不再充当本例子）。
+// 编译期回归闸门：本类型刻意不实现 operator==，用作「无可比较算子」的反面例子。
 // pk/variant 不要求 T 可比较——它必须仍能走 fromValue/setValue/value 存取路径，
 // 只是**不声称**与任何东西相等（含自身），见 userTypeEquality() 第 7 组。
 struct NonComparableUserType {
@@ -592,10 +590,9 @@ void VariantCase::userTypeEquality()
     // 这是**降级契约**——无比较算子 ⇒ 不声称相等——**不是缺陷复现**。
     // pk 对没有 == 的 T 不安装比较器（PkVariantImpl.h 的 HasEqualityOperator
     // gate）⇒ m_anyEqualAccessor 保持 nullptr ⇒ operator== 的 UserType 分支
-    // 短路为 false（= 本任务之前的 `default: return false;` 语义，fail-closed）。
+    // 短路为 false（fail-closed：无比较算子 ⇒ 不声称相等）。
     // 本组的存在本身就是编译期回归闸门：若比较器重新硬要求 T::operator==，
-    // 下面这些行会**编译不过**（libs/impex 的 ThumbnailData/CommentBox **曾经**同理；
-    // S-12 已给它们补 `operator==`，现不再是例子）。
+    // 下面这些行会**编译不过**。
     PkVariant nc = PkVariant::fromValue(NonComparableUserType{7});
     PK_COMPARE(static_cast<int>(nc.type()), static_cast<int>(PkVariant::UserType));
     PK_VERIFY(nc.canConvert<NonComparableUserType>());
