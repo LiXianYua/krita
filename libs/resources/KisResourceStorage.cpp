@@ -484,17 +484,11 @@ PkString KisStorageVersioningHelper::chooseUniqueName(KoResourceSP resource,
         std::snprintf(versionBuffer, sizeof(versionBuffer), "%0*d", numPlaceholders, version);
         const PkString versionString(versionBuffer);
 
-        // XXX: Temporary, until I've fixed the tests
-        if (versionString == "0000") {
-            newFilename = resource->filename();
-        }
-        else {
-            newFilename = parts.basename +
-                    "."
-                    + versionString
-                    + "."
-                    + parts.suffix;
-        }
+        newFilename = parts.basename +
+                "."
+                + versionString
+                + "."
+                + parts.suffix;
         if (checkExists(newFilename)) {
             version++;
             if (version == std::numeric_limits<int>::max()) {
