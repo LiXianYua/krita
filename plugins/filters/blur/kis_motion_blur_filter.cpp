@@ -21,6 +21,9 @@
 #include <kis_processing_information.h>
 #include "kis_lod_transform.h"
 
+#include <PkImage.h>
+#include <PkPainter.h>
+#include <PkImageRasterBackend.h>
 
 #include <math.h>
 
@@ -103,12 +106,23 @@ void KisMotionBlurFilter::processImpl(KisPaintDeviceSP device,
         channelFlags = PkBitArray(device->colorSpace()->channelCount(), true);
     }
 
-    // [GAP] QPainter 内核构造已剥离：原来用 QPainter 在 PkImage 上画 props.motionLine
-    // 再读回像素生成卷积核。现改用单位核（中心=1，其余=0），卷积退化为 no-op。
-    // 恢复路径归 S-09/M5（接回真实 QPainter 或软件光栅化）。
+    PkImage kernelRepresentation(props.kernelSize.width(), props.kernelSize.height(),
+                                 PkImage::Format_ARGB32);
+    // 上游是 QImage(..., QImage::Format_RGB32) + fill(0)；RGB32 的 0 即不透明黑
+    // 0xff000000。这里必须显式给不透明黑——实测 fill(0) 会让 138 例里 126 例与真 Qt
+    // 不同（oracle 的 mismatch 基线，见 pk/render/oracle/blur_kernel_oracle.cpp）。
+    kernelRepresentation.fill(0xff000000u);
+
+    PkImageRasterBackend backend(kernelRepresentation);
+    PkPainter imagePainter(backend);
+    imagePainter.setRenderHint(PkPainter::Antialiasing);
+    imagePainter.setPen(PkPen(PkColor::fromRgb(255, 255, 255), 1.0));
+    imagePainter.drawLine(props.motionLine);
+
     Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> motionBlurKernel(props.kernelSize.height(), props.kernelSize.width());
-    motionBlurKernel.setZero();
-    motionBlurKernel(props.kernelSize.height() / 2, props.kernelSize.width() / 2) = 1.0;
+    for (int j = 0; j < props.kernelSize.height(); ++j)
+        for (int i = 0; i < props.kernelSize.width(); ++i)
+            motionBlurKernel(j, i) = (kernelRepresentation.pixel(i, j) >> 16) & 0xffu;
 
     // apply convolution
     KisConvolutionPainter painter(device);

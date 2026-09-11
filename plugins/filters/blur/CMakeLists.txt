@@ -7,5 +7,5 @@ set(kritablurfilter_SOURCES
     )
 
 kis_add_library(kritablurfilter STATIC ${kritablurfilter_SOURCES})
-target_link_libraries(kritablurfilter kritaimage)
+target_link_libraries(kritablurfilter kritaimage pkrender)
 install(TARGETS kritablurfilter  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
