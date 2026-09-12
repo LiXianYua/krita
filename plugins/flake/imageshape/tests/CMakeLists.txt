@@ -9,7 +9,10 @@ set(imageshape_cow_test_SRCS
 
 kis_add_test(${imageshape_cow_test_SRCS}
     TEST_NAME ImageShapeCowTest
-    LINK_LIBRARIES pkstring pkcontainer pkgeometry pkimage pkvariant pkxml PNG::PNG TIFF::TIFF
+    # R-74：ImageShape.cpp 的 paint(PkPainter&) 调 PkPainter::drawImage/
+    # setClipRect/setTransform，实现库是 pkrender（pk/render/CMakeLists.txt:12）；
+    # 不链它，链接期 PkPainter::drawImage 未定义。
+    LINK_LIBRARIES pkstring pkcontainer pkgeometry pkimage pkvariant pkxml pkrender PNG::PNG TIFF::TIFF
 )
 set_target_properties(ImageShapeCowTest PROPERTIES AUTOMOC OFF)
 target_include_directories(ImageShapeCowTest BEFORE PRIVATE

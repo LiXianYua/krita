@@ -3,9 +3,9 @@
 #pragma once
 
 // Task-local value-side flake contract used only by the S-09-f focused shell.
-// The current main-tree KoShape painter ABI is still Qt and remains an M5
-// transition.  This stub deliberately supplies a non-rendering default rather
-// than inventing a Pk painter parameter that production classes would expose.
+// R-74：KoShape 画布契约照真 pk flake（libs/flake/KoShape.h:161
+// virtual void paint(PkPainter&) const = 0）；本 stub 给一个非渲染默认体，
+// 签名必须与之一致，否则 ImageShape.h:35 的 override 会报“hides virtual”。
 
 #include <PkColor.h>
 #include <PkImage.h>
@@ -19,6 +19,7 @@
 #include <PkTransform.h>
 #include <PkVariant.h>
 #include <PkXmlElement.h>
+#include <PkPainter.h>
 
 #include <algorithm>
 #include <cmath>
@@ -62,7 +63,10 @@ public:
     KoShape &operator=(const KoShape &) = delete;
     virtual ~KoShape() = default;
     virtual KoShape *cloneShape() const = 0;
-    virtual void paint() const {}
+    // R-74：真 pk flake 的 KoShape::paint 签名是 paint(PkPainter&) const
+    // （libs/flake/KoShape.h:161，纯虚）。此前此处留的是无参 paint()——那是
+    // Qt painter ABI 时代的遗留，ImageShape.h:35 已按 pk 契约 override。
+    virtual void paint(PkPainter &painter) const { (void)painter; }
 
     virtual void setSize(const PkSizeF &size) { m_size = size; }
     PkSizeF size() const { return m_size; }
