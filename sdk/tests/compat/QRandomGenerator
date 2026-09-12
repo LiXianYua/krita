@@ -1,0 +1,76 @@
+// R-65 · sdk/tests/compat/QRandomGenerator
+// ---------------------------------------------------------------------------
+// 来源：照抄捐赠集 `.exec/shell/kritaimage/compat/QRandomGenerator`（只读副本，
+//       内容逐字未改，仅在本头注明来源与调用点）。
+// 为什么测试面需要它：pk/ 树里没有随机源（pk/*/compat 无 QRandomGenerator，
+//       pk/time/compat 只有 QDateTime/QElapsedTimer）。tiles3 的测试类直接
+//       `#include <QRandomGenerator>` 并用它造随机 chunk 序列。
+// 唯一的真实调用点（本 Task 注册面 = libs/image/tiles3/tests 的 9 个 target）：
+//   libs/image/tiles3/tests/kis_chunk_allocator_test.h:28   `QRandomGenerator m_rng{};`
+//   libs/image/tiles3/tests/kis_chunk_allocator_test.cpp:43/59   `m_rng.bounded(...)`
+//   libs/image/tiles3/tests/kis_chunk_allocator_test.cpp:77      `m_rng.seed(QTime::currentTime().msec())`
+//   libs/image/tiles3/tests/kis_swapped_data_store_test.cpp:90  `QRandomGenerator rng(10);`
+//   libs/image/tiles3/tests/kis_memory_window_test.cpp:66/80    `QRandomGenerator::global()->bounded(1024)`
+//   libs/image/tiles3/tests/kis_tiled_data_manager_test.cpp:700 `QRandomGenerator rng(QTime::currentTime().msec());`
+// 语义：见文件内注释与报告里贴的真 Qt 探针（R-3）。
+// ---------------------------------------------------------------------------
+// Shell-local QRandomGenerator shim（S-06 ② 测试兼容）。
+// Qt 语义：进程级随机源（global()）+ 可种子构造的确定性序列。壳里无 Qt，
+// 用 std::mt19937 承载。测试里只把它当随机数据源（seed → bounded/generate），
+// 不依赖 Qt 的具体序列值，std::mt19937 语义等价。
+// Strip target: pk 提供随机源时替换。
+#pragma once
+#include "PkGlobal.h"   // quint32/quint64 等
+#include <random>
+
+class QRandomGenerator
+{
+public:
+    QRandomGenerator()
+        : m_gen(std::random_device{}())
+    {
+    }
+
+    explicit QRandomGenerator(quint32 seed)
+        : m_gen(seed)
+    {
+    }
+
+    // Qt 语义：生成一个 32 位随机数。
+    quint32 generate()
+    {
+        return static_cast<quint32>(m_gen());
+    }
+
+    // Qt 语义：[0, n) 内的随机整数。n == 0 时 Qt 断言；壳内按 0 返回 0。
+    quint32 bounded(quint32 n)
+    {
+        return n == 0 ? 0 : static_cast<quint32>(m_gen() % n);
+    }
+
+    // Qt 语义：[lowest, highest) 内的随机整数（允许负数区间）。
+    int bounded(int lowest, int highest)
+    {
+        if (lowest >= highest) {
+            return lowest;
+        }
+        const unsigned long span = static_cast<unsigned long>(highest) - static_cast<unsigned long>(lowest);
+        return lowest + static_cast<int>(m_gen() % span);
+    }
+
+    // Qt 语义：重新播种（kis_chunk_allocator_test 用 QTime::currentTime().msec() 做种子）。
+    void seed(quint32 seed)
+    {
+        m_gen.seed(seed);
+    }
+
+    // Qt 语义：进程级单例随机源。
+    static QRandomGenerator *global()
+    {
+        static QRandomGenerator s_global;
+        return &s_global;
+    }
+
+private:
+    std::mt19937 m_gen;
+};

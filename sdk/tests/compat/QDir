@@ -1,0 +1,64 @@
+// R-65 · sdk/tests/compat/QDir
+// ---------------------------------------------------------------------------
+// 来源：基底照抄捐赠集 `.exec/shell/kritaimage/compat/QDir`（只读副本）；
+//       **R-65 增补 `currentPath()`** —— 捐赠版没有它，而本 Task 的注册面真实要用。
+// 为什么测试面需要它：pk/ 树里没有 QDir（pk/*/compat 无 QDir）；tiles3 的
+//       kis_memory_window_test 不 include <QDir>（真 Qt 下由 QtCore 传递），
+//       但直接写 `QDir::currentPath()`。聚合头 PkTestCompatAll.h 的
+//       __has_include(<QDir>) 段负责预激活（否则 -I 路径不会带来声明）。
+// 唯一的真实调用点：
+//   libs/image/tiles3/tests/kis_memory_window_test.cpp:50
+//       `KisMemoryWindow memory(QString(QDir::currentPath()), DEFAULT_WINDOW_SIZE);`
+//       （`QString` 是 `#define QString PkString`，故实参类型是 PkString，与
+//        KisMemoryWindow(const PkString&, …) 直接对接）
+// 语义：`QDir::currentPath()` 是「进程 cwd 的绝对路径」，真 Qt 探针见报告（R-3）。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkString.h"
+#include "PkGlobal.h"
+#include <sys/stat.h>
+#include <unistd.h>
+#include <climits>
+#include <string>
+
+class QDir {
+public:
+    QDir() {}
+    QDir(const PkString& path) : m_path(path.PkToUtf8()) {}
+
+    // Qt 语义：当前工作目录的绝对路径（QDir::currentPath() 是 static）。
+    // 取不到时返回空串（Qt 在同样情形下也退化，不抛）。
+    static PkString currentPath() {
+        char buf[PATH_MAX];
+        if (getcwd(buf, sizeof(buf)) == nullptr) {
+            return PkString();
+        }
+        return PkString(buf);
+    }
+
+    bool exists() const {
+        struct stat st;
+        return stat(m_path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+    }
+
+    bool mkpath(const PkString& dirPath) const {
+        return mkpath_recursive(dirPath.PkToUtf8());
+    }
+
+    static bool mkpath_recursive(const std::string& path) {
+        if (path.empty()) return false;
+        std::string p;
+        size_t i = 0;
+        if (path[0] == '/') { p = "/"; i = 1; }
+        for (; i < path.size(); ++i) {
+            if (path[i] == '/') {
+                if (p != "/" && !p.empty()) mkdir(p.c_str(), 0777);
+            }
+            p += path[i];
+        }
+        mkdir(p.c_str(), 0777);
+        return true;
+    }
+private:
+    std::string m_path;
+};

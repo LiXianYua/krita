@@ -1,0 +1,41 @@
+// R-65 · sdk/tests/compat/QTime
+// ---------------------------------------------------------------------------
+// 来源：照抄捐赠集 `.exec/shell/kritaimage/compat/QTime`（只读副本，内容逐字未改，
+//       仅在本头注明来源与调用点）。
+// 为什么测试面需要它：pk/time/compat 只有 QDateTime/QElapsedTimer，没有 QTime；
+//       tiles3 的测试类只用 `QTime::currentTime().msec()` 取随机种子。
+// 唯一的真实调用点：
+//   libs/image/tiles3/tests/kis_chunk_allocator_test.cpp:77  `m_rng.seed(QTime::currentTime().msec())`
+//   libs/image/tiles3/tests/kis_tiled_data_manager_test.cpp:700 `QRandomGenerator rng(QTime::currentTime().msec());`
+// 语义：Qt 的 QTime::msec() = 当前秒内的毫秒分量（0..999）。真 Qt 探针见报告（R-3）。
+// ---------------------------------------------------------------------------
+// Shell-local QTime shim（S-06 ② 测试兼容）。
+// 测试里只用到 QTime::currentTime().msec() 作随机种子，不依赖具体时刻语义；
+// 这里用 std::chrono 取当前时间的毫秒分量（0-999，与 Qt QTime::msec() 口径一致）。
+// Strip target: pk/time 提供 PkTime 后替换。
+#pragma once
+#include "PkGlobal.h"
+#include <chrono>
+
+class QTime
+{
+public:
+    static QTime currentTime()
+    {
+        using namespace std::chrono;
+        const auto now = system_clock::now().time_since_epoch();
+        const auto ms = duration_cast<milliseconds>(now).count();
+        QTime t;
+        t.m_msec = static_cast<int>(ms % 1000);
+        return t;
+    }
+
+    // Qt 语义：当前时刻的毫秒分量（0-999）。
+    int msec() const
+    {
+        return m_msec;
+    }
+
+private:
+    int m_msec = 0;
+};

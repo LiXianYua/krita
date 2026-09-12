@@ -1,0 +1,125 @@
+// R-65 · sdk/tests/compat/QTemporaryDir
+// ---------------------------------------------------------------------------
+// 来源：**R-65 自己写**（捐赠集 `.exec/shell/kritaimage/compat/` 里没有
+//       QTemporaryDir —— 只有 QTemporaryFile，那份是给 PkSwapBackend 桥接用的、
+//       含 mmap 与「泄漏映射」的壳特有降级，与本测试面的需求不同，**不照抄**）。
+// 为什么测试面需要它：pk/ 树里没有临时目录设施。kis_memory_window_test 需要
+//       一个真实存在、可写、且用完自清的目录当 swap 目录。
+// 唯一的真实调用点：
+//   libs/image/tiles3/tests/kis_memory_window_test.cpp:18-19
+//       `QTemporaryDir swapDir;`
+//       `KisMemoryWindow memory(swapDir.path(), 1024);`
+//       （`swapDir.path()` 必须返回 PkString —— KisMemoryWindow 收 const PkString&；
+//        Qt 语义下 path() **不带**尾斜杠，本垫片照做，kis_memory_window.cpp:97
+//        自己拼 "/swapfile"）
+// 语义：默认构造在系统临时目录下造唯一目录、path() 返回绝对路径、析构时
+//       autoRemove 为真则递归删除。真 Qt 探针见报告（R-3）。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkString.h"
+#include "PkGlobal.h"
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+
+class QTemporaryDir
+{
+public:
+    QTemporaryDir() { create(); }
+
+    explicit QTemporaryDir(const PkString &templatePath)
+    {
+        create(templatePath.PkToUtf8());
+    }
+
+    // Qt 语义：autoRemove 默认为 true；置 false 后析构不再删目录。
+    ~QTemporaryDir()
+    {
+        if (m_autoRemove && m_valid) {
+            removeTree(m_path);
+        }
+    }
+
+    QTemporaryDir(const QTemporaryDir &) = delete;
+    QTemporaryDir &operator=(const QTemporaryDir &) = delete;
+
+    // Qt 语义：目录是否成功创建。
+    bool isValid() const { return m_valid; }
+
+    // Qt 语义：目录的绝对路径，**不带**尾斜杠。
+    PkString path() const { return PkString(m_path.c_str()); }
+
+    // Qt 语义：path() + '/' + fileName。
+    PkString filePath(const PkString &fileName) const
+    {
+        return PkString((m_path + "/" + fileName.PkToUtf8()).c_str());
+    }
+
+    // Qt 语义：setAutoRemove 返回 void（不是 bool）。
+    void setAutoRemove(bool b) { m_autoRemove = b; }
+
+    bool autoRemove() const { return m_autoRemove; }
+
+    // Qt 语义：立刻删除目录，成功返回 true；失败后对象仍有效但路径已不可用。
+    bool remove()
+    {
+        if (!m_valid) return false;
+        const bool ok = removeTree(m_path);
+        if (ok) m_valid = false;
+        return ok;
+    }
+
+private:
+    bool create(const std::string &baseTemplate = std::string())
+    {
+        std::string base = baseTemplate;
+        if (base.empty()) {
+            const char *tmp = std::getenv("TMPDIR");
+            base = (tmp && *tmp) ? tmp : "/tmp";
+            // 去掉尾斜杠，保证下面拼出的是 `<base>/XXXXXX` 而不是 `<base>//XXXXXX`
+            while (base.size() > 1 && base.back() == '/') base.pop_back();
+            base += "/pk-tmpdir-XXXXXX";
+        }
+
+        std::vector<char> buf(base.begin(), base.end());
+        buf.push_back('\0');
+        char *created = mkdtemp(buf.data());
+        if (created == nullptr) {
+            m_valid = false;
+            return false;
+        }
+        m_path = created;
+        m_valid = true;
+        return true;
+    }
+
+    // 递归删除：不引 <filesystem>（避免给每个含入本头的 TU 加 C++17 依赖），
+    // 用 POSIX opendir/readdir 手写。lstat 判目录，unlink/rmdir 顺序与 rm -r 一致。
+    static bool removeTree(const std::string &p)
+    {
+        DIR *d = opendir(p.c_str());
+        if (d) {
+            struct dirent *e;
+            while ((e = readdir(d)) != nullptr) {
+                const std::string n = e->d_name;
+                if (n == "." || n == "..") continue;
+                const std::string child = p + "/" + n;
+                struct stat st;
+                if (lstat(child.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+                    removeTree(child);
+                } else {
+                    unlink(child.c_str());
+                }
+            }
+            closedir(d);
+        }
+        return rmdir(p.c_str()) == 0;
+    }
+
+    std::string m_path;
+    bool m_valid = false;
+    bool m_autoRemove = true;
+};

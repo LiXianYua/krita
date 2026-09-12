@@ -1,14 +1,18 @@
-kis_add_tests(
-    kis_tiled_data_manager_test.cpp
-    kis_low_memory_tests.cpp
-    kis_lockless_stack_test.cpp
-    kis_chunk_allocator_test.cpp
-    kis_memory_window_test.cpp
-    kis_store_limits_test.cpp
-    kis_swapped_data_store_test.cpp
-    kis_tile_data_store_test.cpp
-    kis_tile_data_pooler_test.cpp
-    LINK_LIBRARIES kritaimage kritatestsdk
+# R-65：本组 9 个测试从真 Qt 测试栈（kritatestsdk）迁到 pk 测试栈
+# （kritatestsdk_pk，由 pk_add_test 自动追加）。pk_add_test 内部转调
+# kis_add_test(TEST_NAME <原 target 名>)，所以 add_test 名、NAME_PREFIX、
+# KRITA_TESTS_TARGET 全部与迁移前逐字一致。
+pk_add_tests(
+    kis_tiled_data_manager_test
+    kis_low_memory_tests
+    kis_lockless_stack_test
+    kis_chunk_allocator_test
+    kis_memory_window_test
+    kis_store_limits_test
+    kis_swapped_data_store_test
+    kis_tile_data_store_test
+    kis_tile_data_pooler_test
+    LINK_LIBRARIES kritaimage
     )
 
 set_tests_properties(libs-image-tiles3-kis_low_memory_tests PROPERTIES TIMEOUT 180)
