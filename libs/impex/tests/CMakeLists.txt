@@ -13,3 +13,11 @@ target_include_directories(KisPkImageFileDecoderAdapterTest PRIVATE
     ${CMAKE_SOURCE_DIR}/plugins/paintops/spray
     ${CMAKE_SOURCE_DIR}/pk/image
 )
+
+kis_add_test(
+    KisPngCodecNoResourceDirsTest.cpp
+    LINK_LIBRARIES kritaimpex kritaimage kritalcmsengine
+)
+target_include_directories(KisPngCodecNoResourceDirsTest PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugins/color/lcms2engine
+)
