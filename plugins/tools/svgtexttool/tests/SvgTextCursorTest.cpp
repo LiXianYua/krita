@@ -51,7 +51,8 @@ Q_DECLARE_METATYPE(SvgTextCursor::MoveMode)
 SvgTextCursor::NativeKeyEvent
 svgTextNativeKeyEvent(const PkToolKeyEvent &event,
                       KoSvgText::WritingMode writingMode,
-                      KoSvgText::Direction direction);
+                      KoSvgText::Direction direction,
+                      const KoCanvasKeyBindingHost *bindingHost = nullptr);
 
 namespace {
 class CursorCanvas final : public MockCanvas

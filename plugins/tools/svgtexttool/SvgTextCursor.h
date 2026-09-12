@@ -12,6 +12,7 @@
 #include <KoSvgTextPropertiesInterface.h>
 #include <KoToolSelection.h>
 #include <KoShape.h>
+#include <KoCanvasKeyBindingHost.h>
 #include <PkList.h>
 #include <PkPoint.h>
 #include <PkSet.h>
@@ -62,36 +63,9 @@ public:
         virtual PkRectF geometry() const = 0;
     };
 
-    enum class NativeKeyCommand {
-        None,
-        MoveNextChar,
-        SelectNextChar,
-        MovePreviousChar,
-        SelectPreviousChar,
-        MoveNextLine,
-        SelectNextLine,
-        MovePreviousLine,
-        SelectPreviousLine,
-        MoveNextWord,
-        SelectNextWord,
-        MovePreviousWord,
-        SelectPreviousWord,
-        MoveStartOfLine,
-        SelectStartOfLine,
-        MoveEndOfLine,
-        SelectEndOfLine,
-        MoveStartOfBlock,
-        SelectStartOfBlock,
-        MoveEndOfBlock,
-        SelectEndOfBlock,
-        DeleteStartOfWord,
-        DeleteEndOfWord,
-        DeleteEndOfLine,
-        DeleteCompleteLine,
-        Backspace,
-        Delete,
-        InsertLineSeparator
-    };
+    // 内核只认一套词汇：这套绑定标识由宿主能力面 KoCanvasKeyBindingHost 定义，
+    // 这里只是给它一个既有的拼法（`SvgTextCursor::NativeKeyCommand::…` 一字不改）。
+    using NativeKeyCommand = KoCanvasKeyBindingHost::TextCommand;
 
     struct NativeKeyEvent {
         int key = 0;

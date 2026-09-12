@@ -22,6 +22,7 @@ svgTextNativeInputMethodEvent(const PkToolInputMethodEvent &event);
 SvgTextCursor::NativeKeyEvent
 svgTextNativeKeyEvent(const QKeyEvent &event,
                       KoSvgText::WritingMode writingMode,
-                      KoSvgText::Direction direction);
+                      KoSvgText::Direction direction,
+                      const KoCanvasKeyBindingHost *bindingHost = nullptr);
 
 #endif

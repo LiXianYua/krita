@@ -42,6 +42,7 @@ configure_file(
 
 set(SvgTextTool_SOURCES
     Plugin.cpp
+    SvgTextQtPlatformHost.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/qrc_svgtexttool.cpp"
 )
 

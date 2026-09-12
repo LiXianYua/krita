@@ -30,12 +30,9 @@
 #include "SvgChangeTextPaddingMarginStrategy.h"
 #include <commands/KoSvgTextAddRemoveShapeCommands.h>
 
-#include <QApplication>
-#include <QStyle>
 #include <QAction>
 #include <QInputMethodEvent>
 #include <QKeyEvent>
-#include <QKeySequence>
 #include <QSignalBlocker>
 #include <QTextCharFormat>
 #include <QTextFormat>
@@ -52,6 +49,8 @@
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include "KoCanvasCursorHost.h"
+#include "KoCanvasKeyBindingHost.h"
+#include "KoCanvasPlatformHost.h"
 #include <KoSelection.h>
 #include <KoShapeManager.h>
 #include <KoShapeController.h>
@@ -144,39 +143,6 @@ int adjustedKeyForTextDirection(int key,
     return key;
 }
 
-SvgTextCursor::NativeKeyCommand nativeCommandForSequence(const QKeySequence &sequence)
-{
-    using Command = SvgTextCursor::NativeKeyCommand;
-    if (sequence == QKeySequence::MoveToNextChar) return Command::MoveNextChar;
-    if (sequence == QKeySequence::SelectNextChar) return Command::SelectNextChar;
-    if (sequence == QKeySequence::MoveToPreviousChar) return Command::MovePreviousChar;
-    if (sequence == QKeySequence::SelectPreviousChar) return Command::SelectPreviousChar;
-    if (sequence == QKeySequence::MoveToNextLine) return Command::MoveNextLine;
-    if (sequence == QKeySequence::SelectNextLine) return Command::SelectNextLine;
-    if (sequence == QKeySequence::MoveToPreviousLine) return Command::MovePreviousLine;
-    if (sequence == QKeySequence::SelectPreviousLine) return Command::SelectPreviousLine;
-    if (sequence == QKeySequence::MoveToNextWord) return Command::MoveNextWord;
-    if (sequence == QKeySequence::SelectNextWord) return Command::SelectNextWord;
-    if (sequence == QKeySequence::MoveToPreviousWord) return Command::MovePreviousWord;
-    if (sequence == QKeySequence::SelectPreviousWord) return Command::SelectPreviousWord;
-    if (sequence == QKeySequence::MoveToStartOfLine) return Command::MoveStartOfLine;
-    if (sequence == QKeySequence::SelectStartOfLine) return Command::SelectStartOfLine;
-    if (sequence == QKeySequence::MoveToEndOfLine) return Command::MoveEndOfLine;
-    if (sequence == QKeySequence::SelectEndOfLine) return Command::SelectEndOfLine;
-    if (sequence == QKeySequence::MoveToStartOfBlock || sequence == QKeySequence::MoveToStartOfDocument) return Command::MoveStartOfBlock;
-    if (sequence == QKeySequence::SelectStartOfBlock || sequence == QKeySequence::SelectStartOfDocument) return Command::SelectStartOfBlock;
-    if (sequence == QKeySequence::MoveToEndOfBlock || sequence == QKeySequence::MoveToEndOfDocument) return Command::MoveEndOfBlock;
-    if (sequence == QKeySequence::SelectEndOfBlock || sequence == QKeySequence::SelectEndOfDocument) return Command::SelectEndOfBlock;
-    if (sequence == QKeySequence::DeleteStartOfWord) return Command::DeleteStartOfWord;
-    if (sequence == QKeySequence::DeleteEndOfWord) return Command::DeleteEndOfWord;
-    if (sequence == QKeySequence::DeleteEndOfLine) return Command::DeleteEndOfLine;
-    if (sequence == QKeySequence::DeleteCompleteLine) return Command::DeleteCompleteLine;
-    if (sequence == QKeySequence::Backspace) return Command::Backspace;
-    if (sequence == QKeySequence::Delete) return Command::Delete;
-    if (sequence == QKeySequence::InsertLineSeparator || sequence == QKeySequence::InsertParagraphSeparator) return Command::InsertLineSeparator;
-    return Command::None;
-}
-
 KisDocumentApplicationServices::InputMethodTextFormat nativeTextFormat(const QTextCharFormat &format)
 {
     using Services = KisDocumentApplicationServices;
@@ -225,7 +191,8 @@ KisDocumentApplicationServices::InputMethodTextFormat nativeTextFormat(const QTe
 SvgTextCursor::NativeKeyEvent
 svgTextNativeKeyEvent(const PkToolKeyEvent &event,
                       KoSvgText::WritingMode writingMode,
-                      KoSvgText::Direction direction)
+                      KoSvgText::Direction direction,
+                      const KoCanvasKeyBindingHost *bindingHost)
 {
     SvgTextCursor::NativeKeyEvent result;
     result.key = static_cast<int>(event.key());
@@ -233,8 +200,9 @@ svgTextNativeKeyEvent(const PkToolKeyEvent &event,
     result.text = event.text();
     const int adjustedKey = adjustedKeyForTextDirection(
         static_cast<int>(event.key()), writingMode, direction);
-    result.command = nativeCommandForSequence(
-        QKeySequence(static_cast<int>(event.modifiers()) | adjustedKey));
+    result.command = bindingHost
+        ? bindingHost->textCommand(adjustedKey, event.modifiers())
+        : SvgTextCursor::NativeKeyCommand::None;
     return result;
 }
 
@@ -339,9 +307,12 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
 {
      // TODO: figure out whether we should use system config for this, Windows and GTK have values for it, but Qt and MacOS don't(?).
     const int cursorFlashLimit = 5000;
-    const bool enableCursorWithSelection = QApplication::style()->styleHint(QStyle::SH_BlinkCursorWhenTextSelected);
-    m_textCursor.setCaretSetting(QApplication::style()->pixelMetric(QStyle::PM_TextCursorWidth)
-                                 , qApp->cursorFlashTime()
+    const KoCanvasPlatformHost *platformHost = dynamic_cast<const KoCanvasPlatformHost *>(canvas);
+    static const KoCanvasPlatformHost kDefaultPlatformHost;
+    const KoCanvasPlatformHost &platform = platformHost ? *platformHost : kDefaultPlatformHost;
+    const bool enableCursorWithSelection = platform.blinkCursorWhenTextSelected();
+    m_textCursor.setCaretSetting(platform.textCursorWidth()
+                                 , platform.cursorFlashTime()
                                  , cursorFlashLimit
                                  , enableCursorWithSelection);
     m_textCursor.setDecorationUpdateCallback([this](const PkRectF &rect) { slotUpdateCursorDecoration(rect); });
@@ -855,7 +826,9 @@ void SvgTextTool::paint(PkPainter &gc, const KoViewConverter &converter)
         }
     }
     if (shape) {
-        m_textCursor.paintDecorations(gc, toPkColor(qApp->palette().color(QPalette::Highlight)), decorationThickness(), handleRadius());
+        const KoCanvasPlatformHost *platformHost = dynamic_cast<const KoCanvasPlatformHost *>(canvas());
+        static const KoCanvasPlatformHost kDefaultPlatformHost;
+        m_textCursor.paintDecorations(gc, (platformHost ? *platformHost : kDefaultPlatformHost).highlightColor(), decorationThickness(), handleRadius());
     }
     if (m_interactionStrategy) {
         gc.save();
@@ -1198,15 +1171,23 @@ void SvgTextTool::pkKeyPressEvent(PkToolKeyEvent *event)
             properties.propertyOrDefault(KoSvgTextProperties::WritingModeId).toInt());
         const auto direction = KoSvgText::Direction(
             properties.propertyOrDefault(KoSvgTextProperties::DirectionId).toInt());
+        const KoCanvasKeyBindingHost *bindingHost = dynamic_cast<const KoCanvasKeyBindingHost *>(canvas());
         const SvgTextCursor::NativeKeyEvent nativeEvent =
-            svgTextNativeKeyEvent(*event, writingMode, direction);
-        const bool consumed = m_textCursor.keyPressEvent(nativeEvent, [this, event, writingMode, direction] {
+            svgTextNativeKeyEvent(*event, writingMode, direction, bindingHost);
+        const bool consumed = m_textCursor.keyPressEvent(nativeEvent, [this, event, writingMode, direction, bindingHost] {
             const int adjustedKey = adjustedKeyForTextDirection(
                 static_cast<int>(event->key()), writingMode, direction);
-            const QKeySequence sequence(static_cast<int>(event->modifiers()) | adjustedKey);
+            const int chord = static_cast<int>(event->modifiers()) | adjustedKey;
+            if (!bindingHost) {
+                return false;
+            }
             for (auto it = m_cursorActions.constBegin(); it != m_cursorActions.constEnd(); ++it) {
                 QAction *hostAction = it.value();
-                if (hostAction && hostAction->shortcut() == sequence) {
+                if (!hostAction) {
+                    continue;
+                }
+                const PkKeySequence shortcut = bindingHost->actionShortcut(it.key());
+                if (shortcut.size() == 1 && shortcut[0] == chord) {
                     hostAction->trigger();
                     return true;
                 }
