@@ -9,6 +9,9 @@
 #include "kis_command_ids.h"
 #include <KoShapeBulkActionLock.h>
 
+// qt 桶：<QtGlobal> 取真 Qt 的 qglobal.h，提供 Q_FOREACH
+#include <QtGlobal>
+
 SvgTextMergePropertiesRangeCommand::SvgTextMergePropertiesRangeCommand(KoSvgTextShape *shape,
                                                                        const KoSvgTextProperties props,
                                                                        const int pos,

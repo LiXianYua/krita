@@ -19,6 +19,7 @@
 #include <klocalizedstring.h>
 #include <KoColor.h>
 #include <KoCanvasBase.h>
+#include <KisCanvasToolServices.h>
 #include <KoPointerEvent.h>
 #include <KisCanvasFeedback.h>
 #include <kis_coordinates_converter.h>
@@ -70,7 +71,7 @@ struct KisToolSmartPatch::Private {
 
 
 KisToolSmartPatch::KisToolSmartPatch(KoCanvasBase * canvas)
-    : KisToolPaint(canvas, Pk::BlankCursor),
+    : KisToolPaint(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolShapeCursorToken(Pk::BlankCursor)),
       m_d(new Private)
 {
     setSupportOutline(true);

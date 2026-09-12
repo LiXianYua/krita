@@ -17,6 +17,9 @@
 #include <PkRect.h>
 #include <PkTransform.h>
 
+// qt 桶：<QtGlobal> 取真 Qt 的 qglobal.h（经 qcompilerdetection.h 提供 Q_DECL_HIDDEN）
+#include <QtGlobal>
+
 #include <optional>
 
 namespace SvgInlineSizeHelper

@@ -15,6 +15,9 @@
 
 #include <kis_global.h>
 
+// qt 桶：<QtGlobal> 取真 Qt 的 qglobal.h，提供 Q_FOREACH
+#include <QtGlobal>
+
 SvgChangeTextPaddingMarginStrategy::SvgChangeTextPaddingMarginStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked)
     : KoInteractionStrategy(tool)
     , m_shape(shape)

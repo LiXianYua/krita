@@ -7,7 +7,7 @@
 #define KOFFWWSCONVERTER_H
 
 #include <PkHash.h>
-#include <KoFontLibraryResourceUtils.h>
+#include "KoFontLibraryResourceUtils.h"
 #include "KoCSSFontInfo.h"
 #include "PkFontProvider.h"
 #include <kritaflake_export.h>

@@ -17,6 +17,12 @@ target_include_directories(ImageShapeCowTest BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/pointer
     ${CMAKE_SOURCE_DIR}/pk/color
     ${CMAKE_SOURCE_DIR}/pk/namespace
+    # 本 target 直接编 ../ImageShape.cpp / ../ImageShapeState.cpp，它们的
+    # ImageShape.h:13 是 <PkPainter.h>（pk/render/PkPainter.h）。主树
+    # krita_shape_image 是从 kritaflake 的 PUBLIC include 面传递拿到 pk/render 的
+    # （libs/flake/CMakeLists.txt:601），本 target 不链 kritaflake，
+    # 所以要显式进 include 面。
+    ${CMAKE_SOURCE_DIR}/pk/render
 )
 
 kis_add_test(ImageShapeSerializationTest.cpp ${CMAKE_SOURCE_DIR}/libs/flake/shapes/ImageShapePngData.cpp
