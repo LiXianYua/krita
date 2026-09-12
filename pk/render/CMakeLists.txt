@@ -48,6 +48,38 @@ add_test(NAME test_shape_primitive COMMAND test_shape_primitive)
 set_tests_properties(test_shape_primitive PROPERTIES
     ENVIRONMENT "PK_RENDER_SHAPE_PRIMITIVE_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/shape_primitive_golden.txt")
 
+# R-54 批 2: PkSvgPainterBackend 的椭圆/多边形/弧对拍。
+#   svg_primitive_oracle_pk —— Pk 侧 oracle 输出体（Qt-free）：逐用例产 SVG 文档正文。
+#   test_svg_primitive      —— ctest 目标（Qt-free 回归守卫，守「Pk 文档没漂」）。
+#   ⚠ 能力边界：等价性（与 Qt 是否一致）只由 oracle/run_svg_primitive.sh 给出——**同一个**
+#      QSvgRenderer 把两侧各自的文档渲染成同尺寸 ARGB32 后逐像素比，`mismatch=0`。
+#      这个 ctest 只比 `doc=` 列（文档正文的 FNV-1a），**证明不了等价性**，两者必须在
+#      同一个提交上跑。详见文件头与 pk/render/README.md。
+# PkSvgPainterBackend.h 是单头文件，编译闭包比 pkrender 大：它 include
+# "../shapes/ImageShapePngData.h"，所以要把那份实现与它的码流依赖补上。四样都是实测踩出来的
+# （pk/variant include、ImageShapePngData.cpp、PNG/TIFF、pkstring/pkcontainer），
+# 见 .superpowers/sdd/R-54/impact-map.md §4。
+# Qt 侧比较器仍然只由脚本手工编译：本工程不得 find_package(Qt...)，也不得链 Qt。
+find_package(PNG REQUIRED)
+find_package(TIFF REQUIRED)
+
+add_executable(svg_primitive_oracle_pk oracle/svg_primitive_oracle.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../libs/flake/shapes/ImageShapePngData.cpp)
+target_link_libraries(svg_primitive_oracle_pk PRIVATE pkrender pkstring pkcontainer PNG::PNG TIFF::TIFF)
+target_include_directories(svg_primitive_oracle_pk PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/oracle
+    ${CMAKE_CURRENT_SOURCE_DIR}/../variant)
+
+add_executable(test_svg_primitive tests/test_svg_primitive.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../libs/flake/shapes/ImageShapePngData.cpp)
+target_link_libraries(test_svg_primitive PRIVATE pkrender pkstring pkcontainer PNG::PNG TIFF::TIFF)
+target_include_directories(test_svg_primitive PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/oracle
+    ${CMAKE_CURRENT_SOURCE_DIR}/../variant)
+add_test(NAME test_svg_primitive COMMAND test_svg_primitive)
+set_tests_properties(test_svg_primitive PROPERTIES
+    ENVIRONMENT "PK_RENDER_SVG_PRIMITIVE_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/svg_primitive_golden.txt")
+
 # R-52: 两处 blur 滤镜内核构造（AA 1px cosmetic 直线 / AA 凸多边形填充 + translate）对拍。
 #   blur_kernel_oracle_pk —— Pk 侧 oracle 输出体（Qt-free，正常进本工程构建）。
 #   test_blur_kernel      —— ctest 目标，期望值来自 oracle/blur_kernel_golden.txt，

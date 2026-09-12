@@ -191,6 +191,32 @@ public:
                 if constexpr (std::is_same_v<T, PkFillRectCommand>) drawPath(path, c.brush, PkPen(Pk::NoPen));
                 else drawPath(path, m_state.brush, m_state.pen);
             }
+            // R-54 批 2：椭圆 / 多边形 / 弧，语义逐条对齐同族的栅格后端
+            // libs/flake/PkImageRasterBackend.cpp（两个后端对同一命令必须同形）。
+            else if constexpr (std::is_same_v<T, PkDrawEllipseCommand>) {
+                // 与栅格后端同形：addEllipse 后 fill+stroke（Qt 的 drawEllipse == 先填充
+                // 再描边那条 addEllipse 路径，实测见 PkImageRasterBackend.cpp:475）。
+                PkPainterPath path; path.addEllipse(c.rect);
+                drawPath(path, m_state.brush, m_state.pen);
+            }
+            else if constexpr (std::is_same_v<T, PkDrawPolygonCommand>) {
+                // closeSubpath() 不能省：Qt 的 drawPolygon 在描边前闭合子路径，
+                // 而 addPolygon 产出的是开路径（栅格侧实测 74/76/106 像素差，
+                // 见 PkImageRasterBackend.cpp:485）。
+                PkPainterPath path; path.addPolygon(c.polygon); path.closeSubpath();
+                drawPath(path, m_state.brush, m_state.pen);
+            }
+            else if constexpr (std::is_same_v<T, PkDrawArcCommand>) {
+                // Qt 的 drawArc(rect, a, span) 先把 rect 归一化（负尺寸宽/高摊成正尺寸），
+                // 归一化发生在 drawArc 里、arcMoveTo/arcTo 自己不归一化——与栅格后端
+                // 的订正同形（R-54 §4b 实测，PkImageRasterBackend.cpp:499）。
+                const PkRectF rect = c.rect.normalized();
+                PkPainterPath path;
+                path.arcMoveTo(rect, c.startAngle16 / 16.0);
+                path.arcTo(rect, c.startAngle16 / 16.0, c.spanAngle16 / 16.0);
+                // 弧只描边、忽略 brush（Qt 探针实测 fill="none"，见 R-54 §1.3）。
+                drawPath(path, PkBrush(Pk::NoBrush), m_state.pen);
+            }
             else if constexpr (std::is_same_v<T, PkSetClipRectCommand>) { PkPainterPath path; path.addRect(c.rect); clip(path, c.operation); }
             else if constexpr (std::is_same_v<T, PkSetClipPathCommand>) clip(c.path, c.operation);
             else if constexpr (std::is_same_v<T, PkDrawImageCommand>) {
