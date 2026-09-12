@@ -328,11 +328,39 @@ R-63 逐层单独复现过（每层单独跑，上一层用 `/tmp` 里的**树�
 - **R-63 新加 · `-mmacosx-version-min=13.3`（是补丁行，不是闸门）**：注释掉那行 → 层 a 的 `'to_chars' is unavailable: introduced in macOS 13.3` 回来、exit 1（⇒ 那一行是**必要**的，非空操作）。
 - **脚本原有 · 冻结表零分叉闸门**（`graft_run.sh` 开头 `diff -q pk/test/graft/rename.sed "$SED"`，R-58 之前就在）：往 `graft/rename.sed` 追加一条 → `rename.sed 与 pk/test/graft/rename.sed 不一致 —— D-23 的规则表分叉了`，exit 1。**这条压的是冻结表与 `pk/test/graft/rename.sed` 的逐字一致，不是上面的派生表自证** —— 追加会让脚本在 `diff -q` 那一步就退出，派生逻辑根本不执行。**R-63 首轮把这条误当成了「派生表自证」的证据，此处订正。**
 
-**R-63 没有把 `graft_run.sh` 接进任何收尾路径** —— `pk/geometry/tests/run_tests.sh`
-（标准收尾路径）只调 `run_pathops_oracle.sh`，既不调 `graft_run.sh` 也不调
-`oracle/run_oracle.sh`（`grep -n 'graft_run' pk/geometry/tests/run_tests.sh` 零命中）。
-「工具红着没人看」的根因是**没有任何路径会跑它**，但把新步骤接进**所有 R 任务共用的**
-收尾路径是另一个决定，超出 R-63 判据 —— 登记在此，留给主会话/线级 spec 决定。
+**R-63 已把 `graft_run.sh` 与 `oracle/run_oracle.sh` 一起串进 `pk/geometry/tests/run_tests.sh`
+（标准收尾路径）**（2026-09-12 现场）。此前这两条判据链**都不在路径上** ——
+`run_tests.sh` 只调 `run_pathops_oracle.sh`（`grep -n 'graft_run' pk/geometry/tests/run_tests.sh`
+一度零命中）。判据的接收方是**路径**，不是「某次任务的回报」：一条只在回报里出现过的判据
+不是判据，根因不是「没人负责」、是**没有任何路径跑它**。
+
+**接线可证（R-63 Step 4 注入，2026-09-12 现场原文）**：往 `PkPainterPath.h` 的类体里加一条
+既没有 `rec()`、也没有 `painterpath_api.map` 行的 `void r63GateInjectionProbe();`
+（真实腐坏形态：「新加的重载必须同时有一条自己的 `rec()` 和 map 里的一行」），立刻
+`./pk/geometry/tests/run_tests.sh` → **`exit=1`**，输出里出现规则三闸门 ② 的 FAIL 并指名
+那条声明：
+
+```
+FAIL: pk/geometry/PkPainterPath.h 里有声明在 pk/geometry/oracle/painterpath_api.map 里没有对应行（规则三闸门 ②）——
+      新加的重载必须同时有一条自己的 rec() 和这里的一行：
+  PkPainterPath::r63GateInjectionProbe()
+```
+
+⇒ **「接进去了」与「接进去但被吞掉了」在证据上分不出来，只有注入能分**（正常绿跑两者
+一样）。跑完立刻还原：`git status --porcelain` 只剩 `pk/geometry/tests/run_tests.sh` 一处 M，
+注入是**瞬时**的。
+
+**代价（Step 1 实测墙钟，2026-09-12；本机 macOS 26 / Apple M4 / arm64）**：
+`oracle/run_oracle.sh` **冷**跑（含它自己的对拍编译）`real 159.89 / user 149.04`；
+`graft/graft_run.sh` 删掉 `graft/build` 后**冷**跑 `real 8.87 / user 6.50`。两条串进
+`run_tests.sh` 后，整脚本 `real 153.57 / user 147.26`（`run_oracle.sh` 的对拍编译走 ccache，
+所以整脚本不比它单独冷跑更慢）。**每次收尾多花的就是这两条的钱 —— 那是判据的正常价格；
+真嫌慢就把对拍做快，别把它从路径上摘掉。**
+
+**失败归因提示**：`graft_run.sh` 的被测源在 `libs/`（别线地盘）——`libs/global/tests` 的
+`KisRectsGridTest` 与 `libs/image/tests` 的 `KisFourPointInterpolatorTest`。**它红可能是
+别的线改了那两处真实调用点，不一定是 `pk/geometry` 的问题** —— 先看它打印的编译日志再
+定位，别条件反射地改 `pk/geometry`。
 
 ### 规则三的机器闸门
 
@@ -340,6 +368,14 @@ R-63 逐层单独复现过（每层单独跑，上一层用 `/tmp` 里的**树�
 反面：`PkSizeF::scale(qreal,qreal,mode)` 少写一条 `rec()`，把那个重载整个改坏之后
 **93 630 039 次比对一条都没红、`run_oracle.sh` 退出码 0 放行**。没有机器闸门时这条
 规则只能靠人手列对照表。
+
+**R-63 把它串进标准收尾路径（2026-09-12 现场）**：闸门住在 `oracle/run_oracle.sh` 里，
+而 `pk/geometry/tests/run_tests.sh` 此前**从不调它** —— R-53（`1687a1e`）引入的 13 条 FAIL
+**静默存在**（偏离 26）就是这条路径缺口的代价。R-63 把 `oracle/run_oracle.sh` 追加进
+`run_tests.sh` 末尾。**接线可证**：对 `PkPainterPath.h` 注入一条无 map 行的声明 →
+`run_tests.sh` 立刻 `exit=1`、输出出现闸门 ② 的 FAIL 并指名（原文见「判据②」一节末）。
+**代价**：`oracle/run_oracle.sh` 冷跑 `real 159.89s`（含对拍编译）—— 每次收尾多这
+~160 秒是判据的正常价格；真嫌慢就把对拍做快，别把它从路径上摘掉。
 
 现在它是机器对账的：对拍程序末尾多打一批 `APISEEN <name>` 行（不影响
 `DIFF`/`DIFFTAG` 的输出契约），`run_oracle.sh` 做三向核对 ——

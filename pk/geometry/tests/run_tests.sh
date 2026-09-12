@@ -159,3 +159,23 @@ fi
 
 # R-39 path boolean operations: distinct real-Qt/Pk differential oracle.
 pk/geometry/oracle/run_pathops_oracle.sh
+
+# ---------------------------------------------------------------------------
+# R-63：**判据必须在收尾路径上，否则它是装饰。**
+#
+# 上面那条 pathops 对拍是 R-39 接进来的；本目录还有两条判据链**一直不在路径上**，
+# 代价实测过两次：
+#   · 规则三机器闸门住在 `oracle/run_oracle.sh` 里，而本脚本从来不调它
+#     —— R-56 实测：R-53 引入的 13 条 FAIL **静默存在**（README 偏离 26）。
+#   · `graft/graft_run.sh`（判据② 的工具）同样**没有任何路径跑它** ——
+#     R-63 接手时它已经红了不知道多久，三/五层原因各自挡住（README 判据② 一节）。
+#
+# 两条现在都串进来。**代价是每次收尾变慢**（实测墙钟见 README 上述两节）：
+# 那是判据的正常价格 —— 真嫌慢就把对拍做快，别把它从路径上摘掉。
+#
+# 失败归因：`graft_run.sh` 的被测源在 `libs/`（别的线的地盘），它红**可能是**
+# 别的线改了那两处真实调用点，不一定是 pk/geometry 的问题 —— 看它打印的编译日志
+# 再定位，别条件反射地改 pk/geometry。
+# ---------------------------------------------------------------------------
+pk/geometry/oracle/run_oracle.sh
+pk/geometry/graft/graft_run.sh
