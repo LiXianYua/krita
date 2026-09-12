@@ -4650,7 +4650,7 @@ static std::string shapeOfArcBand(double v)
     const double m = std::fabs(v);
     if (m < 2e11)  return "band/int-mul";      // 只有 `:265/:266` 那一类
     if (m < 1e19)  return "band/int-conv";     // 加上 `:263/:264`
-    return "band/theta-loss";                  // 加上 `:230` 那一档（2^53 起）
+    return "band/theta-loss";                  // 加上 `:230` 那一档（阈值就是本行的 1e19）
 }
 
 static std::string ptok(const char *what, double v)
