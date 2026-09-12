@@ -193,6 +193,51 @@ static PkRectF pkBezierBounds(const PkArcBezier &b)
 // 弧辅助函数
 // ============================================================================
 
+// ── 弧的角处理（R-58）────────────────────────────────────────────────────
+//
+// 本文件的弧运算（`pkCurvesForArc` / `pkFindEllipseCoords` / `pkTForArcAngle`）是
+// Qt 5.15.7 `qt_curves_for_arc`（qstroker.cpp:852-982）与 `qt_find_ellipse_coords`
+// （qpainterpath.cpp:113-155）的逐字移植 —— **连同它们的未定义行为一起**。四处
+// int 算术在 Qt 侧一模一样：
+//
+//   Qt qstroker.cpp:922     int startSegment = int(qFloor(startAngle / 90));
+//   Qt qstroker.cpp:925     qreal startT = (startAngle - startSegment * 90) / 90;   ← int 乘法
+//   Qt qstroker.cpp:952     const int end = endSegment + delta;                     ← int 加法
+//   Qt qpainterpath.cpp:137 int quadrant = int(t);                                  ← int 转换
+//
+// `qFloor` 就是 `int(std::floor(v))`（qmath.h:74），所以 Qt 那四处与本模块逐处对应。
+// 本机实测（`-fsanitize=undefined`）本模块这条路径上有**六个可达站点**，最早的一处
+// （`startSegment * 90`）从 `|angle| >= 2147483700` 就触发。
+//
+// **分寸**：这一档 Qt 侧同样是 UB，**没有可比对象** —— 所以下面既不是「对齐 Qt」
+// 也不是「偏离 Qt」，是「Qt 未定义处的一个定义良好的取值」。两条取舍：
+//  ① 越界档**先把角折回 [0,360)**。精确算术下 `angle mod 360` 就是段索引之差与
+//     `startT`/`endT` 分数部分的全部信息 —— Qt 自己的 `qt_find_ellipse_coords`
+//     就是这么做的（`theta = angles[i] - 360*qFloor(angles[i]/360)`），所以折角
+//     给出的是**同一个答案**，而 int 算术不再越界。
+//     **不选「把段索引夹取到 int 边界」**：那会让段索引与起点/控制点的角度互相矛盾
+//     （一个说 0°、一个说 280°），与本族既有的折角意图分家。
+//  ② 定义域内（`|angle| < 2147483700`）**逐位不变**：折角只在越界档做。
+//
+// ⚠ 对既有调用点零影响：`addEllipse` 固定传 `(0, -360)`、命中
+//   `startAngle == 0.0 && sweepLength == -360.0` 快路径；`addRoundedRect` 固定传
+//   0/90/180/270 —— 两者都在安全档内。
+static const qreal kPkArcIntSafeLo = -2147483610.0;   // = -90 * 23860929
+static const qreal kPkArcIntSafeHi = 2147483700.0;    // =  90 * 23860930（开区间上界）
+static inline bool pkArcAngleUnsafe(qreal a)
+{ return !(a >= kPkArcIntSafeLo && a < kPkArcIntSafeHi); }
+
+// 段索引 `floor(angle / 90)`。折角之后真实量级 <= 8；这里的夹取是「折角万一没生效」
+// 时的兜底 —— 那一档 Qt 侧也没有定义值（见上），夹取只保证**不 UB**。
+// 夹到 ±2^31 而不是 long long 的边界，是为了让下游的 `+ delta` 不可能溢出。
+static inline long long pkArcSegmentOf(qreal angle)
+{
+    const qreal q = std::floor(angle / 90);
+    if (!(q < 2147483648.0)) return 2147483648LL;
+    if (!(q > -2147483648.0)) return -2147483648LL;
+    return (long long)q;
+}
+
 static qreal pkTForArcAngle(qreal angle)
 {
     if (pkQtFuzzyIsNull(angle)) return 0;
@@ -225,7 +270,20 @@ static void pkFindEllipseCoords(const PkRectF &r, qreal angle, qreal length,
     PkPointF *points[2] = {startPoint, endPoint};
     for (int i = 0; i < 2; ++i) {
         if (!points[i]) continue;
-        qreal theta = angles[i] - 360 * std::floor(angles[i] / 360);
+        // `angle - 360*floor(angle/360)` 只在 `360*floor(angle/360)` **精确** 时才
+        // 给出真正的余角。那个积是整数、要能精确表示须 <= 2^53 ⇒ |angle| < 2^53 时
+        // 它精确，两个数的减法也精确（差值 <= 360，两数在 2 倍以内）。
+        // |angle| >= 2^53 之后上式给的是量级 ~ulp(angle) 的垃圾值 —— 实测 |angle|=1e18
+        // 给 -80（真余角 280）、|angle|=1e127 给 4.9e110，随后的 `int(t)` 就是越界
+        // 转换（UB，实测 `:230` 在 1e127 触发）。**`arcMoveTo` 没有入口守卫，它自己就
+        // 够得到这一档**（`arcTo` 那条经本文件上方的折角后已走不到）。
+        // 处置：那一档先用 `std::fmod` 取模（fmod 按定义无舍入，取的是精确余数），
+        // 再走原式。**|angle| < 2^53 时逐位不变**（实测 1e9 / 2^31 / 1e12 / 1e15 / 1e16 全一致）。
+        // 折角后 |angle| < 360 ⇒ t ∈ [0,4)，`int quadrant = int(t)` 不再越界。
+        qreal aa = angles[i];
+        if (!(std::fabs(aa) < 9007199254740992.0))   // 2^53
+            aa = std::fmod(aa, 360.0);
+        qreal theta = aa - 360 * std::floor(aa / 360);
         qreal t = theta / 90;
         int quadrant = int(t); t -= quadrant;
         t = pkTForArcAngle(90 * t);
@@ -260,22 +318,33 @@ static PkPointF pkCurvesForArc(const PkRectF &rect, qreal startAngle, qreal swee
         if (sweepLength == 360.0) { for (int i = 11; i >= 0; --i) curves[(*point_count)++] = pts[i]; return pts[12]; }
         if (sweepLength == -360.0) { for (int i = 1; i <= 12; ++i) curves[(*point_count)++] = pts[i]; return pts[0]; }
     }
-    int startSegment = int(std::floor(startAngle / 90));
-    int endSegment = int(std::floor((startAngle + sweepLength) / 90));
-    qreal startT = (startAngle - startSegment * 90) / 90;
-    qreal endT = (startAngle + sweepLength - endSegment * 90) / 90;
+    // 越界档先折角（理由见本文件上方「弧的角处理」）。折角用 `std::fmod`：按定义
+    // 无舍入，`fmod(a,360)` 与 `a` 相差恰好 360 的整数倍 ⇒ `endSegment - startSegment`
+    // 与未折角时**完全相同**，循环步数因此仍有界（`arcTo` 传的是 `PkPointF pts[15]`）。
+    qreal arcAngle = startAngle;
+    if (pkArcAngleUnsafe(startAngle) || pkArcAngleUnsafe(startAngle + sweepLength))
+        arcAngle = std::fmod(startAngle, 360.0);
+    const qreal arcEndAngle = arcAngle + sweepLength;
+
+    // 段索引与其后的 int 算术改用 **long long**：折角之后这两个数的量级 <= 8，
+    // 但**不靠"折角一定生效"这个前提** —— `* 90`、`+ delta`、`+= delta` 三处
+    // 在 long long 上结构性地不可能溢出（C++ 里 int 溢出是 UB，不是回绕）。
+    long long startSegment = pkArcSegmentOf(arcAngle);
+    long long endSegment = pkArcSegmentOf(arcEndAngle);
+    qreal startT = (arcAngle - qreal(startSegment) * 90) / 90;
+    qreal endT = (arcEndAngle - qreal(endSegment) * 90) / 90;
     int delta = sweepLength > 0 ? 1 : -1;
     if (delta < 0) { startT = 1 - startT; endT = 1 - endT; }
     if (pkQtFuzzyIsNull(startT - 1)) { startT = 0; startSegment += delta; }
     if (pkQtFuzzyIsNull(endT)) { endT = 1; endSegment -= delta; }
     startT = pkTForArcAngle(startT * 90); endT = pkTForArcAngle(endT * 90);
     bool splitAtStart = !pkQtFuzzyIsNull(startT), splitAtEnd = !pkQtFuzzyIsNull(endT - 1);
-    int end = endSegment + delta;
-    if (startSegment == end) { int q = 3 - ((startSegment % 4) + 4) % 4; int j = 3 * q; return delta > 0 ? pts[j + 3] : pts[j]; }
+    const long long end = endSegment + delta;
+    if (startSegment == end) { int q = int(3 - ((startSegment % 4) + 4) % 4); int j = 3 * q; return delta > 0 ? pts[j + 3] : pts[j]; }
     PkPointF startPoint, endPoint;
-    pkFindEllipseCoords(rect, startAngle, sweepLength, &startPoint, &endPoint);
-    for (int i = startSegment; i != end; i += delta) {
-        int q = 3 - ((i % 4) + 4) % 4, j = 3 * q;
+    pkFindEllipseCoords(rect, arcAngle, sweepLength, &startPoint, &endPoint);
+    for (long long i = startSegment; i != end; i += delta) {
+        int q = int(3 - ((i % 4) + 4) % 4), j = 3 * q;
         PkArcBezier b = (delta > 0) ? PkArcBezier::fromPoints(pts[j+3], pts[j+2], pts[j+1], pts[j])
                                      : PkArcBezier::fromPoints(pts[j], pts[j+1], pts[j+2], pts[j+3]);
         if (startSegment == endSegment && pkQtFuzzyCompare(startT, endT)) return startPoint;
