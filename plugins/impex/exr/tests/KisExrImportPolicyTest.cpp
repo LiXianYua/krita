@@ -34,14 +34,17 @@ int main()
     }
 
     PkXmlDocument malformed;
-    malformed.setContent("not xml");
+    // PkString 显式构造：setContent 有 setContent(const PkString&) 与
+    // setContent(const PkByteArray&) 两个重载，裸 "字面量" 二义（真 Qt 的
+    // QDomDocument::setContent(QString)/setContent(QByteArray) 同样二义）。
+    malformed.setContent(PkString("not xml"));
     if (hasUsableExrLayersMetadata(true, malformed)) {
         std::cerr << "malformed EXR layer metadata entered sorting path\n";
         return 4;
     }
 
     PkXmlDocument valid;
-    valid.setContent("<root><layer exr_name=\"paint\"/></root>");
+    valid.setContent(PkString("<root><layer exr_name=\"paint\"/></root>"));
     if (!hasUsableExrLayersMetadata(true, valid)) {
         std::cerr << "valid EXR layer metadata was rejected\n";
         return 5;
