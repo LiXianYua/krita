@@ -42,7 +42,7 @@ public:
 
     /**
      * prescale the patch image. Call after setImage().
-     * This ensures that we use the PkImage smoothscale method, not the Qt 的 painter scaling,
+     * This ensures that we use the PkImage smoothscale method, not the Qt's painter scaling,
      * which is far inferior.
      */
     void preScale(const PkRectF &dstRect);
@@ -58,7 +58,7 @@ public:
     /**
      * Draws an m_interestRect of the patch onto @p gc
      * By the way it fits this rect into @p dstRect
-     * @p renderHints are directly transmitted to Qt 的 painter
+     * @p renderHints are directly transmitted to Qt's painter
      */
     void drawMe(PkPainter &gc,
                 const PkRectF &dstRect,

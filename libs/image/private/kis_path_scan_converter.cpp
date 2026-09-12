@@ -2132,7 +2132,7 @@ std::pair<Cubic, Cubic> splitCubic(const Cubic &b)
 
 void addCubicToPolygon(const Cubic &curve, std::vector<Point> &polygon)
 {
-    // Qt 的 qbezier.cpp 里 addToPolygon 的实现, threshold 0.25.
+    // Qt's qbezier.cpp addToPolygon implementation, threshold 0.25.
     Cubic beziers[10];
     int levels[10];
     beziers[0] = curve;

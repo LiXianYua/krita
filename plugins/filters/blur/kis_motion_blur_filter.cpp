@@ -108,7 +108,7 @@ void KisMotionBlurFilter::processImpl(KisPaintDeviceSP device,
 
     PkImage kernelRepresentation(props.kernelSize.width(), props.kernelSize.height(),
                                  PkImage::Format_ARGB32);
-    // 上游是 Qt 的 image(..., Qt 的 image::Format_RGB32) + fill(0)；RGB32 的 0 即不透明黑
+    // 上游是 Qt 的 image(..., Format_RGB32) + fill(0)；RGB32 的 0 即不透明黑
     // 0xff000000。这里必须显式给不透明黑——实测 fill(0) 会让 138 例里 126 例与真 Qt
     // 不同（oracle 的 mismatch 基线，见 pk/render/oracle/blur_kernel_oracle.cpp）。
     kernelRepresentation.fill(0xff000000u);

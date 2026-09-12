@@ -285,7 +285,7 @@ PkSizeF KisImagePyramid::characteristicSize(const PkSize &originalSize,
 void KisImagePyramid::appendPyramidLevel(const PkImage &image)
 {
     /**
-     * Qt 的 painter has a bug: when doing a transformation it decides that
+     * Qt's painter has a bug: when doing a transformation it decides that
      * all the pixels outside of the image (source rect) are equal to
      * the border pixels (CLAMP in terms of openGL). This means that
      * there will be no smooth scaling on the border of the image when
@@ -333,7 +333,7 @@ PkImage KisImagePyramid::createImage(KisDabShape const& shape,
     }
 
     /**
-     * Qt 的 painter has one more bug: when a PkTransform is TxTranslate, it
+     * Qt's painter has one more bug: when a PkTransform is TxTranslate, it
      * does wrong sampling (probably, Nearest Neighbour) even though
      * we tell it directly that we need SmoothPixmapTransform.
      *

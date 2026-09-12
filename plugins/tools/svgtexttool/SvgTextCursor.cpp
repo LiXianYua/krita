@@ -1176,8 +1176,8 @@ bool SvgTextCursor::inputMethodEvent(const KisDocumentApplicationServices::Input
                 styleMap.append(decoration);
             }
 
-        // Qt 的 input-method event 的 Language is about setting the locale on the given  preedit string, which is not possible yet.
-        // Qt 的 input-method event 的 Ruby is supposedly ruby info for the preedit string, but none of the platform integrations
+        // Qt's input-method event Language is about setting the locale on the given  preedit string, which is not possible yet.
+        // Qt's input-method event Ruby is supposedly ruby info for the preedit string, but none of the platform integrations
         // actually implement this at time of writing, and it may have been something from a previous live of Qt's.
         } else if (attribute.type == KisDocumentApplicationServices::InputMethodAttributeType::Cursor) {
             if (d->preEditStart < 0) {

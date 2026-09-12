@@ -39,7 +39,7 @@ class KoID;
  * 3) Color selectors color space (the one where color selectors generate
  *    their HSV-based colors. Right now it is sRGB.
  *
- * KoColor may be in any of these color spaces. Qt 的 color should always
+ * KoColor may be in any of these color spaces. Qt's color should always
  * be in the display color space only.
  */
 class KRITACANVAS_EXPORT KisDisplayColorConverter : public PkObject

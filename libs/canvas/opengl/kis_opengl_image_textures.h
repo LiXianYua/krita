@@ -98,7 +98,7 @@ public:
     static const int BACKGROUND_TEXTURE_SIZE = BACKGROUND_TEXTURE_CHECK_SIZE * 2;
 
     /**
-     * Generate a background texture from the given Qt 的 image. This is used for the checker
+     * Generate a background texture from the given Qt's image. This is used for the checker
      * pattern on which the image is rendered.
      */
     void generateCheckerTexture(const QImage & checkImage);

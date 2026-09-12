@@ -1256,7 +1256,7 @@ void SvgTextTool::mouseTripleClickEvent(KoPointerEvent *event)
 {
     if (canvas()->shapeManager()->shapeAt(event->point) == selectedShape()) {
         // TODO: Consider whether we want to use sentence based selection instead:
-        // Qt 的 text-boundary-finder allows us to find sentences if necessary.
+        // Qt's text-boundary-finder allows us to find sentences if necessary.
         m_textCursor.moveCursor(SvgTextCursor::ParagraphStart, true);
         m_textCursor.moveCursor(SvgTextCursor::ParagraphEnd, false);
         event->accept();

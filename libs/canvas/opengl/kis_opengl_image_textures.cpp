@@ -380,7 +380,7 @@ void KisOpenGLImageTextures::generateCheckerTexture(const QImage &checkImage)
         f->glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, BACKGROUND_TEXTURE_SIZE, BACKGROUND_TEXTURE_SIZE,
                         0, format, type, checkers.data());
 
-        // Qt 的 painter::drawText relies on this.
+        // Qt's painter::drawText relies on this.
         // Ref: Qt bug 65496
         f->glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     }

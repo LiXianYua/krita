@@ -412,7 +412,7 @@ PkSizeF KisCoordinatesConverter::snapWidgetSizeToDevicePixel(const PkSizeF &size
 {
     if (pkQtFuzzyCompare(m_d->devicePixelRatio, 1.0)) return size;
 
-    // This is how Qt 的 OpenGL canvas sets the FBO and the viewport size. If
+    // This is how Qt's OpenGL canvas sets the FBO and the viewport size. If
     // devicePixelRatioF() is non-integral, the result is truncated.
     // *Correction*: The FBO size is actually rounded, but the glViewport call
     // uses integer truncation and that's what really matters.
@@ -766,7 +766,7 @@ void KisCoordinatesConverter::getQPainterCheckersInfo(PkTransform *transform,
                                                       const bool scrollCheckers) const
 {
     /**
-     * Qt has different rounding for Qt 的 painter::drawRect/drawImage.
+     * Qt has different rounding for Qt's painter::drawRect/drawImage.
      * The image is rounded mathematically, while rect in aligned
      * to the next integer. That causes transparent line appear on
      * the canvas.
