@@ -132,6 +132,7 @@ inline std::vector<Case> table()
     // fill="none"，R-54 §1.3），所以 hasBrush 两种都取——带 brush 的弧必须与不带的一样
     // （正反用例）；pen==0 而 brush==1 的弧两侧都不画，如实计入退化/空操作。
     struct ArcAngles { int start16; int span16; };
+    // 既有 8 组（R-54 批 2）：起止角**全部是 16 的倍数**。
     const ArcAngles arcAngles[] = {
         {0, 180 * 16},        // 半圆
         {0, 360 * 16},        // 整圆（跨 360）
@@ -142,28 +143,50 @@ inline std::vector<Case> table()
         {-30 * 16, 400 * 16}, // 负起点、跨 360
         {270 * 16, 180 * 16}, // 起点在象限边界、跨 360
     };
-    for (const auto &r : rects) {
-        for (const auto &a : arcAngles) {
-            for (int pen = 0; pen < 2; ++pen) {
-                for (int brush = 0; brush < 2; ++brush) {
-                    if (!pen && !brush) continue;  // 弧两者皆无 = 空操作（brush 又被忽略）
-                    Case c;
-                    c.name = "svg-arc#" + std::to_string(index++) +
-                             ":s" + std::to_string(a.start16) +
-                             ":w" + std::to_string(a.span16) +
-                             (pen ? ":pen2.5" : ":nopen") + (brush ? ":fill" : ":nofill");
-                    c.kind = Kind::Arc;
-                    c.rect = SvgCaseRect(r[0], r[1], r[2], r[3]);
-                    c.startAngle16 = a.start16;
-                    c.spanAngle16 = a.span16;
-                    c.hasPen = pen != 0;
-                    c.penWidth = 2.5;
-                    c.hasBrush = brush != 0;
-                    cases.push_back(c);
-                }
+    // R-54 修复轮 1：**非** 16 倍数的角（`x % 16 != 0`）。上面 8 组全是 16 的倍数
+    // ⇒ 后端那两行换算 `c.startAngle16 / 16.0` 与 `c.spanAngle16 / 16.0` 在旧用例表上
+    // **没有任何判别力**（改成整数除法 `/16` 是编译期可证的空操作——R线-spec〈注入「抓不到」
+    // 时，先怀疑注入〉点名的那一类；补用例前的实测读数登记在 pk/render/README.md 的 R-54 节）。
+    // 真实调用点（见本文件头：`-16*kisRadiansToDegrees(...)`，qreal → int 截断）**一般
+    // 不是 16 的倍数**。4 组覆盖：起点正小数 / 起点负小数 / 起点逼近象限边界 +
+    // 只让 span 带小数。非空论证：每组至少一个字段满足 `x % 16 != 0`，故 `x/16.0 != x/16`
+    // 必然成立（C++ 整数除法向零截断，差值 = (x % 16)/16，残余取 ±15 即最大 0.9375°）：
+    //   {415, 3615}:   415%16=15, 3615%16=15     ⇒ 起点 25.9375°vs25°、跨度 225.9375°vs225°
+    //   {-415,-2879}:  -415%16=-15,-2879%16=-15  ⇒ 起点 -25.9375°vs-25°、跨度 -179.9375°vs-179°
+    //   {2879, 911}:   2879%16=15, 911%16=15     ⇒ 起点 179.9375°vs179°、跨度 56.9375°vs56°
+    //                                              （原弧起止跨过 180° 象限边界）
+    //   {0, 1455}:     1455%16=15                ⇒ 起点 0°（整）、跨度 90.9375°vs90°
+    //                                              （**只让 span 带小数**，原弧终点跨过 90° 边界）
+    const ArcAngles arcAnglesFrac16[] = {
+        {415, 3615},
+        {-415, -2879},
+        {2879, 911},
+        {0, 1455},
+    };
+    auto appendArc = [&](const double *r, const ArcAngles &a) {
+        for (int pen = 0; pen < 2; ++pen) {
+            for (int brush = 0; brush < 2; ++brush) {
+                if (!pen && !brush) continue;  // 弧两者皆无 = 空操作（brush 又被忽略）
+                Case c;
+                c.name = "svg-arc#" + std::to_string(index++) +
+                         ":s" + std::to_string(a.start16) +
+                         ":w" + std::to_string(a.span16) +
+                         (pen ? ":pen2.5" : ":nopen") + (brush ? ":fill" : ":nofill");
+                c.kind = Kind::Arc;
+                c.rect = SvgCaseRect(r[0], r[1], r[2], r[3]);
+                c.startAngle16 = a.start16;
+                c.spanAngle16 = a.span16;
+                c.hasPen = pen != 0;
+                c.penWidth = 2.5;
+                c.hasBrush = brush != 0;
+                cases.push_back(c);
             }
         }
-    }
+    };
+    // 既有 8 组先出（index 与用例名**逐字节不变**），非 16 倍数的 4 组**追加在末尾**——
+    // 若插进既有循环，`index` 会整体后移、既有用例名全变，违反「只增不改」。
+    for (const auto &r : rects) for (const auto &a : arcAngles) appendArc(r, a);
+    for (const auto &r : rects) for (const auto &a : arcAnglesFrac16) appendArc(r, a);
 
     return cases;
 }
