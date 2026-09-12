@@ -30,3 +30,14 @@ kis_add_test(
 target_include_directories(KisPngCodecNoResourceDirsTest PRIVATE
     ${CMAKE_SOURCE_DIR}/plugins/color/lcms2engine
 )
+
+# R-61 Task 3：(c) forceSRGB 降级语义的常驻载体。plain main()、零 Qt 头；
+# 比 R-59 的 KisPngCodecNoResourceDirsTest 多链 ZLIB::ZLIB —— 读回的 iCCP chunk
+# 载荷是 zlib 压缩的，比对前要解压成 ICC 字节。
+kis_add_test(
+    KisPngCodecForceSrgbNoResourceDirsTest.cpp
+    LINK_LIBRARIES kritaimpex kritaimage kritalcmsengine ZLIB::ZLIB
+)
+target_include_directories(KisPngCodecForceSrgbNoResourceDirsTest PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugins/color/lcms2engine
+)
