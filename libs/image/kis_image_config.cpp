@@ -339,7 +339,7 @@ PkString KisImageConfig::safelyGetWritableTempLocation(const PkString &suffix, c
         preferred, stableDefault, transientDefault, homeFallback, lastResort,
         policy.transientFallback,
         [](const std::filesystem::path &location) {
-            // QFileInfo::isWritable() is insufficient on NTFS, so preserve the
+            // Qt 的 file-info::isWritable() is insufficient on NTFS, so preserve the
             // official implementation's final authority: create and remove a
             // real temporary file in each proposed directory.
             return KisImageConfigPaths::probeWritableDirectory(location);

@@ -64,14 +64,14 @@ public:
 
     /**
      * Gets a patch from a backend that can draw a info.imageRect on some
-     * QPainter in future. info.scaleX and info.scaleY are the scales
-     * of planned drawing, btw, it doesn't mean that an QImage inside
+     * Qt 的 painter in future. info.scaleX and info.scaleY are the scales
+     * of planned drawing, btw, it doesn't mean that a PkImage inside
      * the patch will have these scales - it'll have the nearest suitable
      * scale or even original scale (e.g. KisProjectionCache)
      *
      * If info.borderWidth is non-zero, info.requestedRect will
      * be expended by info.borderWidth pixels to all directions and
-     * image of this rect will actually be written to the patch's QImage.
+     * image of this rect will actually be written to the patch's PkImage.
      * That is done to eliminate border effects in smooth scaling.
      */
     virtual KisImagePatch getNearestPatch(KisPPUpdateInfoSP info) = 0;
@@ -83,7 +83,7 @@ public:
      * If info.imageRect and info.viewportRect don't agree, the image
      * will be scaled
      * @p info.borderWidth has the same meaning as in getNearestPatch
-     * @p info.renderHints - hints, transmitted to QPainter during drawing
+     * @p info.renderHints - hints, transmitted to Qt 的 painter during drawing
      */
     virtual void drawFromOriginalImage(PkPainter& gc,
                                        KisPPUpdateInfoSP info) = 0;

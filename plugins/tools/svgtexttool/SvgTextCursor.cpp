@@ -1176,8 +1176,8 @@ bool SvgTextCursor::inputMethodEvent(const KisDocumentApplicationServices::Input
                 styleMap.append(decoration);
             }
 
-        // QInputMethodEvent::Language is about setting the locale on the given  preedit string, which is not possible yet.
-        // QInputMethodEvent::Ruby is supposedly ruby info for the preedit string, but none of the platform integrations
+        // Qt 的 input-method event 的 Language is about setting the locale on the given  preedit string, which is not possible yet.
+        // Qt 的 input-method event 的 Ruby is supposedly ruby info for the preedit string, but none of the platform integrations
         // actually implement this at time of writing, and it may have been something from a previous live of Qt's.
         } else if (attribute.type == KisDocumentApplicationServices::InputMethodAttributeType::Cursor) {
             if (d->preEditStart < 0) {
@@ -1952,7 +1952,7 @@ bool SvgTextCursor::acceptableInput(const NativeKeyEvent &event) const
     // next test, since CTRL+SHIFT is sometimes used to input it on Windows.
     if (u_charType(UChar32(c.unicode())) == U_FORMAT_CHAR)
         return true;
-    // QTBUG-35734: ignore Ctrl/Ctrl+Shift; accept only AltGr (Alt+Ctrl) on German keyboards
+    // Qt bug 35734: ignore Ctrl/Ctrl+Shift; accept only AltGr (Alt+Ctrl) on German keyboards
     if (event.modifiers == Pk::ControlModifier
             || event.modifiers == (Pk::ShiftModifier | Pk::ControlModifier)) {
         return false;

@@ -106,7 +106,7 @@ public:
 
     /**
      * Defines the way the source image is painted onto
-     * prescaled QImage
+     * prescaled PkImage
      */
     TransferType transfer;
 

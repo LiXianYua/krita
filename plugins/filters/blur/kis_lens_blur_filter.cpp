@@ -139,7 +139,7 @@ void KisLensBlurFilter::processImpl(KisPaintDeviceSP device,
     imagePainter.setRenderHint(PkPainter::Antialiasing);
     imagePainter.setBrush(PkColor::fromRgb(255, 255, 255));
     // 上游是 offsetTransform.translate(-boundingRect.x(), -boundingRect.y()) 后
-    // setTransform；PkPainter::translate 与 QPainter::translate 同义（都是与当前
+    // setTransform；PkPainter::translate 与 Qt 的 painter::translate 同义（都是与当前
     // 变换左乘），从单位阵起步时两者等价。
     imagePainter.translate(-boundingRect.x(), -boundingRect.y());
     imagePainter.drawPolygon(transformedIris);   // 上游带 Qt::WindingFill，见 §2.1 P2

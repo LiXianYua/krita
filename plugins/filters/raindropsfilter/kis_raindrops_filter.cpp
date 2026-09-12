@@ -93,7 +93,7 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
     int Width = applyRect.width();
     int Height = applyRect.height();
 
-    // [GAP] QRandomGenerator::bounded(double) 语义：返回 [0, highest) 均匀分布。
+    // [GAP] Qt 随机数的 bounded(double) 语义：返回 [0, highest) 均匀分布。
     // 用 std::mt19937 + uniform_real_distribution 复刻；seed 序列与 Qt 不保证一致（登记 Task 3 报告）。
     std::uniform_real_distribution<double> dist01(0.0, 1.0);
     std::uniform_real_distribution<double> distW(0.0, static_cast<double>(Width - 1));

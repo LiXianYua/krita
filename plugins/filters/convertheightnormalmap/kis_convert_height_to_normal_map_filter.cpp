@@ -75,7 +75,7 @@ void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, con
     channelFlip.fill(false);
 
     // [GAP] PkVector<bool>（std::vector<bool> 内层）的 operator[] 返回 bool&，绑定
-    // 不到代理对象上（原 QVector<bool> 不特化、可写；Pk 缺 bool 特化，跨锁 GAP 已
+    // 不到代理对象上（原 Qt 的 vector<bool> 不特化、可写；Pk 缺 bool 特化，跨锁 GAP 已
     // 登记）。用迭代器代理写绕过：*begin() 返回 std::vector<bool>::reference，可赋值。
     const auto setFlip = [&channelFlip](int idx, bool v) {
         *(channelFlip.begin() + idx) = v;

@@ -225,7 +225,7 @@ void KisPerspectiveTransformWorker::runImpl()
     //       theoretically
     //
     // if (m_isTranslating) {
-    //     m_dev->moveTo(m_dev->offset() + QPoint(pkRound(m_forwardTransform.dx()), pkRound(m_forwardTransform.dy())));
+    //     m_dev->moveTo(m_dev->offset() + PkPoint(pkRound(m_forwardTransform.dx()), pkRound(m_forwardTransform.dy())));
     //     return;
     // }
 

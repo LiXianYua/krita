@@ -55,7 +55,7 @@ struct AbrInfo {
     short count;
 };
 
-/// save the QImages as png files to directory image_tests
+/// save the PkImages as png files to directory image_tests
 static PkImage convertToQImage(char * buffer, qint32 width, qint32 height)
 {
     // create 8-bit indexed image
@@ -135,7 +135,7 @@ static qint32 rle_decode(AbrDataStream & abr, char *buffer, qint32 height)
 static PkString abr_v1_brush_name(const PkString filename, qint32 id)
 {
     // 原 Qt 实现：lastIndexOf('.') 定位扩展名起点，remove(pos, 4) 剥掉 ".abr"，
-    // QTextStream 追加 "_<id>"。PkString 无 lastIndexOf/remove，且 PkTextStream
+    // Qt 的 text-stream 追加 "_<id>"。PkString 无 lastIndexOf/remove，且 PkTextStream
     // 只接受 PkStream* 不接受 &PkString，故用 PkString 既有 API 复刻语义：
     // 取最后一个 '.' 之前的部分 + "_<id>"。
     int pos = -1;
@@ -619,7 +619,7 @@ KisAbrBrushCollection::KisAbrBrushCollection(const KisAbrBrushCollection& rhs)
     }
 }
 
-// QFileInfo 在 migrate 后无 Pk 等价（QFileInfo 无 PkFileStream/PkString 构造），
+// Qt 的 file-info 在 migrate 后无 Pk 等价（Qt 的 file-info 无 PkFileStream/PkString 构造），
 // 这里按 S-02-b PkResourceStorageDesktop::lastModifiedMs 的模式用 std::filesystem
 // 复刻「PkString 路径 → 文件名 / 最后修改时间」。
 static PkString pathFileName(const PkString &path)
@@ -666,7 +666,7 @@ bool KisAbrBrushCollection::loadFromDevice(PkStream *dev)
     qint32 layer_ID;
 
     PkByteArray ba = kisBrushReadAll(dev);
-    // QBuffer(QByteArray*) 语义：以既有字节为内容的内存设备。PkMemoryStream
+    // Qt 的 buffer(PkByteArray*) 语义：以既有字节为内容的内存设备。PkMemoryStream
     // （libs/store S-01 交付）没有该构造，改成 ReadWrite 写入字节再回卷读取。
     PkMemoryStream buf;
     buf.open(PkStream::ReadWrite);

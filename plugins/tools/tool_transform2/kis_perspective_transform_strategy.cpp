@@ -266,7 +266,7 @@ void KisPerspectiveTransformStrategy::paint(TransformToolPainter &gc)
      * brushes in openGL mode when a TxProject matrix is active on
      * a PkPainter. So just convert it manually.
      *
-     * https://bugreports.qt-project.org/browse/QTBUG-42658
+     * See: Qt bug 42658
      */
 
     //gc.setTransform(m_d->handlesTransform, true); <-- don't do like this!

@@ -50,8 +50,8 @@ void KisTextureTile::setTextureParameters()
 
 void KisTextureTile::restoreTextureParameters()
 {
-    // QPainter::drawText relies on this.
-    // Ref: https://bugreports.qt.io/browse/QTBUG-65496
+    // Qt 的 painter::drawText relies on this.
+    // Ref: Qt bug 65496
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 

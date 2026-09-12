@@ -17,7 +17,7 @@
 //     末尾的 `.save(filename)` 没有任何 Pk 等价物可落。
 //
 // 已解除的阻塞（S-11 实测订正，原登记里那条已过时）：
-//   * `QString("%1_%2.png").arg(i).arg(suffix)` 依赖的 `PkString::arg()`
+//   * `Qt 的 string("%1_%2.png").arg(i).arg(suffix)` 依赖的 `PkString::arg()`
 //     **已交付**（R-13：PkString.h 有 arg(PkString) 三个重载 + arg(int) /
 //     arg(int,int) / arg(double)）。本条不再阻塞。
 //

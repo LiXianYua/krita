@@ -26,7 +26,7 @@ public:
     /**
      * Initializes a new patch with given values.
      * Be careful, because the constructor does not fill
-     * QImage of the patch, as the patch rect is not known yet
+     * PkImage of the patch, as the patch rect is not known yet
      *
      * \see setImage
      */
@@ -42,7 +42,7 @@ public:
 
     /**
      * prescale the patch image. Call after setImage().
-     * This ensures that we use the QImage smoothscale method, not the QPainter scaling,
+     * This ensures that we use the PkImage smoothscale method, not the Qt 的 painter scaling,
      * which is far inferior.
      */
     void preScale(const PkRectF &dstRect);
@@ -58,7 +58,7 @@ public:
     /**
      * Draws an m_interestRect of the patch onto @p gc
      * By the way it fits this rect into @p dstRect
-     * @p renderHints are directly transmitted to QPainter
+     * @p renderHints are directly transmitted to Qt 的 painter
      */
     void drawMe(PkPainter &gc,
                 const PkRectF &dstRect,

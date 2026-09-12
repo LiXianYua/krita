@@ -39,7 +39,7 @@ class KoID;
  * 3) Color selectors color space (the one where color selectors generate
  *    their HSV-based colors. Right now it is sRGB.
  *
- * KoColor may be in any of these color spaces. QColor should always
+ * KoColor may be in any of these color spaces. Qt 的 color should always
  * be in the display color space only.
  */
 class KRITACANVAS_EXPORT KisDisplayColorConverter : public PkObject
@@ -76,9 +76,9 @@ public:
 
 
     /**
-     * Converts the exactBounds() (!) of the \p srcDevice into QImage
+     * Converts the exactBounds() (!) of the \p srcDevice into PkImage
      * properly rendered into display RGB space. Please note that the
-     * offset of the image in QImage is always zero for efficiency
+     * offset of the image in PkImage is always zero for efficiency
      * reasons.
      */
     PkImage toQImage(KisPaintDeviceSP srcDevice, bool proofPaintColors = false) const;

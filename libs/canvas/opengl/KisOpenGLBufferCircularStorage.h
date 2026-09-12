@@ -12,7 +12,7 @@
 
 /**
  * A simple storage class that owns a fixed amount of
- * QOpenGLBuffer objects and returns them sequentially.
+ * Qt 的 OpenGL buffer objects and returns them sequentially.
  * Using multiple distinct buffers lets us avoid blocks
  */
 class KisOpenGLBufferCircularStorage
