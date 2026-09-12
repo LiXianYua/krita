@@ -383,7 +383,7 @@ PkImage KisAutoBrush::createBrushPreview(int maxSize)
     PkSize size(width, height);
 
     if (maxSize > 0 && KisAlgebra2D::maxDimension(size) > maxSize) {
-        size.scale(128, 128, Pk::KeepAspectRatio); // 真 Qt QSize
+        size.scale(128, 128, Pk::KeepAspectRatio); // 真 Qt 的 size
 
         qreal scale = 1.0;
 

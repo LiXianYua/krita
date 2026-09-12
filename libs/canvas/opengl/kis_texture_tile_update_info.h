@@ -6,10 +6,6 @@
 #ifndef KIS_TEXTURE_TILE_UPDATE_INFO_H_
 #define KIS_TEXTURE_TILE_UPDATE_INFO_H_
 
-#include <QPoint>
-#include <QRect>
-#include <QSize>
-
 #include <PkBitArray.h>
 #include <PkPoint.h>
 #include <PkRect.h>
@@ -245,22 +241,22 @@ public:
         return m_patchLevelOfDetail;
     }
 
-    inline QPoint realPatchOffset() const {
-        return QPoint(m_patchRect.x() - m_tileRect.x(),
+    inline PkPoint realPatchOffset() const {
+        return PkPoint(m_patchRect.x() - m_tileRect.x(),
                       m_patchRect.y() - m_tileRect.y());
     }
 
-    inline QSize realPatchSize() const {
-        return QSize(m_patchRect.width(), m_patchRect.height());
+    inline PkSize realPatchSize() const {
+        return PkSize(m_patchRect.width(), m_patchRect.height());
     }
 
-    inline QRect realPatchRect() const {
-        return QRect(m_patchRect.x(), m_patchRect.y(),
+    inline PkRect realPatchRect() const {
+        return PkRect(m_patchRect.x(), m_patchRect.y(),
                      m_patchRect.width(), m_patchRect.height());
     }
 
-    inline QSize realTileSize() const {
-        return QSize(m_tileRect.width(), m_tileRect.height());
+    inline PkSize realTileSize() const {
+        return PkSize(m_tileRect.width(), m_tileRect.height());
     }
 
     inline bool isTopmost() const {

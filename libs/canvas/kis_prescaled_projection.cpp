@@ -11,7 +11,6 @@
 
 #include <PkImageRasterBackend.h>
 #include <PkRegion.h>
-#include <QObject>
 
 #include <KoColorProfile.h>
 #include <KoViewConverter.h>

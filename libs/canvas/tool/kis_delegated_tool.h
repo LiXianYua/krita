@@ -11,8 +11,6 @@
 #include <KoShape.h>
 #include <KoCanvasBase.h>
 
-#include <QLayout>
-#include <QPointer>
 #include <PkScopedPointer.h>
 #include <PkSet.h>
 
