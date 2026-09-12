@@ -9,7 +9,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # 零 Qt：本工程不得出现 find_package(Qt...)。判据③ 靠 tests/run_tests.sh 里的
 # nm -u libpkgeometry.a 自证。
-add_library(pkgeometry STATIC
+set(PKGEOMETRY_SOURCES
     PkPoint.cpp
     PkSize.cpp
     PkRect.cpp
@@ -26,6 +26,7 @@ add_library(pkgeometry STATIC
     # 依赖 PkColor（pk/color），见下方 ../color include。
     PkPen.h
 )
+add_library(pkgeometry STATIC ${PKGEOMETRY_SOURCES})
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # ../global：PkGlobal.h 已是转发头，quote-include 在 geometry 目录无同名文件后，
@@ -174,3 +175,40 @@ add_executable(test_pkgeometry_debugstream
     ${CMAKE_CURRENT_SOURCE_DIR}/../log/PkDebug.cpp
 )
 target_link_libraries(test_pkgeometry_debugstream PRIVATE pkgeometry)
+
+# ---------------------------------------------------------------------------
+# R-58：arc 大角度档的 **UBSan 闸门**。
+#
+# ⚠ **刻意不链接 pkgeometry、也不继承它的 PUBLIC `-fwrapv`。** 理由实测过：
+#   `-fwrapv` 让有符号整数溢出变成定义良好的回绕，UBSan 的
+#   `signed-integer-overflow` 检查随之**静默失效**——同一段 `int * 90` 溢出，
+#   带 `-fwrapv` 时 UBSan 一行都不报。这正是那条 UB 长期没被发现的原因之一
+#   （库与单测侧本来就带 `-fwrapv`）。本 target 与对拍侧（`run_oracle.sh` 的
+#   `CXXFLAGS_ORACLE`）取同一个口径：**不带 `-fwrapv`**。
+#   ⚠ 浮点→int 越界（`int(1e127)` 这类）`-fwrapv` 本来就管不着，两种配置下都是 UB。
+#
+# `-fno-sanitize-recover=all`：第一条 runtime error 就 abort ⇒ 退出码非 0，
+# run_tests.sh 的 `set -eu` 直接判红。
+# ⚠ **源码表要再抄一份、去掉 `PkGeometryDebug.cpp`**（实测踩过，不是洁癖）：
+#   可执行文件把 `.cpp` 当**源**编（不是从静态库拉对象），于是
+#   `PkGeometryDebug.cpp` 里那批 `operator<<(PkDebug, …)` 一定会进链接 ——
+#   它们要 `PkDebug`，而 `PkDebug.cpp` 又要 `PkLogEmit`（在 `PkLogBackend.cpp` 里、
+#   连带 spdlog）。实测：`add_executable(… ${PKGEOMETRY_SOURCES})` **链接失败**，
+#   报 `Undefined symbols: PkLogEmit(…)`。`test_pkgeometry` 没这个问题是因为
+#   它**链接** `libpkgeometry.a`，没被引用的对象根本不会被拉进来。
+#   本闸门只扫弧的角度路径，**不需要**调试流运算符，所以直接不编它。
+#   （`PkPen.h` 是纯头，编不编都一样，一并去掉免得误导。）
+set(PKGEOMETRY_UBSAN_SOURCES ${PKGEOMETRY_SOURCES})
+list(REMOVE_ITEM PKGEOMETRY_UBSAN_SOURCES
+     ${CMAKE_CURRENT_SOURCE_DIR}/PkGeometryDebug.cpp PkGeometryDebug.cpp PkPen.h)
+
+add_executable(pk_arc_band_ubsan tests/arc_band_ubsan.cpp ${PKGEOMETRY_UBSAN_SOURCES})
+target_include_directories(pk_arc_band_ubsan PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../global
+    ${CMAKE_CURRENT_SOURCE_DIR}/../color
+    ${CMAKE_CURRENT_SOURCE_DIR}/../container
+    ${CMAKE_CURRENT_SOURCE_DIR}/../log)
+target_compile_options(pk_arc_band_ubsan PRIVATE
+    -fsanitize=undefined -fno-sanitize-recover=all)
+target_link_options(pk_arc_band_ubsan PRIVATE -fsanitize=undefined)

@@ -73,4 +73,7 @@ private Q_SLOTS:
     void booleanFillRulesAndCompounds();
     void simplifiedSelfIntersections();
     void pathRelationQueries();
+
+    // 大角度档（R-58）
+    void testPainterpathArcBand();
 };

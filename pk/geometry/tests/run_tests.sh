@@ -15,6 +15,15 @@ cmake --build "$BUILD" -j"$(nproc)" >/dev/null
 
 "$BUILD/test_pkgeometry_debugstream"
 
+# ── R-58：arc 大角度档的 UBSan 闸门 ───────────────────────────────────────
+# 判据是**退出码**：目标用 -fno-sanitize-recover=all 编，第一条 runtime error 就 abort。
+# 为什么必须单独一个 target、不能复用 pkgeometry：`-fwrapv` 会让 UBSan 的
+# signed-integer-overflow 检查静默失效（实测），理由全文在 CMakeLists.txt 里。
+if ! "$BUILD/pk_arc_band_ubsan"; then
+    printf 'run_tests.sh: arc 大角度档的 UBSan 闸门红了 —— 上面是 sanitizer 的原始报告\n' >&2
+    exit 1
+fi
+
 # 判据③：替代品本体不得有 Qt 未定义符号。查的是 pk/geometry 编出来的静态库。
 # 与 pk/test 那条同义：静态库允许留未定义符号，真混进 Qt 依赖就会在这里现形
 #（可执行文件那种查法是恒真的，链接行里根本没 Qt 库，见 pk/test/README.md §5）。

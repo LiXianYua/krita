@@ -986,6 +986,38 @@ void PkPainterPathCase::pathRelationQueries()
     PK_VERIFY(!outer.contains(overlap));
 }
 
+// R-58：arc 大角度档的常驻单测。**不依赖真 Qt**，只钉两件事：
+//  ① 折角自一致：`arcTo(rect, a, s)` 与 `arcTo(rect, fmod(a,360), s)` 的元素表逐位相同
+//     （`arcMoveTo` 同理比位置）—— 这是 Task 1 那条折角语义的**常驻**见证。
+//  ② 有界：越界档产生的元素数有上界（`arcTo` 传的是 `PkPointF pts[15]`，
+//     上限就是 1 + 15；这里断言 <= 20，留出余量但不放松到"随便多少"）。
+void PkPainterPathCase::testPainterpathArcBand()
+{
+    const PkRectF r(1.0, 2.0, 3.0, 4.0);
+    const double band[] = {
+        2147483700.0, 2147483701.0, 3e9, 1e10, 1e12, 1e15, 1e16, 1e18, 1e20, 1e127,
+        -2147483700.0, -1e10, -1e15, -1e18, -1e127,
+    };
+    for (double a : band) {
+        const double ra = std::fmod(a, 360.0);
+
+        PkPainterPath big;    big.moveTo(1.0, 2.0); big.arcTo(r, a, -90.0);
+        PkPainterPath small;  small.moveTo(1.0, 2.0); small.arcTo(r, ra, -90.0);
+        PK_COMPARE(big.elementCount(), small.elementCount());
+        for (int i = 0; i < big.elementCount(); ++i) {
+            PK_COMPARE(big.elementAt(i).x, small.elementAt(i).x);
+            PK_COMPARE(big.elementAt(i).y, small.elementAt(i).y);
+            PK_COMPARE(int(big.elementAt(i).type), int(small.elementAt(i).type));
+        }
+        PK_VERIFY(big.elementCount() <= 20);
+
+        PkPainterPath mbig;   mbig.arcMoveTo(r, a);
+        PkPainterPath msmall; msmall.arcMoveTo(r, ra);
+        PK_COMPARE(mbig.currentPosition().x(), msmall.currentPosition().x());
+        PK_COMPARE(mbig.currentPosition().y(), msmall.currentPosition().y());
+    }
+}
+
 int run_painterpath_tests()
 {
     PkPainterPathCase tc;
