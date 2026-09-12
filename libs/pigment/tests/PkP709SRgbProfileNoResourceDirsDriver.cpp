@@ -36,6 +36,10 @@
 //   - 同样的 `existsPath` / `existsGoodPath` 调用
 //   - 同样照 `calcPath` 的写法走 `findBestPath` + `vertexes`
 // 校验值全部来自本进程对真实内核的实测打印，不猜。
+//
+// 命令行开关：默认（无参数）强制 EXTRA_RESOURCE_DIRS 缺席；手工传
+// `--keep-resource-dirs` 才保留调用者设的 EXTRA_RESOURCE_DIRS（形态照抄 T1 已验证的
+// plugins/impex/webp/tests/KisWebPExportNoResourceDirsTest.cpp，用于资源齐备对照组）。
 // ============================================================================
 
 #include <KoColorConversionSystem_p.h>
@@ -49,6 +53,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -106,10 +111,28 @@ calcPath(const std::vector<KoColorConversionSystem::NodeKey> &expectedPath)
 
 } // namespace
 
-int main()
+int main(int argc, char **argv)
 {
-    // 1. 把进程钉死在「无资源」条件（与 R-59 常驻载体同款；放最前）。
-    ::unsetenv("EXTRA_RESOURCE_DIRS");
+    // 1. 默认把进程钉死在「无资源」条件（与 R-59 常驻载体同款；放最前）。
+    //
+    //    R-61 T2 修复轮：证据缺口——本行原先**无条件** unsetenv，导致下面
+    //    `if (!srgbProfile) … else { srgbProfile->name() … }` 里的 else 分支
+    //    从未被执行：driver 只证了「前提不成立 ⇒ 报失败那一支、不崩」，没证另一半
+    //    （前提成立时 `srgbProfile->name()` 那条路安全）——而那正是 10 处改动实际改掉
+    //    的东西。故加显式开关 `--keep-resource-dirs`（形态照抄 T1 已验证的
+    //    plugins/impex/webp/tests/KisWebPExportNoResourceDirsTest.cpp）：默认仍是
+    //    无条件 unsetenv（封闭，ctest 路径不随调用者环境漂移），只有手工传该开关时
+    //    才保留调用者设的 EXTRA_RESOURCE_DIRS。第 3 步会把 EXTRA_RESOURCE_DIRS 的
+    //    实际值印进前提，让「这次跑的是哪个条件」可观测、不可能被冒充。
+    bool keepResourceDirs = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--keep-resource-dirs") == 0) {
+            keepResourceDirs = true;
+        }
+    }
+    if (!keepResourceDirs) {
+        ::unsetenv("EXTRA_RESOURCE_DIRS");
+    }
 
     // 2. 注册 lcms 引擎——不注册则 p709SRGBProfile() 恒 nullptr，区分不出条件。
     registerLcmsEngine();
