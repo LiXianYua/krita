@@ -42,7 +42,7 @@
 KisToolSelectContiguous::KisToolSelectContiguous(KoCanvasBase *canvas)
     : KisToolSelect(
         canvas,
-        selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_contiguous_selection_cursor.png")),
+        selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_contiguous_selection_cursor.png")),
         PkString("Contiguous Area Selection"))
     , m_threshold(8)
     , m_opacitySpread(100)

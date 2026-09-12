@@ -26,7 +26,7 @@
     } while (false)
 
 KisToolColorSampler::KisToolColorSampler(KoCanvasBase *canvas)
-    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolSamplerCursor()),
+    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolSamplerCursorToken()),
       m_config(new KisColorSamplerConfig),
       m_helper(canvas, dynamic_cast<KisColorSamplingCanvas *>(canvas))
 {

@@ -30,7 +30,7 @@ public:
         SELECT
     };
 
-    explicit KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, const QCursor & cursor);
+    explicit KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, KisCanvasCursorToken cursor);
 
     void pkKeyPressEvent(PkToolKeyEvent *event) override;
     void pkKeyReleaseEvent(PkToolKeyEvent *event) override;

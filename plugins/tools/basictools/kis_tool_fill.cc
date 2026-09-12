@@ -55,7 +55,7 @@
     } while (false)
 
 KisToolFill::KisToolFill(KoCanvasBase * canvas)
-    : KisToolPaint(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_fill_cursor.png", 6, 6))
+    : KisToolPaint(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursorToken("tool_fill_cursor.png", 6, 6))
     , m_fillMask(nullptr)
     , m_referencePaintDevice(nullptr)
     , m_referenceNodeList(nullptr)

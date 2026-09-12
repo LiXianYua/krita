@@ -41,7 +41,7 @@
 
 __KisToolSelectOutlineLocal::__KisToolSelectOutlineLocal(KoCanvasBase * canvas)
     : KisToolOutlineBase(canvas, KisToolOutlineBase::SELECT,
-                         selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_outline_selection_cursor.png")))
+                         selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_outline_selection_cursor.png")))
 {
     PkObject::setObjectName("tool_select_outline");
 }

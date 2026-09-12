@@ -31,7 +31,7 @@
 
 KisToolDyna::KisToolDyna(KoCanvasBase * canvas)
         : KisToolFreehand(canvas,
-                          QCursor(static_cast<Qt::CursorShape>(PkToolArrowCursor)),
+                          {},
                           kundo2_text("Dynamic Brush Stroke"), false)
 {
     PkObject::setObjectName("tool_dyna");

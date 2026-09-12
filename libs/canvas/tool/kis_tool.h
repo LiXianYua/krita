@@ -34,7 +34,6 @@ class KoCanvasBase;
 class KisFilterConfiguration;
 class PkPolygonF;
 class KisOptimizedBrushOutline;
-class QCursor;
 
 //activation id for Krita tools, Krita tools are always active and handle locked and invisible layers by themselves
 static const PkString KRITA_TOOL_ACTIVATION_ID = "flake/always";
@@ -45,7 +44,7 @@ class KRITACANVAS_EXPORT KisTool : public KoToolBase
 public:
     enum { FLAG_USES_CUSTOM_PRESET=0x01, FLAG_USES_CUSTOM_COMPOSITEOP=0x02, FLAG_USES_CUSTOM_SIZE=0x04 };
 
-    KisTool(KoCanvasBase * canvas, const QCursor & cursor);
+    KisTool(KoCanvasBase * canvas, KisCanvasCursorToken cursor = {});
     ~KisTool() override;
 
     virtual int flags() const { return 0; }
@@ -302,7 +301,6 @@ protected:
 
     virtual void setMode(ToolMode mode);
     virtual ToolMode mode() const;
-    void setCursor(const QCursor &cursor);
     void setCursor(KisCanvasCursorToken cursor);
     void applyCursor(KisCanvasCursorToken cursor);
 

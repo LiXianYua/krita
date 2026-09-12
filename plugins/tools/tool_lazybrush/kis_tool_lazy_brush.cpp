@@ -34,7 +34,7 @@ struct KisToolLazyBrush::Private
 
 KisToolLazyBrush::KisToolLazyBrush(KoCanvasBase * canvas)
     : KisToolFreehand(canvas,
-                      QCursor(static_cast<Qt::CursorShape>(PkToolArrowCursor)),
+                      {},
                       kundo2_text("Colorize Mask Key Stroke")),
       m_d(new Private)
 {

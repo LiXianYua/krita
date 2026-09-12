@@ -15,7 +15,7 @@
 #include <PkPen.h>
 #include <PkFlakeBridge.h>
 
-KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, const QCursor & cursor)
+KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, KisCanvasCursorToken cursor)
     : KisToolShape(canvas, cursor)
     , m_dragStart(0, 0)
     , m_dragEnd(0, 0)

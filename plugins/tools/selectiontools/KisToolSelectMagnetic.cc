@@ -44,7 +44,7 @@
 
 KisToolSelectMagnetic::KisToolSelectMagnetic(KoCanvasBase *canvas)
     : KisToolSelect(canvas,
-                    selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_magnetic_selection_cursor.png")),
+                    selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_magnetic_selection_cursor.png")),
                     PkString("Magnetic Selection"))
   , m_worker(nullptr)
   , m_mouseHoverCompressor(100, KisSignalCompressor::FIRST_ACTIVE)

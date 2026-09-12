@@ -28,7 +28,7 @@ template <class BaseClass, class DelegateTool, class ActivationPolicy = NoopActi
 {
 public:
     KisDelegatedTool(KoCanvasBase *canvas,
-                     const QCursor &cursor,
+                     KisCanvasCursorToken cursor,
                      DelegateTool *delegateTool)
         : BaseClass(canvas, cursor),
           m_localTool(delegateTool)

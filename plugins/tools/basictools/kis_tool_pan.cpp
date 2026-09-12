@@ -12,7 +12,7 @@
 #include <KoPointerEvent.h>
 
 KisToolPan::KisToolPan(KoCanvasBase *canvas)
-    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolOpenHandCursor())
+    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolOpenHandCursorToken())
 {
 }
 

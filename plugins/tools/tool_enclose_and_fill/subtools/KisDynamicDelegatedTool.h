@@ -19,7 +19,6 @@
 #include <PkRect.h>
 #include <PkSet.h>
 #include <PkVariant.h>
-#include <QCursor>
 
 #include <KoToolBase.h>
 #include <KoToolBase_p.h>

@@ -15,7 +15,7 @@
 #include <KoCanvasController.h>
 #include <KoViewConverter.h>
 #include <KisOptimizedBrushOutline.h>
-KisToolEllipseBase::KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, const QCursor & cursor)
+KisToolEllipseBase::KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, KisCanvasCursorToken cursor)
     : KisToolRectangleBase(canvas, type, cursor)
 {
 }

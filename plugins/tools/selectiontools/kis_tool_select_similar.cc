@@ -31,7 +31,7 @@
 
 KisToolSelectSimilar::KisToolSelectSimilar(KoCanvasBase *canvas)
     : KisToolSelect(canvas,
-                    selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_similar_selection_cursor.png")),
+                    selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_similar_selection_cursor.png")),
                     PkString("Similar Color Selection"))
     , m_threshold(20)
     , m_opacitySpread(100)

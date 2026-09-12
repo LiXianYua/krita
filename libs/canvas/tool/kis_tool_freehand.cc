@@ -41,7 +41,7 @@
 using namespace std::placeholders; // For _1 placeholder
 
 
-KisToolFreehand::KisToolFreehand(KoCanvasBase * canvas, const QCursor & cursor,
+KisToolFreehand::KisToolFreehand(KoCanvasBase * canvas, KisCanvasCursorToken cursor,
                                  const KUndo2MagicString &transactionText, bool useSavedSmoothing)
     : KisToolPaint(canvas, cursor),
       m_brushResizeCompressor(200, std::bind(&KisToolFreehand::slotDoResizeBrush, this, _1))

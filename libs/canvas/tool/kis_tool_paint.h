@@ -33,7 +33,7 @@ class KRITACANVAS_EXPORT KisToolPaint : public KisTool
 {
 
 public:
-    KisToolPaint(KoCanvasBase *canvas, const QCursor &cursor);
+    KisToolPaint(KoCanvasBase *canvas, KisCanvasCursorToken cursor);
     ~KisToolPaint() override;
     int flags() const override;
 

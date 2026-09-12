@@ -20,7 +20,7 @@
 
 KisToolBrush::KisToolBrush(KoCanvasBase * canvas)
     : KisToolFreehand(canvas,
-                      dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_freehand_cursor.xpm", 2, 2),
+                      dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursorToken("tool_freehand_cursor.xpm", 2, 2),
                       kundo2_i18n("Freehand Brush Stroke"))
 {
     PkObject::setObjectName("tool_brush");

@@ -15,7 +15,7 @@
 
 
 KisToolPath::KisToolPath(KoCanvasBase * canvas)
-    : DelegatedPathTool(canvas, Qt::ArrowCursor,
+    : DelegatedPathTool(canvas, {},
                         new __KisToolPathLocalTool(canvas, this))
 {
     setIsOpacityPresetMode(true);

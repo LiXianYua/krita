@@ -42,7 +42,7 @@ class DelegatedPathTool : public KisToolShape
 {
 public:
     DelegatedPathTool(KoCanvasBase *canvas,
-                      const QCursor &cursor,
+                      KisCanvasCursorToken cursor,
                       KisToolPathLocalTool *delegateTool)
         : KisToolShape(canvas, cursor)
         , m_localTool(delegateTool)

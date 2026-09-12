@@ -12,7 +12,7 @@
 #include "KisRectangleEnclosingProducer.h"
 
 KisRectangleEnclosingProducer::KisRectangleEnclosingProducer(KoCanvasBase * canvas)
-    : KisDynamicDelegateTool<KisToolRectangleBase>(canvas, KisToolRectangleBase::PAINT, Qt::ArrowCursor)
+    : KisDynamicDelegateTool<KisToolRectangleBase>(canvas, KisToolRectangleBase::PAINT, KisCanvasCursorToken())
 {
     setObjectName("enclosing_tool_rectangle");
     setSupportOutline(true);

@@ -21,7 +21,7 @@
 #define SNAPPING_HANDLE_RADIUS 8
 #define PREVIEW_LINE_WIDTH 1
 
-KisToolPolylineBase::KisToolPolylineBase(KoCanvasBase * canvas,  KisToolPolylineBase::ToolType type, const QCursor & cursor)
+KisToolPolylineBase::KisToolPolylineBase(KoCanvasBase * canvas,  KisToolPolylineBase::ToolType type, KisCanvasCursorToken cursor)
     : KisToolShape(canvas, cursor),
       m_dragging(false),
       m_type(type),

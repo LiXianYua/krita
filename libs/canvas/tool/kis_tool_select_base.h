@@ -78,7 +78,7 @@ public:
         initializeSelectionState();
     }
 
-    KisToolSelectBase(KoCanvasBase *canvas, const QCursor cursor, const PkString &toolName)
+    KisToolSelectBase(KoCanvasBase *canvas, KisCanvasCursorToken cursor, const PkString &toolName)
         : BaseClass(canvas, cursor)
         , m_widgetHelper(toolName)
         , m_selectionActionAlternate(SELECTION_DEFAULT)
@@ -89,7 +89,7 @@ public:
 
     template<typename DelegateTool>
     KisToolSelectBase(KoCanvasBase *canvas,
-                      QCursor cursor,
+                      KisCanvasCursorToken cursor,
                       const PkString &toolName,
                       DelegateTool *delegateTool)
         : BaseClass(canvas, cursor, delegateTool)
@@ -537,17 +537,17 @@ private:
 struct FakeBaseTool : KisTool
 {
     FakeBaseTool(KoCanvasBase* canvas)
-        : KisTool(canvas, QCursor())
+        : KisTool(canvas, {})
     {
     }
 
     FakeBaseTool(KoCanvasBase *canvas, const PkString &toolName)
-        : KisTool(canvas, QCursor())
+        : KisTool(canvas, {})
     {
         Q_UNUSED(toolName);
     }
 
-    FakeBaseTool(KoCanvasBase* canvas, const QCursor &cursor)
+    FakeBaseTool(KoCanvasBase* canvas, KisCanvasCursorToken cursor)
         : KisTool(canvas, cursor)
     {
     }

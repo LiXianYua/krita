@@ -447,7 +447,7 @@ class EllipsePreviewTool final : public KisToolEllipseBase
 {
 public:
     explicit EllipsePreviewTool(KoCanvasBase *canvas)
-        : KisToolEllipseBase(canvas, SELECT, QCursor())
+        : KisToolEllipseBase(canvas, SELECT, {})
     {
     }
 
@@ -479,7 +479,7 @@ class PolylinePreviewTool final : public KisToolPolylineBase
 {
 public:
     explicit PolylinePreviewTool(KoCanvasBase *canvas)
-        : KisToolPolylineBase(canvas, SELECT, QCursor()) {}
+        : KisToolPolylineBase(canvas, SELECT, {}) {}
 protected:
     void finishPolyline(const PkVector<PkPointF> &) override {}
 };
@@ -488,7 +488,7 @@ class SamplingPreviewTool final : public KisToolPaint
 {
 public:
     explicit SamplingPreviewTool(KoCanvasBase *canvas)
-        : KisToolPaint(canvas, QCursor()) { setSupportOutline(true); }
+        : KisToolPaint(canvas, {}) { setSupportOutline(true); }
     using KisToolPaint::activateAlternateAction;
     using KisToolPaint::deactivateAlternateAction;
     using KisToolPaint::beginAlternateAction;
@@ -543,7 +543,7 @@ class FreehandEventProbeTool final : public KisToolFreehand
 {
 public:
     explicit FreehandEventProbeTool(KoCanvasBase *canvas)
-        : KisToolFreehand(canvas, QCursor(), KUndo2MagicString(), false)
+        : KisToolFreehand(canvas, {}, KUndo2MagicString(), false)
     {
     }
 
@@ -588,7 +588,7 @@ class KeyEventProbeTool final : public KisToolPaint
 {
 public:
     explicit KeyEventProbeTool(KoCanvasBase *canvas)
-        : KisToolPaint(canvas, QCursor()) {}
+        : KisToolPaint(canvas, {}) {}
 
     Pk::Key lastKey {static_cast<Pk::Key>(0)};
     Pk::KeyboardModifiers lastModifiers;
@@ -1113,10 +1113,15 @@ void KisAsyncColorSamplerHelperTest::toolCursorTokenPersistsAndApplies()
                           ++tokenNotificationCount;
                       });
 
-    QCOMPARE(canvas.cursorImportCount, 1);
+    // Task 3: the tool constructor now stores the passed KisCanvasCursorToken
+    // verbatim (KisTool::KisTool(KoCanvasBase*, KisCanvasCursorToken)) instead
+    // of importing a default QCursor into a token. A {} argument therefore means
+    // the zero token == platform default cursor, and nothing is imported at
+    // construction time.
+    QCOMPARE(canvas.cursorImportCount, 0);
     QCOMPARE(canvas.cursorApplyCount, 0);
     QCOMPARE(canvas.cursorOwnershipQueryCount, 0);
-    QVERIFY(tool.storedCursorToken());
+    QVERIFY(!tool.storedCursorToken());
 
     tool.applyStoredCursor();
 

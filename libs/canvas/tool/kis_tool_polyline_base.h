@@ -18,7 +18,7 @@ public:
         SELECT
     };
 
-    KisToolPolylineBase(KoCanvasBase * canvas, KisToolPolylineBase::ToolType type, const QCursor & cursor);
+    KisToolPolylineBase(KoCanvasBase * canvas, KisToolPolylineBase::ToolType type, KisCanvasCursorToken cursor);
 
     void beginPrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;

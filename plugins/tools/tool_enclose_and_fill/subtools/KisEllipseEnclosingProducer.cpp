@@ -12,7 +12,7 @@
 #include "KisEllipseEnclosingProducer.h"
 
 KisEllipseEnclosingProducer::KisEllipseEnclosingProducer(KoCanvasBase * canvas)
-    : KisDynamicDelegateTool<KisToolEllipseBase>(canvas, KisToolEllipseBase::PAINT, Qt::ArrowCursor)
+    : KisDynamicDelegateTool<KisToolEllipseBase>(canvas, KisToolEllipseBase::PAINT, KisCanvasCursorToken())
 {
     setObjectName("enclosing_tool_rectangle");
     setSupportOutline(true);

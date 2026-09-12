@@ -5,8 +5,6 @@
  */
 
 
-#include <QCursor>
-
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
@@ -24,7 +22,7 @@
 #include "KisToolBasicBrushBase.h"
 
 KisToolBasicBrushBase::KisToolBasicBrushBase(KoCanvasBase * canvas, ToolType type)
-    : KisToolShape(canvas, Qt::ArrowCursor)
+    : KisToolShape(canvas, {})
     , m_type(type)
     , m_previewColor(0, 255, 0, 128)
 {
@@ -158,7 +156,7 @@ void KisToolBasicBrushBase::beginAlternateAction(KoPointerEvent *event, Alternat
 
     setMode(GESTURE_MODE);
     m_changeSizeInitialGestureDocPoint = event->point;
-    m_changeSizeInitialGestureGlobalPoint = toPkPoint(QCursor::pos());
+    m_changeSizeInitialGestureGlobalPoint = event->globalPos();
 
     m_changeSizeLastDocumentPoint = event->point;
     m_changeSizeLastPaintOpSize = currentPaintOpPreset()->settings()->paintOpSize();

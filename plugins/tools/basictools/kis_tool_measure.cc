@@ -41,7 +41,7 @@
 #define INNER_RADIUS 50
 
 KisToolMeasure::KisToolMeasure(KoCanvasBase * canvas)
-    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolCursor(CURSOR_STYLE_CROSSHAIR))
+    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolCursorToken(CURSOR_STYLE_CROSSHAIR))
 {
 }
 

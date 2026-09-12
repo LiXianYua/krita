@@ -84,7 +84,7 @@ void KisToolPathLocalTool::endShape()
 
 KisPathEnclosingProducer::KisPathEnclosingProducer(KoCanvasBase * canvas)
     : KisDynamicDelegateTool<DelegatedPathTool>(canvas,
-                                                Qt::ArrowCursor,
+                                                KisCanvasCursorToken(),
                                                 new KisToolPathLocalTool(canvas, this))
 {
     setObjectName("enclosing_tool_path");

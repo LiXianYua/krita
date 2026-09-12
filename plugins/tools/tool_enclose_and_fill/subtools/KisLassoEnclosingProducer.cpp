@@ -11,7 +11,7 @@
 #include "KisLassoEnclosingProducer.h"
 
 KisLassoEnclosingProducer::KisLassoEnclosingProducer(KoCanvasBase * canvas)
-    : KisDynamicDelegateTool<KisToolOutlineBase>(canvas, KisToolOutlineBase::PAINT, Qt::ArrowCursor)
+    : KisDynamicDelegateTool<KisToolOutlineBase>(canvas, KisToolOutlineBase::PAINT, KisCanvasCursorToken())
 {
     setObjectName("enclosing_tool_lasso");
     setSupportOutline(true);

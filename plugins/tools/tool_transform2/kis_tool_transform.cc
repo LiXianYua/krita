@@ -75,7 +75,7 @@
 #include "strokes/inplace_transform_stroke_strategy.h"
 
 KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
-    : KisTool(canvas, QCursor())
+    : KisTool(canvas, {})
     , m_converter(dynamic_cast<const KisCoordinatesConverter *>(canvas->viewConverter()))
     , m_warpStrategy(
         new KisWarpTransformStrategy(

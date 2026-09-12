@@ -22,7 +22,7 @@
 #include "KisToolOutlineBase.h"
 #include "input/KisInputActionGroup.h"
 
-KisToolOutlineBase::KisToolOutlineBase(KoCanvasBase * canvas, ToolType type, const QCursor & cursor)
+KisToolOutlineBase::KisToolOutlineBase(KoCanvasBase * canvas, ToolType type, KisCanvasCursorToken cursor)
     : KisToolShape(canvas, cursor)
     , m_continuedMode(false)
     , m_type(type)

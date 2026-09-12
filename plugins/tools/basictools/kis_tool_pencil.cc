@@ -17,7 +17,7 @@
 #include <KisCanvasToolServices.h>
 
 KisToolPencil::KisToolPencil(KoCanvasBase * canvas)
-    : DelegatedPencilTool(canvas, Qt::ArrowCursor,
+    : DelegatedPencilTool(canvas, {},
                           new __KisToolPencilLocalTool(canvas, this))
 {
     setIsOpacityPresetMode(true);
@@ -43,7 +43,7 @@ void KisToolPencil::resetCursorStyle()
 void KisToolPencil::updatePencilCursor(bool value)
 {
     if (mode() == HOVER_MODE || mode() == PAINT_MODE) {
-        setCursor(value ? Qt::ArrowCursor : Qt::ForbiddenCursor);
+        setCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolShapeCursorToken(value ? Pk::ArrowCursor : Pk::ForbiddenCursor));
         resetCursorStyle();
     }
 }

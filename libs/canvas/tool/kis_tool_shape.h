@@ -28,7 +28,7 @@ class KRITACANVAS_EXPORT KisToolShape : public KisToolPaint
 {
 
 public:
-    KisToolShape(KoCanvasBase * canvas, const QCursor & cursor);
+    KisToolShape(KoCanvasBase * canvas, KisCanvasCursorToken cursor);
     ~KisToolShape() override;
     int flags() const override;
 

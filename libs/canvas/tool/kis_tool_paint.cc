@@ -68,7 +68,7 @@ struct KisToolPaint::Private
 };
 
 
-KisToolPaint::KisToolPaint(KoCanvasBase *canvas, const QCursor &cursor)
+KisToolPaint::KisToolPaint(KoCanvasBase *canvas, KisCanvasCursorToken cursor)
     : KisTool(canvas, cursor),
       m_isOutlineEnabled(true),
       m_isOutlineVisible(true),

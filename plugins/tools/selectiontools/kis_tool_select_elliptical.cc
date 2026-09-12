@@ -24,7 +24,7 @@
 
 __KisToolSelectEllipticalLocal::__KisToolSelectEllipticalLocal(KoCanvasBase *canvas)
     : KisToolEllipseBase(canvas, KisToolEllipseBase::SELECT,
-                         selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_elliptical_selection_cursor.png")))
+                         selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_elliptical_selection_cursor.png")))
 {
     PkObject::setObjectName("tool_select_elliptical");
 }

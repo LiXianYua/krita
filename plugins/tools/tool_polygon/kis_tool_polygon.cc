@@ -24,7 +24,7 @@
 
 KisToolPolygon::KisToolPolygon(KoCanvasBase *canvas)
         : KisToolPolylineBase(canvas, KisToolPolylineBase::PAINT,
-                              dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_polygon_cursor.png", 6, 6))
+                              dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursorToken("tool_polygon_cursor.png", 6, 6))
 {
     PkObject::setObjectName("tool_polygon");
     setSupportOutline(true);

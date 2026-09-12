@@ -31,7 +31,7 @@ class KRITACANVAS_EXPORT KisToolFreehand : public KisToolPaint
 {
 
 public:
-    KisToolFreehand(KoCanvasBase * canvas, const QCursor & cursor, const KUndo2MagicString &transactionText,
+    KisToolFreehand(KoCanvasBase * canvas, KisCanvasCursorToken cursor, const KUndo2MagicString &transactionText,
                     bool useSavedSmoothing = true);
     ~KisToolFreehand() override;
     int flags() const override;

@@ -38,7 +38,7 @@
 #include "kis_processing_applicator.h"
 
 
-KisToolShape::KisToolShape(KoCanvasBase * canvas, const QCursor & cursor)
+KisToolShape::KisToolShape(KoCanvasBase * canvas, KisCanvasCursorToken cursor)
         : KisToolPaint(canvas, cursor)
 {
 }

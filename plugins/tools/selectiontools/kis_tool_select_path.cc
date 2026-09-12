@@ -22,7 +22,7 @@
 
 KisToolSelectPath::KisToolSelectPath(KoCanvasBase * canvas)
     : KisToolSelectBase<KisDelegatedSelectPathWrapper>(canvas,
-                                                       selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor.png")),
+                                                       selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor.png")),
                                                        PkString("Select path"),
                                                        new __KisToolSelectPathLocalTool(canvas, this))
 {}

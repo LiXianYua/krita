@@ -152,14 +152,11 @@ bool clearImage(KisImageSP image, KisNodeList nodes, KisSelectionSP selection)
 
 } // namespace
 
-KisTool::KisTool(KoCanvasBase * canvas, const QCursor & cursor)
+KisTool::KisTool(KoCanvasBase * canvas, KisCanvasCursorToken cursor)
     : KoToolBase(canvas)
     , d(new Private)
 {
-    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
-    if (services) {
-        d->cursor = services->toolImportCursor(cursor);
-    }
+    d->cursor = cursor;
 
     KisConfigNotifier *notifier = KisConfigNotifier::instance();
     PkObject::connect(
@@ -478,15 +475,6 @@ void KisTool::setMode(ToolMode mode) {
 
 KisTool::ToolMode KisTool::mode() const {
     return d->m_mode;
-}
-
-void KisTool::setCursor(const QCursor &cursor)
-{
-    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
-    KIS_ASSERT(services);
-    if (services) {
-        d->cursor = services->toolImportCursor(cursor);
-    }
 }
 
 void KisTool::setCursor(KisCanvasCursorToken cursor)

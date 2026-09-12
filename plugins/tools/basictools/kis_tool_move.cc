@@ -61,7 +61,7 @@ struct KisToolMoveState : KisToolChangesTrackerData, boost::equality_comparable<
 
 
 KisToolMove::KisToolMove(KoCanvasBase *canvas)
-    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolMoveCursor())
+    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolMoveCursorToken())
     , m_updateCursorCompressor(100, KisSignalCompressor::FIRST_ACTIVE)
 {
     PkObject::setObjectName("tool_move");

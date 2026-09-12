@@ -49,7 +49,7 @@ namespace
 class DynamicBase : public KisTool
 {
 public:
-    DynamicBase(KoCanvasBase *canvas, const QCursor &cursor)
+    DynamicBase(KoCanvasBase *canvas, KisCanvasCursorToken cursor)
         : KisTool(canvas, cursor)
     {
     }
@@ -376,7 +376,7 @@ void KisDynamicDelegatedToolTest::forwardsAllNotificationsAcrossReplacement()
                           ++statusCount;
                       });
 
-    auto *first = new DelegateTool(nullptr, QCursor());
+    auto *first = new DelegateTool(nullptr, {});
     PkPointer<DelegateTool> firstGuard(first);
     tool.setDelegateTool(first);
     first->activateTool("first-tool");
@@ -393,7 +393,7 @@ void KisDynamicDelegatedToolTest::forwardsAllNotificationsAcrossReplacement()
     QCOMPARE(selectionCount, 1);
     QCOMPARE(statusCount, 1);
 
-    auto *second = new DelegateTool(nullptr, QCursor());
+    auto *second = new DelegateTool(nullptr, {});
     PkPointer<DelegateTool> secondGuard(second);
     tool.setDelegateTool(second);
     QVERIFY(firstGuard.isNull());
@@ -419,7 +419,7 @@ void KisDynamicDelegatedToolTest::forwardsKeyAndResourceEventsAcrossReplacement(
 {
     DynamicTool tool(nullptr);
 
-    auto *first = new DelegateTool(nullptr, QCursor());
+    auto *first = new DelegateTool(nullptr, {});
     tool.setDelegateTool(first);
 
     PkToolKeyEvent pressEvent(Pk::Key_A, Pk::ControlModifier, false);
@@ -437,7 +437,7 @@ void KisDynamicDelegatedToolTest::forwardsKeyAndResourceEventsAcrossReplacement(
     QCOMPARE(first->resourceKey, 17);
     QCOMPARE(first->resourceValue.toString(), PkString("first-resource"));
 
-    auto *second = new DelegateTool(nullptr, QCursor());
+    auto *second = new DelegateTool(nullptr, {});
     tool.setDelegateTool(second);
 
     PkToolKeyEvent replacementPress(Pk::Key_Return, Pk::ShiftModifier, false);
@@ -453,7 +453,7 @@ void KisDynamicDelegatedToolTest::forwardsKeyAndResourceEventsAcrossReplacement(
 
 void KisDynamicDelegatedToolTest::disconnectsWhenSenderOrReceiverDies()
 {
-    auto *sender = new DelegateTool(nullptr, QCursor());
+    auto *sender = new DelegateTool(nullptr, {});
     auto *receiver = new DynamicTool(nullptr);
     PkConnection senderLifetime =
         PkObject::connect(sender, &KoToolBase::statusTextChanged,
@@ -462,7 +462,7 @@ void KisDynamicDelegatedToolTest::disconnectsWhenSenderOrReceiverDies()
     delete sender;
     QVERIFY(!senderLifetime.isValid());
 
-    sender = new DelegateTool(nullptr, QCursor());
+    sender = new DelegateTool(nullptr, {});
     PkConnection receiverLifetime =
         PkObject::connect(sender, &KoToolBase::statusTextChanged,
                           receiver, &KoToolBase::statusTextChanged);

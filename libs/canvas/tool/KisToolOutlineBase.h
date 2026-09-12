@@ -27,7 +27,7 @@ public:
 
     KisToolOutlineBase(KoCanvasBase *canvas,
                        ToolType type,
-                       const QCursor & cursor);
+                       KisCanvasCursorToken cursor);
     ~KisToolOutlineBase() override;
 
     void beginPrimaryAction(KoPointerEvent *event) override;

@@ -10,7 +10,6 @@
 #include <array>
 
 class KisCanvasToolServices;
-class QCursor;
 class KisCanvasCursorToken;
 
 struct SelectionToolCursorDescriptor {
@@ -26,8 +25,6 @@ using SelectionToolCursorDescriptorList = std::array<SelectionToolCursorDescript
 
 const SelectionToolCursorDescriptor &selectionToolCursorDescriptor(std::string_view name);
 const SelectionToolCursorDescriptorList &selectionToolCursorDescriptors();
-QCursor selectionToolCursor(const KisCanvasToolServices *host,
-                            const SelectionToolCursorDescriptor &descriptor);
 KisCanvasCursorToken selectionToolCursorToken(const KisCanvasToolServices *host,
                                               const SelectionToolCursorDescriptor &descriptor);
 

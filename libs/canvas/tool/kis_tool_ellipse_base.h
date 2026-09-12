@@ -12,7 +12,7 @@
 class KRITACANVAS_EXPORT KisToolEllipseBase : public KisToolRectangleBase
 {
 public:
-    KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, const QCursor & cursor);
+    KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, KisCanvasCursorToken cursor);
 
     void paintRectangle(PkPainter &gc, const PkRectF &imageRect) override;
 

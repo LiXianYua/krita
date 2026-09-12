@@ -55,7 +55,7 @@ const KisCoordinatesConverter* getCoordinatesConverter(KoCanvasBase * canvas)
 
 
 KisToolLine::KisToolLine(KoCanvasBase * canvas)
-    : KisToolShape(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_line_cursor.png", 6, 6)),
+    : KisToolShape(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursorToken("tool_line_cursor.png", 6, 6)),
       m_showGuideline(true),
       m_strokeIsRunning(false),
       m_infoBuilder(new KisConverterPaintingInformationBuilder(getCoordinatesConverter(canvas))),

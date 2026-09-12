@@ -36,7 +36,7 @@ constexpr int PreviewLineWidth = 1;
 
 __KisToolSelectPolygonalLocal::__KisToolSelectPolygonalLocal(KoCanvasBase *canvas)
     : KisToolPolylineBase(canvas, KisToolPolylineBase::SELECT,
-                          selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor.png")))
+                          selectionToolCursorToken(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor.png")))
 {
     PkObject::setObjectName("tool_select_polygonal");
 }

@@ -87,7 +87,7 @@ DecorationLine decors[20] =
 const int decorsIndex[DECORATION_COUNT] = {0,4,12,18,20};
 
 KisToolCrop::KisToolCrop(KoCanvasBase * canvas)
-        : KisTool(canvas, Qt::ArrowCursor)
+        : KisTool(canvas, {})
 {
     PkObject::setObjectName("tool_crop");
     m_handleSize = 13;
