@@ -309,3 +309,35 @@
 #ifndef kundo2_noi18n
 #define kundo2_noi18n(text) kundo2_text_raw(text)
 #endif
+
+// ---------------------------------------------------------------------------
+// PK_FAIL 的消息归一（R-75）。
+//
+// 真 Qt 的 QFAIL 靠 **QByteArray 的 operator const char*** 接受
+// `QFAIL(QString(...).toLatin1())`（qtestcase.h:69-73 + qbytearray.h:207，探针实测
+// 见 sdk/tests/compat/PkTestFailMessage.h 头注）。pk 侧 PK_FAIL 把 message 直接交给
+// `PkTestCase::checkResult(..., const std::string&)`，而 PkByteArray 既无 operator
+// const char* 也无 operator std::string ⇒ 真实测试源的 47 处 QFAIL 在 pk 栈编不过。
+//
+// **顺序保证可行**：上面 `#include <pk/test/compat/QTest>`（:21）已拉进 PkTest.h 的
+// `PK_FAIL` 定义，这里 `#undef` 后重定义成「先归一成 std::string」的版本。
+// `PkTest.h` / `pk/test/compat/QTest` 都带 `#pragma once`，wrap TU 之后的再次 include
+// 不会把宏覆盖回去（R-75 task-2 报告 §3.5 有实测证据）。
+// 归一函数与逐字头注在 sdk/tests/compat/PkTestFailMessage.h（本头 include 它）。
+//
+// **只对 pk 测试 TU 生效**：本头只被 kritatestsdk_pk 以 `-include` 注入 pk_add_test
+// 目标的 TU；真 Qt 测试栈 kritatestsdk 不定义 KRITA_TESTSDK_PK_NATIVE、也不 include
+// 本头，拿不到这段重定义，行为一个字不变。
+#include "PkTestFailMessage.h"
+
+#ifdef PK_FAIL
+#undef PK_FAIL
+#endif
+#define PK_FAIL(message)                                              \
+    do {                                                              \
+        if (PkTestCase::current().checkResult(                       \
+                false, __FILE__, __LINE__,                            \
+                pkTestFailMessage(message))) {                        \
+            return;                                                   \
+        }                                                             \
+    } while (false)

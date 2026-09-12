@@ -98,7 +98,15 @@ target_compile_options(kritatestsdk_pk INTERFACE
 # 下直接调 PkThread::registerMainThread() / PkThreadCallQueue::warmUpCurrentThread()
 # ——任何走 SIMPLE_TEST_MAIN 族的目标都需要这两个符号，所以它是测试 SDK 的一部分
 # （与 kritatestsdk 把 kritaglobal 一起链走同因），不该要求下游各自记得加。
-target_link_libraries(kritatestsdk_pk INTERFACE pktest pkconcurrent)
+target_link_libraries(kritatestsdk_pk INTERFACE pktest pkconcurrent pkimageio)
+# R-75：`pkimageio` 是 PkImage 文件 I/O（按路径构造 / load / save，R-75 Task 1 交付）
+# 的符号落点——`PkImage.h` 声明它们、定义在 `pk/image/PkImageFileIo.cpp` 编进
+# `pkimageio`（`pk/CMakeLists.txt` 的 `add_library(pkimageio SHARED …)`）。打开
+# sdk/tests/qimage_test_util.h 的 checkQImage 族后，每一个 pk target 都会调用这三个
+# 符号；不加则**所有** pk target 链接期缺符号（`Undefined symbols: PkImage::load…`）。
+# `pkimageio` 是本仓库的 pk 库、不是 Krita 库，链它不破坏「零 Krita 库依赖 ⇒ 红了
+# 就是机器坏了」这条对 sdk/tests 内 PkTestSupportSelfTest 的性质（该 target 仍编得过、
+# 跑得绿，见 R-75 task-2 报告 §3.2）——但它是 SHARED，会在测试运行时被加载。
 
 # -----------------------------------------------------------------------------
 # pk_add_test(<testbase> [SRCDIR <dir>] [LINK_LIBRARIES <libs...>])

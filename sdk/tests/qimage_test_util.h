@@ -6,13 +6,23 @@
 
 // ===========================================================================
 // [GAP] qimage_test_util.h 阻塞登记（S-06 Task 9）
+//   —— R-75 关闭（2026-09-12）
 //
-// 本文件不进薄壳，保留 Qt 类型。checkQImage/compareQImages 族的目标类型
-// PkImage 无文件 I/O（无 load/save/文件构造），参考图从文件读入与写出的逻辑
-// 无法端口化；目标类型 R-15 未交付（见 sdk/tests/README.md「已知缺口」）。
-// 五族默认容差保持原样：checkQImage 族 fuzzy=0、fuzzyAlpha=-1→0、
-// maxNumFailingPixels=0；compareQImages 族 0,0,0。
-// 关闭条件：R-15 交付 PkImage 文件 I/O 后端口化。
+// **已关闭。关闭依据**：R-15（R-75 Task 1）交付了 PkImage 的文件 I/O
+// （按路径构造 / load / save）＋ invertPixels，本文件需要的 `QImage ref(fullPath)`
+// （文件加载）与 `image.save(...)` / `ref.save(...)`（文件写出）在 pk 栈上都有
+// 等价物。原来那三处 `#ifndef KRITA_TESTSDK_PK_NATIVE` 守卫按「关闭条件：R-15
+// 交付 PkImage 文件 I/O 后端口化」的登记意图被**打开**：checkQImageImpl /
+// checkQImage / checkQImagePremultiplied / checkQImageExternal 四族现在在 pk 栈上
+// 真参与编译。
+//
+// **打开守卫不改任何行为**：只删掉 `#ifndef`/`#endif` 这对预处理指令本身，
+// 四族的代码体（含五族默认容差：checkQImage 族 fuzzy=0、fuzzyAlpha=-1→0、
+// maxNumFailingPixels=0；compareQImages 族 0,0,0）**一个 token 未动**。
+// 真 Qt 测试栈（kritatestsdk）不定义 KRITA_TESTSDK_PK_NATIVE，删掉 `#ifndef`
+// 之后这段代码在真 Qt 栈上照旧被编译，行为一个字不变。
+// compareChannels / compareChannelsPremultiplied / compareQImagesImpl /
+// compareQImages / compareQImagesPremultiplied 本来就两栈共用，零改动。
 
 
 #ifndef QIMAGE_TEST_UTIL_H
@@ -206,7 +216,11 @@ inline bool compareQImagesPremultiplied(QPoint & pt, const QImage & image1, cons
 // compareQImagesPremultiplied **一个字不动**——它们是**内存内**比对（两个
 // 已构造的 image 逐行 memcmp + 通道容差），pk 栈上照常工作，语义与真 Qt 逐字相同。
 // 真 Qt 测试栈（kritatestsdk）不定义 KRITA_TESTSDK_PK_NATIVE，本文件行为一个字不变。
-#ifndef KRITA_TESTSDK_PK_NATIVE
+//
+// R-75：守卫已按上面的关闭条件**打开**（R-15 / R-75 Task 1 交付了 PkImage 文件
+// I/O）。原 `#ifndef KRITA_TESTSDK_PK_NATIVE` / `#endif` 只被删掉，四族代码体
+// （含默认容差）零 diff；真 Qt 栈上这段代码本来就在 `#ifndef` 的「真」分支里，
+// 删掉守卫后照旧编译、行为一个字不变。
 inline bool checkQImageImpl(bool externalTest,
                             const QImage &srcImage, const QString &testName,
                             const QString &prefix, const QString &name,
@@ -313,7 +327,6 @@ inline bool checkQImageExternal(const QImage &image, const QString &testName,
                            prefix, name,
                            fuzzy, fuzzyAlpha, maxNumFailingPixels, false);
 }
-#endif // !KRITA_TESTSDK_PK_NATIVE
 
 }
 

@@ -13,9 +13,13 @@
 //     `/a/b/c.png` → `/a/b`；相对路径 `c.png` → 先按 cwd 解析，取父目录 = **cwd 本身**。
 // 本垫片逐条对齐（exists 用 stat、目录也算；absolutePath 先 absolutize 再取 dirname）。
 //
+// R-75 增补 `path()`（见下）：打开 sdk/tests/qimage_test_util.h 的 checkQImage 族
+// 后，`QFileInfo pathInfo(path); directory.mkpath(pathInfo.path());` 成为新调用点。
+//
 // 归属：QFileInfo 属 PkImage 文件 I/O（R-15）那一族；`sdk/tests/qimage_test_util.h`
-// 已是登记的 [GAP]（关闭条件 = R-15 交付 PkImage 文件 I/O）。本垫片只覆盖上述
-// 唯一调用点所需的最小 API（构造/exists/absolutePath），一路一项不多。
+// 已是登记的 [GAP]（关闭条件 = R-15 交付 PkImage 文件 I/O —— **R-75 已满足**）。
+// 本垫片只覆盖上述唯一调用点所需的最小 API（构造/exists/absolutePath/path()），
+// 一路一项不多。
 // ---------------------------------------------------------------------------
 #pragma once
 #include "PkString.h"
@@ -37,6 +41,34 @@ public:
     {
         struct stat st;
         return stat(m_path.c_str(), &st) == 0;
+    }
+
+    // R-75 增补 `path()` —— 唯一调用点 sdk/tests/qimage_test_util.h 的
+    //   `QFileInfo pathInfo(path); directory.mkpath(pathInfo.path());`
+    // 语义（**真 Qt 5.15.7 探针实测**，原始输出见 R-75 task-2 报告 §3.3，
+    //      探针源码 /tmp/r75probe2/qfileinfo_probe*.cpp，Qt 5.15.7 / macOS）：
+    //   "/a/b/c.png"→"/a/b" · "a/b/c.png"→"a/b"（**相对保持相对**）
+    //   "c.png"→"." · "plain"→"." · ".."→"." · "."→"."
+    //   "/c.png"→"/" · "//c.png"→"/" · ""（空）→""
+    //   "a/b//"→"a/b/" · "a/b///"→"a/b//" · "a//b//c.png"→"a//b/"
+    //   "/a/./b/../c.png"→"/a/./b/.."（**不**做 cleanPath 归一）
+    // 即：空串原样返回；否则取**最后一个 '/' 左侧**；lastIndexOf==0 → "/"；
+    // lastIndexOf<0 → "."。**与 absolutePath() 的区别**：path() 对相对路径
+    // **保持相对**（"a/b/c.png"→"a/b"，不按 cwd 绝对化），absolutePath() 先按
+    // cwd 绝对化再取父目录（"a/b/c.png"→"<cwd>/a/b"）。两者实现不可混抄。
+    PkString path() const
+    {
+        if (m_path.empty()) {
+            return PkString();
+        }
+        const std::size_t slash = m_path.find_last_of('/');
+        if (slash == std::string::npos) {
+            return PkString(".");
+        }
+        if (slash == 0) {
+            return PkString("/");
+        }
+        return PkString(m_path.substr(0, slash).c_str());
     }
 
     // 父目录的绝对路径；相对路径按 cwd 解析（探针实测：`c.png` → cwd）。

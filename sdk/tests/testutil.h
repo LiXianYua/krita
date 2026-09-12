@@ -12,6 +12,11 @@
 // qApp->processEvents() 已删除；PATTERN-2 一处 QTest::qWait 保留待 S-08
 // flush 方法。
 // 关闭条件：PkImage 文件 I/O（R-15）+ TestNode 的 Q_OBJECT 端口化。
+//
+// R-75 更新（2026-09-12）：**PkImage 文件 I/O 已交付**（R-15 / R-75 Task 1）⇒
+// 上面第一个关闭条件已满足。随之打开的是 ReferenceImageChecker（它唯一依赖就是
+// checkQImage* 的文件 I/O，见下方 struct 前的注）。其余关闭条件（TestNode 的
+// Q_OBJECT 端口化）仍未满足，本文件的 [GAP] 未整体关闭。
 
 
 #ifndef TEST_UTIL
@@ -342,9 +347,13 @@ inline bool comparePaintDevicesClever(const KisPaintDeviceSP dev1, const KisPain
 
 #ifdef FILES_OUTPUT_DIR
 
-// R-65 Task 3 · pk 栈守卫：ReferenceImageChecker 存在的唯一目的就是调
-// checkQImage* 读写参考图（文件 I/O），pk 栈上那族已被守卫掉（见本文件顶部注）。
-#ifndef KRITA_TESTSDK_PK_NATIVE
+// R-65 Task 3 · pk 栈守卫（R-75 已打开）：
+// ReferenceImageChecker 存在的唯一目的就是调 checkQImage* 读写参考图（文件
+// I/O）。R-65 时 pk 栈上那族被守卫掉（PkImage 无文件 I/O），本类跟着被守卫。
+// R-75：R-15 交付 PkImage 文件 I/O 后，qimage_test_util.h 的 checkQImage* 族在
+// pk 栈上打开，本类的守卫前提消失 ⇒ 一并打开。仅删掉 `#ifndef`/`#endif`，
+// 代码体除 checkDevice 里那两处 `#ifdef`/`#else` 分叉（pk 栈上 `QImage ==
+// PkImage`，`diagnosticQImage` 不存在、无需桥接）外零 diff。
 struct ReferenceImageChecker
 {
     enum StorageType {
@@ -381,16 +390,33 @@ struct ReferenceImageChecker
 
         if (m_storageType == ExternalStorage) {
             const PkImage converted = device->convertToQImage(0, image->bounds());
+#ifdef KRITA_TESTSDK_PK_NATIVE
+            // pk 栈：`QImage` 是 `PkImage` 的宏（pk/image/compat/QImage），
+            // checkQImageExternal 直接收 PkImage；diagnosticQImage（PkImage→QImage
+            // 桥）在 pk 栈上不存在，也不需要。
+            result = checkQImageExternal(converted,
+                                         m_testName,
+                                         m_prefix,
+                                         caseName, m_fuzzy, m_fuzzy, m_maxFailingPixels);
+#else
             result = checkQImageExternal(diagnosticQImage(converted),
                                          m_testName,
                                          m_prefix,
                                          caseName, m_fuzzy, m_fuzzy, m_maxFailingPixels);
+#endif
         } else {
             const PkImage converted = device->convertToQImage(0, image->bounds());
+#ifdef KRITA_TESTSDK_PK_NATIVE
+            result = checkQImage(converted,
+                                 m_testName,
+                                 m_prefix,
+                                 caseName, m_fuzzy, m_fuzzy, m_maxFailingPixels);
+#else
             result = checkQImage(diagnosticQImage(converted),
                                  m_testName,
                                  m_prefix,
                                  caseName, m_fuzzy, m_fuzzy, m_maxFailingPixels);
+#endif
         }
 
         m_success &= result;
@@ -414,7 +440,6 @@ private:
     int m_maxFailingPixels;
     int m_fuzzy;
 };
-#endif // !KRITA_TESTSDK_PK_NATIVE
 
 
 #endif
