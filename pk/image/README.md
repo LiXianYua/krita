@@ -90,7 +90,7 @@ Krita 调用点实测 0 处，这两个 Pk 前缀观测器只服务 detach 时�
 
 ## 2. 偏离清单（**最重要的一节**）
 
-对齐口径：替代品与 Qt 的任何行为差异默认都是缺陷（R线-spec「对齐口径」）。以下 6 条
+对齐口径：替代品与 Qt 的任何行为差异默认都是缺陷（R线-spec「对齐口径」）。以下 7 条
 是**逐条写明理由、经 reviewer 放行**的已声明偏离。每条标三类之一：
 **结构偏离**（Qt 走 QPainter/定点，移植不在 R 线范围）· **判据①范围裁剪**（该路径
 零真实调用点，一项不多）· **Qt 自身 bug 的规避**（Qt 自身行为不自洽/是 UB，PkImage
@@ -104,6 +104,7 @@ Krita 调用点实测 0 处，这两个 Pk 前缀观测器只服务 detach 时�
 | ④ | **`fill(uint32_t)` 在 RGBA8888/Grayscale8 与 Qt 自身对不齐** | **Qt 自身 bug 的规避** | Qt 的 `fill(uint)` 在这两个格式走裸 memfill、绕过格式的字节序/灰度换算，与 Qt 自己的 `setPixel()` **不自洽**。PkImage 选与 `setPixel()` 同一套语义（更自洽），对 Qt 对不齐。其余 6 个高频格式 Qt 自身 fill==setPixel，实测 SAME |
 | ⑤ | **`setColor` grow-beyond-256：PkImage 无条件 resize** | **判据①范围裁剪** | Qt 拒绝把 Indexed8 颜色表长过 256（8bit 索引上限）并 qWarning；PkImage 无条件 `resize(idx+1)`。grow-beyond-256 这条路径零真实调用点，且超出的表项经 8bit 索引本就不可达，PkImage 选简单确定性行为 |
 | ⑥ | **越界坐标读 PkImage 定死返 0 vs Qt 未初始化内存 UB** | **Qt 自身 bug 的规避** | 真 Qt 的 `pixel(-1,-1)` 读未初始化内存（探针实测返回 `0x00003039`、`pixelIndex` 返 `-12345`，纯垃圾值连重跑都不确定）；PkImage 定死返 0（透明黑）——没有可对齐语义，PkImage 更安全。oracle 只比越界**写**的 no-op 语义，不比越界读 |
+| ⑦ | **`load(path, format)` 的显式 `format` 令牌只判「有没有解码器」，不判「内容必须匹配」** | **判据①范围裁剪** | 真 Qt 的 `format` 语义是「**内容必须是这个格式**」：把一个真 PNG 喂给 `QImage(path, "JPG")` 返回 **null**（探针 P8）。本实现只判「有没有这个扩展名的解码器」（`formatTokenSupported`）——`"JPG"` 本仓有 `native.jpeg` handler，放行后按**内容嗅探**解码，于是 `PkImage(png, "JPG")` **成功**，与真 Qt 分道扬镳。理由三条：①全仓**零调用点**传显式 format（`impact-map.md` §2 用量表 + plan §0 四问 1）；②改成「内容匹配」要先钉住 `PkImageFileDecoder` 是否暴露实际解码格式，且**没有任何调用点受益**——判据①「一项不多一项不少」；③R线-spec 允许的「判据①范围裁剪」类偏离（先例：③⑤两条）。canary：oracle Group F 的 `fileIo_load explicit-format-token-content-mismatch`（计数 1，`image.deviation`） |
 
 ---
 

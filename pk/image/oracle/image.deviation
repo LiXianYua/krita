@@ -190,13 +190,21 @@ convertToFormat_1arg	src=RGBA64_dst=Indexed8_target-is-indexed_pixels	1	Task3 �
 # ══════════════════════════════════════════════════════════════════════════
 # R-75 新增：Group F（文件 I/O 与 invertPixels）
 #
-# **本组没有新增任何"已声明偏离"**——除两条 canary（见顶部，
-# fileio-load-pixel-mismatch=8 / fileio-save-pixel-mismatch=6，都是比较管道自证、
-# 不是真差异）外，**逐条比对全部为零差异**。新增的 40 次比对：
+# **本组新增 1 条"已声明偏离"**（修复轮 1 加）——`fileIo_load`
+# `explicit-format-token-content-mismatch`（计数 1，见本文件末尾「R-75 修复轮 1
+# 新增」一节与 `README.md` §2 第 ⑦ 条）：显式 format 令牌的语义偏离，是真行为
+# 差异。此外还有两条 canary（见顶部，fileio-load-pixel-mismatch=8 /
+# fileio-save-pixel-mismatch=6，都是比较管道自证、不是真差异）。**其余逐条比对
+# 全部为零差异。** 新增的比对：
 #
 #   · invertPixels：4 格式（ARGB32 / RGB32 / ARGB32_Premultiplied / RGBA8888）
 #     × 2 模式（InvertRgb / InvertRgba）= 8 次。**预乘格式走"反预乘 → 按位取反
 #     → 再预乘"，与非预乘不是同一条路径**（探针 P4 实测），所以格式必须参数化。
+#   · invertPixels / Format_RGBX8888（修复轮 1 加，评审 N-4）：2 模式 = 2 次，
+#     **走裸字节路径**（RGBX8888 是 PkImage 低频格式，像素级 read/write 未实现、
+#     debug assert——见 `README.md` §2 偏离②，实测走 setPixel 会 Abort trap: 6）。
+#     两侧喂同一段显式字节语料，各自 invertPixels 后逐字节比，**零差异** ⇒
+#     `supported` 集合含 RGBX8888 由「推断」变为「实测」。这一格不产生 DIFFTAG。
 #   · PkImage::load（真 Qt 写出的 PNG 再被两侧读回）：4 格式（ARGB32 / RGB32 /
 #     Indexed8 / Grayscale8）× 2 尺寸（7×5 / 16×16）= 8 次，逐像素比。
 #   · PkImage::save（PkImage 写出、真 Qt 读回）：3 种调用形态（默认 / 显式
@@ -233,3 +241,23 @@ convertToFormat_1arg	src=RGBA64_dst=Indexed8_target-is-indexed_pixels	1	Task3 �
 #        / `map(PkPolygonF)` / `map(PkPainterPath)` 的 out-of-line 方法要调它们的
 #        out-of-line 成员，不 include 进 TU 就链不上（geometry 先例是 S-09-g 补
 #        的同一课）。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# R-75 修复轮 1 新增：`load()` 显式 format 令牌的语义偏离（评审 N-1 / 简报 F-1）
+#
+# 本仓 `PkImage::load(path, format)` 的 `format` 令牌**只判「有没有这个扩展名的
+# 解码器」**（`formatTokenSupported`），不判「内容必须是这个格式」。真 Qt 的语义
+# 是后者：一个真 PNG 文件喂给 `QImage(path, "JPG")` 返回 **null**（探针 P8：内容
+# PNG 不是 JPEG）。`"JPG"` 本仓有 `native.jpeg` handler，故本实现放行、随后按内容
+# 嗅探解码 → `PkImage(png, "JPG")` **成功**，与真 Qt 分道扬镳。
+#
+# 这是**已声明的判据①范围裁剪偏离**（README §2 第 ⑦ 条）：全仓零调用点传显式
+# format，改成「内容匹配」要先钉住 PkImageFileDecoder 是否暴露实际解码格式，且没有
+# 任何调用点受益——判据①「一项不多一项不少」。同 `PkImageFileIo.cpp` 的 `load()`
+# 校验段头注与本文件顶部 R-75 说明。
+#
+# 计数=1：F2d 只喂一组对拍（一个真 PNG + 令牌 "JPG"，`QImage(path,"JPG")` 判 null、
+# `PkImage(path,"JPG")` 实测非 null → 判成「两侧不同」）。**这一格是真行为差异**，
+# 故意让它 mismatch 是我们接受的结果（不是 canary：canary 证的是比较管道活着）。
+# ══════════════════════════════════════════════════════════════════════════
+fileIo_load	explicit-format-token-content-mismatch	1	判据①范围裁剪：全仓零调用点传显式 format，令牌按「存在解码器」判定而非「内容必须匹配」；真 Qt 在内容与令牌不符时返回 null（探针 P8），本实现不模拟此格

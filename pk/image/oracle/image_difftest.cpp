@@ -1073,10 +1073,13 @@ static void runConvertMatrix()
 extern "C" {
 unsigned int *pkbridge_load(const char *path, int *outW, int *outH, int *outFormat);
 int pkbridge_load_format(const char *path);
+int pkbridge_load_format_token(const char *path, const char *format);
 int pkbridge_save(const char *path, const unsigned int *pixels, int w, int h,
                   const char *format, int quality);
 unsigned int *pkbridge_invert(const unsigned int *pixels, int w, int h,
                               int formatCode, int mode);
+unsigned char *pkbridge_invert_raw(const unsigned char *bytes, int w, int h,
+                                   int formatCode, int mode);
 void pkbridge_free(void *buffer);
 }
 
@@ -1158,6 +1161,65 @@ static void runInvertPixels()
                 firstBad < 0 ? std::string("all-equal")
                              : hstr(q.pixel(firstBad % w, firstBad / w)),
                 firstBad < 0 ? std::string("all-equal") : hstr(p[firstBad]));
+            pkbridge_free(p);
+        }
+    }
+
+    // ── F1b：Format_RGBX8888 的裸字节实测（修复轮 1 / F-2 / 评审 N-4）──────
+    // `PkImage::invertPixels` 的 `supported` 集合含 `Format_RGBX8888`，此前无一手
+    // 探针、纯属推断（归入 RGB32 同支）。**不能走上面的 setPixel/pixel 循环**：
+    // RGBX8888 是 PkImage 的低频格式，像素级 read/write 未实现、debug assert 当场
+    // 触发（`README.md` §2 偏离②）——实测过：`pkbridge_invert` 在该格式上
+    // `Assertion failed: … pixel-level write not implemented`（Abort trap: 6）。
+    // `invertPixels` 本身就是在**裸字节**上做的，所以两侧都改走裸字节：喂同一段
+    // 显式字节语料（每像素 R,G,B,X 四字节，X 位取 0x00/0x7f/0xff 交叉覆盖），
+    // 各自 `invertPixels(mode)` 后逐字节比。这正是 N-4 要的那一层。
+    {
+        // 3×2 像素，X 位故意取不同值，用来抓「X 位是否被取反/被清」的差异。
+        static const uint8_t kRaw[6 * 4] = {
+            0x10, 0x20, 0x40, 0x80, /* px0 */
+            0x03, 0x02, 0x01, 0xff, /* px1 */
+            0x00, 0x00, 0x00, 0x00, /* px2 */
+            0xff, 0xff, 0xff, 0x7f, /* px3 */
+            0x04, 0x03, 0x02, 0x01, /* px4 */
+            0xff, 0xff, 0xff, 0xff, /* px5 */
+        };
+        const int rw = 3, rh = 2;
+        const int rawFmt = QImage::Format_RGBX8888;
+
+        for (int mode = 0; mode <= 1; ++mode) {
+            QImage q(rw, rh, static_cast<QImage::Format>(rawFmt));
+            for (int y = 0; y < rh; ++y) {
+                std::memcpy(q.scanLine(y), kRaw + y * rw * 4, rw * 4);
+            }
+            q.invertPixels(mode == 0 ? QImage::InvertRgb : QImage::InvertRgba);
+
+            const std::string tag = std::string("fmt=") + fmtName(rawFmt)
+                + "_mode=" + (mode == 0 ? "rgb" : "rgba");
+
+            unsigned char *p = pkbridge_invert_raw(kRaw, rw, rh, rawFmt, mode);
+            if (!p) {
+                rec("invertPixels", false, tag + "_bridge-failed", tag, "image", "null");
+                continue;
+            }
+            int firstBad = -1;
+            for (int y = 0; y < rh && firstBad < 0; ++y) {
+                for (int x = 0; x < rw; ++x) {
+                    for (int c = 0; c < 4; ++c) {
+                        const int i = y * rw * 4 + x * 4 + c;
+                        if (q.constScanLine(y)[x * 4 + c] != p[i]) {
+                            firstBad = i;
+                            break;
+                        }
+                    }
+                    if (firstBad >= 0) break;
+                }
+            }
+            rec("invertPixels", firstBad < 0, tag, tag,
+                firstBad < 0 ? std::string("all-equal")
+                             : hstr(q.constScanLine(firstBad / (rw * 4))[(firstBad % (rw * 4))]),
+                firstBad < 0 ? std::string("all-equal")
+                             : std::to_string(static_cast<int>(p[firstBad])));
             pkbridge_free(p);
         }
     }
@@ -1328,6 +1390,30 @@ static void runFileIo()
             pkbridge_save((std::string(kFileIoDir) + "/bad-suffix.xyz").c_str(),
                           px.data(), 4, 4, nullptr, -1) == 0,
             "unknown-suffix", "suffix=.xyz", "qt-false", "pk-false");
+    }
+
+    // ── F2d：显式 format 令牌与内容不符（修复轮 1 / F-1 / 评审 N-1）───────
+    // 真 Qt 的 format 令牌语义是「**内容必须是这个格式**」：把一个真 PNG 文件喂
+    // 给 `QImage(path, "JPG")` → null（探针 P8）。PkImage 的语义是「有没有这个
+    // 扩展名的解码器」——`"JPG"` 本仓有 `native.jpeg` handler，放行后按内容嗅探
+    // 解码，故 `PkImage(同一个 PNG, "JPG")` 会**成功**。这一格是**已声明的判据①
+    // 范围裁剪偏离**（`image.deviation`：fileIo_load explicit-format-token-
+    // content-mismatch = 1），本组对拍就是让这条声明有实测支撑、而不是空口。
+    // **不是 canary**：它是真行为差异，故意让它判成「两侧不同」是我们接受的结果。
+    {
+        const std::string pngPath = std::string(kFileIoDir) + "/fmt-token-corpus.png";
+        const QImage corpusToken = makeQtCorpus(QImage::Format_ARGB32, 4, 4);
+        if (!corpusToken.save(QString::fromStdString(pngPath), "PNG")) {
+            rec("fileIo_load", false, "fmt-token-fixture-write-failed", pngPath,
+                "saved", "not-saved");
+        } else {
+            const QImage qToken(pngPath.c_str(), "JPG");
+            const int pkToken = pkbridge_load_format_token(pngPath.c_str(), "JPG");
+            rec("fileIo_load", qToken.isNull() == (pkToken < 0),
+                "explicit-format-token-content-mismatch", "png-content-jpg-token",
+                qToken.isNull() ? "qt-null" : "qt-ok",
+                pkToken < 0 ? "pk-null" : "pk-ok");
+        }
     }
 }
 

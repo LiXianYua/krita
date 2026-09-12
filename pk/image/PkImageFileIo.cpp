@@ -4,7 +4,10 @@
 // 编解码的静态库（`pk/image/README.md` §0：范围只做内存像素 buffer），PNG 等
 // 编解码住在 `pkimageio`。所以这三个符号**声明**在 `pkimage`（`PkImage.h`）、
 // **定义**在这里 —— 即 `libpkimage.a` 里 `PkImage(PkString,…)`/`load`/`save`
-// 是未定义符号，由 `pkimageio` 补齐。这是已知且写明的事实（README 有专节）。
+// **整个不存在**：既不是定义，也不是「被引用但没定义」的未定义符号（R-75 实测
+// `nm -g -C libpkimage.a | grep -E 'PkImage::(load|save)\('` 零命中，详见
+// `README.md` §3.1）。定义只存在于 `pkimageio` 且都是**导出**符号；任何调用它们
+// 的消费方都必须在链接行上带 `pkimageio`。
 //
 // 语义对齐真 Qt 5.15.7 的 `QImage`，全部经探针实测（命令与原始输出见
 // `.superpowers/sdd/R-75/task-1-report.md`「探针」一节）：
@@ -14,8 +17,14 @@
 //     `isNull()==true`、`width()==0`）；
 //   · `save` 成功返回 true，坏目录/空路径/未知格式令牌/无后缀都返回 false
 //     （P3/P7）；显式 `format` 优先于路径后缀（P3：`save("x.bin","PNG")` 成功）；
-//   · 显式给了没有解码器的格式令牌时 Qt 判失败（P8：`QImage(realpng,"JPG")`
-//     为 null）—— 本实现对**本仓没有对应 handler 的令牌**同样判失败。
+//   · 显式 `format` 令牌的语义**只判「有没有这个扩展名的解码器」**，不是
+//     「内容必须是这个格式」。真 Qt 在内容与令牌不符时返回 null（P8：
+//     `QImage(realpng,"JPG")` 为 null —— PNG 内容不是 JPEG），**本实现不模拟
+//     这一格**：令牌有解码器（如 `"JPG"`，本仓 `native.jpeg` handler 认它）就
+//     放行，随后按内容嗅探解码。这是一条**已声明的判据①范围裁剪偏离**（理由见
+//     `README.md` §2，计数见 `oracle/image.deviation`）；
+//   · 显式给了**本仓没有对应 handler 的令牌**时返回失败（与真 Qt 对未知格式
+//     一致，P7）。
 
 #include "PkImage.h"
 
@@ -96,6 +105,13 @@ PKIMAGEIO_EXPORT bool PkImage::load(const PkString &fileName, const char *format
         return false;
     }
 
+    // ⚠ format 令牌的语义（**已声明偏离**，理由见 `README.md` §2，计数见
+    // `oracle/image.deviation`）：这一段只判「**有没有这个扩展名的解码器**」
+    // （`formatTokenSupported`），**不判「内容必须是这个格式」**。真 Qt 在内容
+    // 与令牌不符时返回 null（探针 P8：`QImage(一个真 PNG, "JPG")` 为 null）；
+    // 本实现不模拟这一格 —— 令牌有解码器就放行，随后由 `PkImageFileDecoder::load`
+    // 按**内容嗅探**解码，于是 `PkImage(png, "JPG")` 会成功。全仓零调用点传显式
+    // format，按判据①「一项不多一项不少」裁剪为「存在解码器」判定，不做内容匹配。
     const std::string token = normalizedFormatToken(format);
     if (!token.empty() && !formatTokenSupported(token)) {
         *this = PkImage();

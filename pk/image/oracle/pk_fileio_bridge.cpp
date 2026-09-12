@@ -68,6 +68,20 @@ unsigned int *pkbridge_load(const char *path, int *outW, int *outH, int *outForm
     return buffer;
 }
 
+// 读一张图并**显式给格式令牌**（走 `PkImage(path, format)` / `load(path, format)`），
+// 专供「内容与令牌不符」那一格对拍（修复轮 1 / F-1 / 评审 N-1）：真 Qt 的 format
+// 令牌语义是「内容必须是这个格式」，不符则 null；PkImage 只判「有没有这个扩展名
+// 的解码器」，令牌有解码器就放行、随后按内容嗅探解码。返回解码格式码（>=0）或
+// -1（null / 失败）。
+int pkbridge_load_format_token(const char *path, const char *format)
+{
+    const PkImage loaded = PkImage(PkString(path), format); // vexing parse 同上
+    if (loaded.isNull()) {
+        return -1;
+    }
+    return static_cast<int>(loaded.format());
+}
+
 // 读一张图的**原始格式码**（`PkImage::format()` 的整数值），不读像素。
 // 打不开返回 -1。用于把「解码出来的格式」也纳入对拍。
 int pkbridge_load_format(const char *path)
@@ -144,6 +158,42 @@ unsigned int *pkbridge_invert(const unsigned int *pixels, int w, int h,
 void pkbridge_free(void *buffer)
 {
     std::free(buffer);
+}
+
+// 裸字节版的原地取反：构造 `PkImage(w, h, formatCode)`，把调用方给的**裸字节**
+// 逐行 memcpy 进它的像素 buffer（绕开像素级 API），`invertPixels(mode)` 后把
+// 每行原样拷回。专供 `Format_RGBX8888` 这一格（修复轮 1 / F-2 / 评审 N-4）：
+// RGBX8888 是 PkImage 的**低频格式**（像素级 read/write 未实现、debug assert，
+// 见 `pk/image/README.md` §2 偏离②），走 setPixel/pixel 会当场 assert；而
+// `invertPixels` 本身就是在裸字节上做的，这一层正是要实测的对象。
+// `bytes` 为 w×h 个紧密排布的 4 字节像素（RGBX8888 的 R,G,B,X）。
+// 返回 malloc 的缓冲（调用方 pkbridge_free），失败返回 nullptr。
+unsigned char *pkbridge_invert_raw(const unsigned char *bytes, int w, int h,
+                                   int formatCode, int mode)
+{
+    if (!bytes || w <= 0 || h <= 0) {
+        return nullptr;
+    }
+    PkImage image(w, h, static_cast<PkImage::Format>(formatCode));
+    if (image.isNull()) {
+        return nullptr;
+    }
+    for (int y = 0; y < h; ++y) {
+        std::memcpy(image.scanLine(y), bytes + static_cast<std::size_t>(y) * w * 4,
+                    static_cast<std::size_t>(w) * 4);
+    }
+    image.invertPixels(mode == 1 ? PkImage::InvertRgba : PkImage::InvertRgb);
+
+    unsigned char *buffer = static_cast<unsigned char *>(
+        std::malloc(static_cast<std::size_t>(w) * h * 4));
+    if (!buffer) {
+        return nullptr;
+    }
+    for (int y = 0; y < h; ++y) {
+        std::memcpy(buffer + static_cast<std::size_t>(y) * w * 4,
+                    image.constScanLine(y), static_cast<std::size_t>(w) * 4);
+    }
+    return buffer;
 }
 
 } // extern "C"
