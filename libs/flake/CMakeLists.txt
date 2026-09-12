@@ -522,8 +522,12 @@ list(REMOVE_ITEM kritaflake_core_SRCS ${kritaflake_painting_SRCS})
 # mangled name**（符号恒为 `_ZNK18KoCanvasController16actionCollectionEv`），所以它
 # **永远链得过**；定义一旦落在 Qt 桶，native 的 `KoToolBase.cpp` 就会把真 `QObject*`
 # 当 `PkObject*` 用——实测 `SIGSEGV` / `std::system_error: Invalid argument`。
-# R-57 的处理：该访问器的 **qt 支保持原样**，只在 `#else` 支补一条同形访问器
-# （`KoCanvasController.h`），两条支互斥可见，不构成跨桶符号。
+# R-57 的处理：**给 native 消费方另起一个名字**——`actionCollectionObject()`
+# （`KoCanvasController.h`）。它与 `actionCollection()` 的两点差别各自承重：
+# 名字不同 ⇒ 两条 inline 定义不会被链接器去重成一份（同名同拼法就会，那正是本条
+# 上半段那条缝）；返回类型是 `PkObject *` ⇒ **两桶不分叉**，两桶的定义逐字相同、
+# 去重后语义也相同。于是该函数**两桶都可见**（qt 桶零调用点），不构成跨桶符号。
+# qt 支的 `actionCollection()` 原样保留、仍未 native 侧所见。
 
 
 kritaflake_add_native_object_library(kritaflake_painting_objects ${kritaflake_painting_SRCS})

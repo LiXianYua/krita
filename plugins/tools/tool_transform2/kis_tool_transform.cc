@@ -1218,9 +1218,11 @@ void KisToolTransform::slotEditingFinished()
 // KisToolTransformConfigWidget::slotFlipX/slotFlipY/slotRotateCW/
 // slotRotateCCW/slotSetKeepAspectRatio. They back the "extra context click
 // options" (mirrorHorizontalAction/mirrorVerticalAction/rotateNinetyCWAction/
-// rotateNinetyCCWAction/keepAspectRatioAction) added to popupActionsMenu()
-// when free transform is active -- a context-menu entry point independent of
-// the panel, so it must keep working after the panel is deleted.
+// rotateNinetyCCWAction/keepAspectRatioAction) that used to be added to the
+// tool's context menu when free transform is active -- an entry point
+// independent of the panel, so it must keep working after the panel is
+// deleted. (The Qt context menu itself was removed by R-57 per the three-way
+// split; the underlying actions are what these methods still drive.)
 void KisToolTransform::slotFlipHorizontal()
 {
     ToolTransformArgs *config = m_transaction.currentConfig();
