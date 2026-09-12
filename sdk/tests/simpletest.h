@@ -56,6 +56,56 @@ int runSimpleTest(TestObject *test, int argc, char **argv)
 
 } // namespace KritaTestSdk
 
+#ifdef KRITA_TESTSDK_PK_NATIVE
+// <chrono>/<ctime> 只被下面的 PkTest::qWait 用；放在本 ifdef 内可让**真 Qt 测试栈**
+// （kritatestsdk，不定义 KRITA_TESTSDK_PK_NATIVE）的 TU 前导与迁移前逐字节一致。
+#include <chrono>
+#include <ctime>
+
+// ---------------------------------------------------------------------------
+// R-65（Task 2+4）· `QTest::qWait` 的 pk 等价物
+//
+// 为什么在这里而不在 compat 垫片里：pk 栈上 `#define QTest PkTest`，测试源写
+// `QTest::qWait(ms)` 就落到 `PkTest::qWait`。唯一的真实调用点
+// sdk/tests/testutil.h 的 `TestUtil::MaskParent::waitForImageAndShapeLayers()`
+// 在 do/while 里调它（等 KoShapeManager/KisShapeLayerCanvas 的 100ms 去抖）。
+// 本函数**必须**放在 simpletest.h —— 它已经在上面 include 了 PkThreadCallQueue.h；
+// 而若把 PkThreadCallQueue.h 放进 PkTestCompatAll.h（每个 TU 的**最前面** force-include），
+// 会让 <mutex>/<thread>/<functional>/<memory> 成为 TU 里第一批标准头，实测把
+// boost/operators.hpp:316 的 `::boost::addressof` 打崩（`no member named 'boost'
+// in the global namespace`）。放在这里（simpletest.h 由被测头在**中段**拉入）不触发。
+//
+// 语义（真 Qt 探针 evidence/t24/probe_qpe-output.txt 的 D 组：QTest::qWait(200)
+// 实测 elapsed=202ms）：等待约 ms 后返回，期间驱动事件循环。pk 栈没有隐式事件
+// 循环，等价物是**显式 pump** PkThreadCallQueue::processPendingCalls()（R-24 的
+// 投递原语；SIMPLE_MAIN_IMPL 也用它 warmUp）。逐字对齐「等到 deadline 为止、
+// 期间反复抽干本线程调用队列」，**不是**简单 qSleep —— testutil.h:505-511 的注释
+// 明写「不能简单换成 sleep（不会让挂起的 QTimer 触发，语义假绿）」。
+//
+// 已知偏离（登记）：真 Qt 的 qWait 还驱动 QPA 事件；pk 侧只有调用队列可驱动。
+// 对唯一调用点而言这是同族的「显式同步 flush」，与注释里等的 S-08 交付同向，
+// S-08 交付后本函数应删。
+// ---------------------------------------------------------------------------
+namespace PkTest {
+
+inline void qWait(int ms)
+{
+    if (ms <= 0) {
+        PkThreadCallQueue::processPendingCalls();
+        return;
+    }
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
+    for (;;) {
+        PkThreadCallQueue::processPendingCalls();
+        if (std::chrono::steady_clock::now() >= deadline) break;
+        struct timespec ts = { 0, 1000000 }; // 1ms
+        nanosleep(&ts, nullptr);
+    }
+}
+
+} // namespace PkTest
+#endif
+
 #define SIMPLE_MAIN_IMPL(TestObject) \
     KRITA_SIMPLE_TEST_PLUGIN_PATH_SETUP \
     PkThread::registerMainThread(); \

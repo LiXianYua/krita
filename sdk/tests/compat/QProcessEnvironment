@@ -1,0 +1,77 @@
+// R-65（Task 2+4）· sdk/tests/compat/QProcessEnvironment
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：pk/ 树里**没有** QProcessEnvironment（`ls pk/*/compat/` 实测
+// 无此名），而 sdk/tests 的两处真实调用点要它。它不是探针 artifact ——
+// 逐 target 高保真探针（/tmp/r65exp/faithful.py，复用真 pk_wrap 编译行）实测：
+//   7 个可达 target 的**终局阻塞**就是 `fatal error: 'QProcessEnvironment' file not found`。
+// 唯一的真实调用点：
+//   sdk/tests/qimage_test_util.h:28-38  `TestUtil::fetchExternalDataFileName()`
+//       static QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+//       if (!env.contains(unittestsDataDirPath)) { warnKrita << ...; return QString(); }
+//       path = env.value(unittestsDataDirPath, "");
+//   （该块在 `#ifdef FILES_OUTPUT_DIR` 内；本 Task 的 target 编译行实测带
+//     -DFILES_OUTPUT_DIR=… ⇒ 可达。另一个包含点 sdk/tests/testutil.h:22 是无条件的。）
+//
+// 语义（**真 Qt 探针实测**，原始输出 evidence/t24/probe_qpe-output.txt，
+//       Qt 5.15.7 / macOS / clang 17）：
+//   * `QProcessEnvironment::systemEnvironment()` 是**构造时的快照**：
+//     先 qputenv(A=BEFORE) → 取 snap → 再 qputenv(A=AFTER)，
+//     `snap.value(A)` 仍是 "BEFORE"，而**新的一次** systemEnvironment() 得 "AFTER"。
+//   * 键名比较**大小写敏感**：contains("PATH")=true 而 contains("path")=false。
+//   * `contains(不存在的键)`=false；`value(不存在的键)`="" （空串，非 null）；
+//     `value(不存在的键, "DEFVAL")`="DEFVAL"。
+//   * 默认构造的实例：isEmpty()=true、contains(任何键)=false。
+// 本垫片逐条对齐以上四点（快照 = 构造时把 environ 拷进 map；查找用 std::map 的
+// 逐字节键比较 = 大小写敏感；value 的两参/一参默认值语义照抄）。
+//
+// 归属：`pk/test/README.md` 的表里没有 QProcessEnvironment（它不在 pk/test 的
+// QTest 族里，属进程环境读取原语）。真 Qt 的 QProcessEnvironment 是 QtCore 的
+// 导出类；S 线 nm 判据把它的符号算「真 Qt 符号」，所以 native 侧必须自己给定义。
+// pk 侧的正家尚未交付（`ls pk/*/` 无 ProcessEnvironment）。本垫片只覆盖测试面
+// 上述唯一调用点所需的最小 API（一项不多：构造/系统快照/contains/value/isEmpty）。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkString.h"
+#include <cstdlib>
+#include <cstring>
+#include <map>
+#include <string>
+
+class QProcessEnvironment
+{
+public:
+    QProcessEnvironment() = default;
+
+    // 快照语义：调用时刻的进程环境拷贝一份（之后 os 环境再变不影响本实例）。
+    static QProcessEnvironment systemEnvironment()
+    {
+        QProcessEnvironment e;
+        extern char **environ;
+        for (char **it = environ; it && *it; ++it) {
+            const char *eq = std::strchr(*it, '=');
+            if (!eq) continue; // 形如 "=..." 的条目 Qt 也不收录
+            e.m_vars.emplace(std::string(*it, static_cast<size_t>(eq - *it)),
+                             std::string(eq + 1));
+        }
+        return e;
+    }
+
+    // 键名逐字节比较（大小写敏感，与探针 A 组一致）。
+    bool contains(const PkString &name) const
+    {
+        return m_vars.find(name.PkToUtf8()) != m_vars.end();
+    }
+
+    // 缺省值语义照抄探针：一参调用默认空串，二参调用给什么返回什么。
+    PkString value(const PkString &name,
+                   const PkString &defaultValue = PkString()) const
+    {
+        const auto it = m_vars.find(name.PkToUtf8());
+        return it == m_vars.end() ? defaultValue : PkString(it->second.c_str());
+    }
+
+    bool isEmpty() const { return m_vars.empty(); }
+
+private:
+    std::map<std::string, std::string> m_vars;
+};

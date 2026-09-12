@@ -1,0 +1,22 @@
+#pragma once
+#include "PkGlobal.h"
+#include <PkTextStream.h>
+
+// R-65 T2+4 · sdk/tests/compat/QTextStream
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：pk 树有 PkTextStream（pk/textstream，R-50，真实现）但
+// **没有 QTextStream 这个名字**；而 libs/global/KisPortingUtils.h:9 写的是
+// `#include <QTextStream>`。
+// 唯一的真实调用点：libs/global/KisPortingUtils.h:9（include）+ :22
+//   `inline void setUtf8OnStream(QTextStream &stream) { stream.setCodec("UTF-8"); }`
+//   —— PkTextStream::setCodec 已存在（PkTextStream.h 里声明，UTF-8 原生，
+//   空操作），签名与真 Qt 同形。该函数的调用者见 KisPortingUtils.h 头注列出的
+//   7 个真实调用点（SvgWriter/SvgParser/HtmlWriter 等）。
+// 到达路径（探针实测）：benchmarks/kis_low_memory_benchmark.cpp:28 →
+//   libs/pigment/KoColorSpace.h:19 → … → libs/global/KisPortingUtils.h:9。
+// 映射而不是 `using QTextStream = PkTextStream;`：与 pk/string/compat/QString
+// 同因——源文件里有 `class QTextStream;` 前置声明，类型别名会撞
+// "redeclared as different kind of entity"，宏能把那行原样改写成 PkTextStream。
+//
+// 唯一真实调用点（本映射的）：见上。无扩展名：源码层 Q* 判据口径外。
+#define QTextStream PkTextStream

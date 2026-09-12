@@ -1,0 +1,20 @@
+#pragma once
+// R-65 T2+4 · Pk 名落点垫片（落点目录 = sdk/tests/compat，pk 测试栈专用）
+// ---------------------------------------------------------------------------
+// 与 libs/flake/flake/noqt-compat/compat/ 里的 32 个同款落点同名同义（来源：
+// 该目录的文件头注解释了机制）。本目录只补 noqt-compat 里**没有**的几个
+// （去重规则使那里每族只留非 F 变体 / 部分族未列）。
+//
+// 机制（impact-map.md §3.12）：PkXmlCompat.h 的激活清单写成
+// ， 拼出的裸名会参与后续宏替换；当对应
+// 别名宏（pk/<dir>/compat/<裸名> 里的映射）已生效时，include 源文本里的裸名被
+// 再扫描成 Pk 名 → 解析路径变成 `compat/Pk<N>`，而 pk 侧没有该文件名。
+// 本文件让**改写后的**路径解析得到。
+//
+// 为什么空实现与「再 include 一次真垫片」等价：只有裸名宏已定义时才会走到本
+// 路径，而该宏只在 pk/<dir>/compat/<裸名> 已被处理后才存在（即真垫片已进过本
+// TU）。所以空实现等价，且让激活对 include 顺序免疫、可重复。
+//
+// 唯一真实到达点：libs/pigment/PkXmlCompat.h 的对应 #include 行，经
+// libs/flake/PkFlakeBridge.h:743 进入 3 个 flake/canvas 测试 TU（探针实测）。
+// 本文件无扩展名、无裸 Q 名字面 token（S线-spec 源码层判据口径外）。

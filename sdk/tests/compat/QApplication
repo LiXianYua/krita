@@ -1,0 +1,69 @@
+// R-65（Task 2+4）· sdk/tests/compat/QApplication
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：sdk/tests/qimage_test_util.h:25 `#include <QApplication>`
+// （在 `#ifdef FILES_OUTPUT_DIR` 内），随后 :74,:83 用 `qApp->applicationFilePath()`。
+// pk 树没有 QApplication（只有 pk/concurrent/graft/stubs/QApplication 的 graft 桩，
+// 它把 QApplication 变成 PkObject 且**没有 applicationFilePath()**；且 graft 桩不在
+// kritatestsdk_pk 的 include 路径上）。
+// 唯一的真实调用点：
+//   sdk/tests/qimage_test_util.h:74,83  `QFileInfo(qApp->applicationFilePath()).absolutePath()`
+// 语义（**真 Qt 探针实测**，evidence/t24/probe_qfileinfo-output.txt）：
+//   `QCoreApplication::applicationFilePath()` 返回**可执行文件的绝对路径**（探针
+//   用例中 isAbsolute=true，末段即二进制名）。
+// 本垫片用平台 API 取同一路径：macOS `_NSGetExecutablePath`、其它平台
+// `/proc/self/exe`（同一语义的两种系统调用）。
+//
+// 归属：QApplication/QCoreApplication 的正式端口化归「事件循环残余」批次
+// （架构方向见 R-24 Task 5 / pk/concurrent/README.md §4.2）。本垫片只给测试面
+// 唯一调用点要求的最小 API（instance()/applicationFilePath()），**不**提供
+// processEvents()/exec() 等事件循环接口——真需要它们的调用点是登记在案的
+// PATTERN-2，不由本垫片假绿。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkString.h"
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#include <vector>
+#endif
+
+class QApplication
+{
+public:
+    static QApplication *instance()
+    {
+        static QApplication app;
+        return &app;
+    }
+
+    // 可执行文件绝对路径（真 Qt 的 applicationFilePath 语义）。
+    PkString applicationFilePath() const
+    {
+#ifdef __APPLE__
+        uint32_t size = 0;
+        _NSGetExecutablePath(nullptr, &size);
+        std::vector<char> buf(size + 1, '\0');
+        if (_NSGetExecutablePath(buf.data(), &size) != 0) {
+            return PkString();
+        }
+        char resolved[PATH_MAX];
+        if (realpath(buf.data(), resolved) == nullptr) {
+            return PkString(buf.data());
+        }
+        return PkString(resolved);
+#else
+        char buf[PATH_MAX];
+        const ssize_t n = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+        if (n <= 0) {
+            return PkString();
+        }
+        buf[n] = '\0';
+        return PkString(buf);
+#endif
+    }
+
+private:
+    QApplication() = default;
+};
+
+#define qApp (QApplication::instance())

@@ -1,0 +1,30 @@
+#pragma once
+#include "PkString.h"
+
+// R-65 T2+4 · sdk/tests/compat/KLocalizedString（i18n 入口）
+// ---------------------------------------------------------------------------
+// 来源：基底照抄 `.exec/shell`（只读）与 pk 树内既有先例
+//       `pk/xml/tests/graft/stubs/klocalizedstring.h` 的变长模板形态。
+// **与先例的差异（有意，且是本节的重点）**：先例返回**空** PkString，本垫片
+// 返回**源文本**。理由是调用点的判据强度：
+//
+// 唯一的真实调用点：
+//   libs/canvas/tests/kis_selection_tool_factory_test.cpp:154-159
+//       const std::vector<QString> expectedPaintActionText {
+//           i18n("Increase Brush Size"), ... };
+//       QCOMPARE(actions.at(i)->text(), expectedPaintActionText.at(i));
+//   生产侧（libs/canvas/tool/*.cpp 的 createActionsImpl）用同一批 i18n(...)
+//   给 action 设显示文本。若本垫片返回空串，等式两边**同时**变成空串 → 断言
+//   恒真、判据强度归零（那正是「假绿」）。返回源文本则两边同时拿到源文本，
+//   比对仍然是「生产侧文本 == 声明侧文本」，判据强度与真 Qt 下一致。
+// 语义依据：KDE 的 i18n() 在**没有命中翻译目录**时返回的就是源文本（msgid），
+// 本测试环境没有装任何 .mo/.qm 目录；带 `%1` 占位符的调用点在本测试面不存在
+// （实测只出现单参数形态），故不做占位符替换，也不做 ki18n/i18nc 等变体。
+// 国际化选型本身属未来未认领任务（同 QLocale），本文件只覆盖上述调用点。
+//
+// 无扩展名：源码层 Q* 判据口径外（同 compat/ 其余垫片）。
+template <typename... Args>
+inline PkString i18n(const char *sourceText, Args &&...)
+{
+    return PkString(sourceText);
+}

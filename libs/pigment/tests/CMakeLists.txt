@@ -73,12 +73,45 @@ endfunction()
 # Qt::blue/red→Pk::blue/red 见 TestKisSwatchGroup.cpp、pair 哈希重载由 qHash 换成
 # Pk 唯一的扩展点 pkHash 见 TestKisSwatchGroup.h），7 + 2 = 9 个。
 #
-# 同一目录里其余 7 个测试虽然也报 AUTOMOC 形状的错，但那是被 AUTOMOC 错误遮住的
-# 表象，真拦路虎是源码层未迁：5 个（TestKoColor、TestColorConversionSystem、
+# 同一目录里其余 7 个测试的拦路虎**不止一种**：5 个（TestKoColor、TestColorConversionSystem、
 # KoRgbU8ColorSpaceTester、TestKoColorSpaceSanity、TestKoStopGradient）入口仍是
 # kistest.h 的 KISTEST_MAIN（真 Qt 应用对象，S-06 Task 9 登记的 [GAP]）；另 2 个
 # （TestKoColorSet、TestCompositeOpInversion）的 .cpp/.h 仍引用 Qt 名，靠
 # simpletest.h 的 Qt 分支才可见。两者都属类 II 源码迁移，不在本任务范围内 —— 见任务报告。
+#
+# R-65（Task 2+4）实测订正上面这段：**「真拦路虎是源码层未迁」这条只对入口那一层成立，
+# AUTOMOC 不是「被遮住的表象」，是独立且真实的一类。** 以 TestColorConversionSystem 为例，
+# `ninja -C build-r65 TestColorConversionSystem` 现场量到的是**四类并列**的拦路虎
+# （原始输出 1491 行：
+# .superpowers/sdd/R-65/evidence/t24/r61-TestColorConversionSystem-ninja.log）：
+#   ① 入口 KISTEST_MAIN —— TestColorConversionSystem.cpp:499:1
+#      `error: no matching function for call to 'qExec'`（KISTEST_MAIN 宏展开没落点）；
+#      其 :16 `#include <kistest.h>` 在 pk 栈上断得更早：
+#      `sdk/tests/kistest.h:21:10: fatal error: 'QApplication' file not found`
+#   ② QDebug + PkString —— TestColorConversionSystem.cpp:53:57 与
+#      libs/pigment/KoColorConversionSystem_p.h:48:37
+#      `error: invalid operands to binary expression ('QDebug' and 'const PkString')`
+#   ③ AUTOMOC —— 同一个失败的 TU 里，
+#      build-r65/libs/pigment/tests/TestColorConversionSystem_autogen/EWIEGA46WW/
+#      moc_TestColorConversionSystem.cpp:99:33
+#      `error: out-of-line definition of 'qt_static_metacall' does not match any
+#       declaration in 'TestColorConversionSystem'`
+#      （另含 qt_metacast / qt_metacall / staticMetaObject / `static_cast from 'QObject *'
+#       to 'TestColorConversionSystem *'` 等共 12 条同类错误，全在这一条 TU 上）
+#   ④ Qt::GlobalColor → PkString —— TestColorConversionSystem.cpp:371:42 / :377:42 /
+#      :385:42 / :391:42
+#      `error: conversion from 'Qt::GlobalColor' to 'const PkString' is ambiguous`
+# 结论：对这几个 target，「关掉 AUTOMOC + 接上 pk_test_moc.py」**不足以**编过——①在入口层、
+# ②④在源码层，三类要分别处置，AUTOMOC 只是其中一类。
+#
+# R-65 另量到（同一轮，见 .superpowers/sdd/R-65/task-24-report.md §交接 R-61）：TestKoColorSet
+# 与 TestCompositeOpInversion 的源码**已经**迁到 pk 名（在本目录下用 pk_add_test 注册后
+# ninja exit=0，两产物都编出来了），但仍不绿：运行期 SEGFAULT，根因是 pk 栈里没有
+# lcms 色彩空间引擎的静态注册（plugins/color/lcms2engine 的 registerLcmsEngine()，
+# 见 libs/pigment/KoColorSpaceRegistry.cpp:36-40、:198-221 的弱引用守卫），于是
+# KoColorSpaceRegistry::colorSpace(...) 返回 0x0，KoColorSet.cpp:2410 与
+# TestCompositeOpInversion_p.cpp:400 裸解引用。归属 S-09/S-04。故本轮不注册这两个。
+
 foreach(_pigment_pk_target
         TestKoColorSpaceRegistry TestKoColorSpaceAbstract
         TestConvolutionOpImpl

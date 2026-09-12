@@ -147,3 +147,18 @@ if (APPLE)
     set_property(TARGET TestSvgParserCloned PROPERTY MACOSX_BUNDLE ON)
     set_property(TARGET TestSvgParserRoundTrip PROPERTY MACOSX_BUNDLE ON)
 endif()
+
+
+# R-65 T2+4 现场实测：TestShapeStrokeCommand **不可迁**（保留在真 Qt 测试栈）。
+# 实测命令：`ninja -C build-r65 TestShapeStrokeCommand`
+#   → FAILED: pk_wrap_TestShapeStrokeCommand.cpp.o
+#     /…/QtCore.framework/Headers/qglobal.h:658: error: redefinition of 'qAbs'
+#     (note: previous definition is here → pk/test/compat/QtGlobal:21)
+# 根因：pk_add_test 只链 kritaflake，而 kritaflake **PUBLIC** 链
+#   Qt5::Svg / KF5::WidgetsAddons / Qt5::Gui / Qt5::Xml (libs/flake/CMakeLists.txt:615-620)
+# ⇒ 编译行里带回 -DQT_CORE_LIB/-DQT_WIDGETS_LIB… 与 Qt 框架 -isystem 头路径，
+#   真 Qt 的 qglobal.h/qstring.h 与 pk compat 垫片同 TU 相撞。
+# 这与「kis_shape_commands_test/kis_shape_layer_test/KisNodeDummiesGraphTest/
+# KisNodeShapesGraphTest/KoGamutMaskTest/TestShapeBackgroundCommand」同一个墙：
+# kritaflake 尚未剥 Qt（S 线 / S-08 后续）。在它对 pk 测试栈变得可用之前，
+# libs/flake 下的全部 target 都迁不了。

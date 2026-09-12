@@ -34,11 +34,12 @@ krita_add_benchmark(KisStrokeBenchmark TESTNAME krita-benchmarks-KisStrokeBenchm
 krita_add_benchmark(KisFastMathBenchmark TESTNAME krita-benchmarks-KisFastMath ${kis_fast_math_benchmark_SRCS})
 krita_add_benchmark(KisFloodfillBenchmark TESTNAME krita-benchmarks-KisFloodFill ${kis_floodfill_benchmark_SRCS})
 krita_add_benchmark(KisGradientBenchmark TESTNAME krita-benchmarks-KisGradientFill ${kis_gradient_benchmark_SRCS})
-krita_add_benchmark(KisLowMemoryBenchmark TESTNAME krita-benchmarks-KisLowMemory ${kis_low_memory_benchmark_SRCS})
+# R-65 T2+4：这两个基准迁到 pk 测试栈（pk_add_benchmark 见 sdk/tests/pk_test_support.cmake）。
+pk_add_benchmark(KisLowMemoryBenchmark TESTNAME krita-benchmarks-KisLowMemory kis_low_memory_benchmark LINK_LIBRARIES kritaimage)
 if (TARGET kritaui)
     krita_add_benchmark(KisAnimationRenderingBenchmark TESTNAME krita-benchmarks-KisAnimationRenderingBenchmark ${KisAnimationRenderingBenchmark_SRCS})
 endif()
-krita_add_benchmark(KisFilterSelectionsBenchmark TESTNAME krita-image-KisFilterSelectionsBenchmark ${kis_filter_selections_benchmark_SRCS})
+pk_add_benchmark(KisFilterSelectionsBenchmark TESTNAME krita-image-KisFilterSelectionsBenchmark kis_filter_selections_benchmark LINK_LIBRARIES kritaimage)
 krita_add_benchmark(KisThumbnailBenchmark TESTNAME krita-benchmarks-KisThumbnail ${kis_thumbnail_benchmark_SRCS})
 krita_add_benchmark(KisLiquifyTransformWorkerBenchmark TESTNAME krita-benchmarks-KisLiquifyTransformWorker ${KisLiquifyTransformWorkerBenchmark_SRCS})
 krita_add_benchmark(KisFourPointInterpolatorBenchmark TESTNAME krita-benchmarks-KisFourPointInterpolator ${KisFourPointInterpolatorBenchmark_SRCS})
@@ -60,11 +61,13 @@ target_link_libraries(KisStrokeBenchmark  kritaimage  kritatestsdk)
 target_link_libraries(KisFastMathBenchmark  kritaimage  kritatestsdk)
 target_link_libraries(KisFloodfillBenchmark  kritaimage  kritatestsdk)
 target_link_libraries(KisGradientBenchmark  kritaimage  kritatestsdk)
-target_link_libraries(KisLowMemoryBenchmark  kritaimage  kritatestsdk)
+# R-65：链接由上面的 pk_add_benchmark(... LINK_LIBRARIES kritaimage) 承担（kritatestsdk_pk）。
+
 if (TARGET kritaui)
     target_link_libraries(KisAnimationRenderingBenchmark  kritaimage kritaimpex kritaui  kritatestsdk)
 endif()
-target_link_libraries(KisFilterSelectionsBenchmark   kritaimage  kritatestsdk)
+# R-65：链接由上面的 pk_add_benchmark(... LINK_LIBRARIES kritaimage) 承担（kritatestsdk_pk）。
+
 target_link_libraries(KisLiquifyTransformWorkerBenchmark   kritaimage  kritatestsdk ${QUAZIP_LIBRARIES})
 target_link_libraries(KisFourPointInterpolatorBenchmark   kritaimage  kritatestsdk)
 

@@ -14,7 +14,21 @@
 // 语义：`QDir::currentPath()` 是「进程 cwd 的绝对路径」，真 Qt 探针见报告（R-3）。
 // ---------------------------------------------------------------------------
 #pragma once
+// ---------------------------------------------------------------------------
+// R-65 T2+4 增补：真 Qt 5.15 的 <QDir> **传递**声明 QFileInfo（qdir.h 里
+// `typedef QList<QFileInfo> QFileInfoList;` 需要完整类型），实测探针：
+//   /usr/bin/c++ -std=c++17 -F"$QT/lib" -I"$QT/lib/QtCore.framework/Headers" \
+//       -fsyntax-only t.cpp        # t.cpp = `#include <QDir>` + `QFileInfo f(...)`
+//   → rc=0（通过）
+//   对照：只 include <QApplication> 时同一份 t.cpp → `unknown type name 'QFileInfo'`
+// 而 sdk/tests/qimage_test_util.h 的 FILES_OUTPUT_DIR 块只 include
+// <QProcessEnvironment>/<QDir>/<QApplication> 就直接用 QFileInfo（:60,69,74,78,83）。
+// 所以本垫片按真 Qt 的传递面补上这条边——否则 pk 栈报 `use of undeclared
+// identifier 'QFileInfo'`（7 个 target）。仅补真实传递面，不多给。
+// 唯一真实受益调用点：sdk/tests/qimage_test_util.h:60,69,74,78,83。
+// ---------------------------------------------------------------------------
 #include "PkString.h"
+#include "QFileInfo"
 #include "PkGlobal.h"
 #include <sys/stat.h>
 #include <unistd.h>

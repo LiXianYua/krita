@@ -22,6 +22,11 @@
 #include <pk/global/compat/QtGlobal>
 #include <PkNamespace.h>
 
+// Qt::<GlobalColor 枚举名> 别名垫片（R-65 T2+4，impact-map.md §3.7.2）。
+// 必须在 PkNamespace.h 之后（它 include PkGlobal.h，依赖 Pk::GlobalColor 已定义）。
+// 自守卫：真 Qt qnamespace.h 在场时让位。
+#include <QtGlobalColorAliases.h>
+
 // Q_SIGNALS 回写成 public：pk/test/compat/QObject 为了避免槽声明污染把
 // `Q_SIGNALS`/`signals` 定义成空，于是被测头里的 `Q_SIGNALS:` 会退化成裸 `:`，
 // 在类作用域非法。真 Qt5 里 Q_SIGNALS 展开为 `public`（见壳 PkCompatAll.h 的同款
@@ -208,3 +213,22 @@
 #include <PkTestSleepShim.h>
 
 #undef PKC_HAS
+
+// qMin / qMax / qBound —— pk 树只提供 pkMin/pkMax/pkBound（pk/global/PkGlobal.h:154-159），
+// **没有任何地方提供 Qt 名**（R-65 T2+4 逐树核过：PkGlobal.h 里 qMin/qMax 只出现在注释；
+// pk/global/compat/QtGlobal 的头注释声称提供 qRound/qMin/qMax/qBound，实际没有；全树只有
+// libs/flake/PkXmlCompat.h:169 有 `#define qMin pkMin`，那是 flake 自己的 compat 头，只对
+// flake 的 TU 生效）。薄壳早就在做同样的映射（先例：.exec/shell/kritaimage/compat/PkCompatAll.h）。
+// ⚠ pk/global/compat/QtGlobal 的「注释与实现不符」是 pk/ 内的差异，不在本 Task 锁内 ⇒ 只报不改。
+// 按实测调用点补齐（不改测试源、不搬整套 QtGlobal）：sdk/tests/qimage_test_util.h:103 的
+// `qMax(1, fuzzyAlpha)` 是第一个落点，另有 libs/ 下若干测试面调用点。
+// 守卫用 #ifndef：与 flake/PkXmlCompat.h 的同名映射共存（谁先到谁生效，两者都指向 pkXxx）。
+#ifndef qMin
+#define qMin pkMin
+#endif
+#ifndef qMax
+#define qMax pkMax
+#endif
+#ifndef qBound
+#define qBound pkBound
+#endif

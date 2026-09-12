@@ -1,0 +1,65 @@
+// R-65（Task 2+4）· sdk/tests/compat/QFileInfo
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：`pk/` 树无 QFileInfo（`ls pk/*/compat/QFileInfo` 实测无），
+// 而 sdk/tests/qimage_test_util.h 的 `#ifdef FILES_OUTPUT_DIR` 块要用它。
+// 唯一的真实调用点：
+//   sdk/tests/qimage_test_util.h:60,69,78  `if (QFileInfo(filename).exists())`
+//   sdk/tests/qimage_test_util.h:74,83     `QFileInfo(qApp->applicationFilePath()).absolutePath() + "/" + …`
+// 语义（**真 Qt 探针实测**，原始输出 evidence/t24/probe_qfileinfo-output.txt，
+//       Qt 5.15.7 / macOS）：
+//   * `exists()` 对**文件与目录**都返回 true（"/etc/hosts" 与 "/etc" 都 true、
+//     "/no/such/file" false）。
+//   * `absolutePath()` = 把路径按「最后一段是文件名」理解后取**其父目录的绝对路径**：
+//     `/a/b/c.png` → `/a/b`；相对路径 `c.png` → 先按 cwd 解析，取父目录 = **cwd 本身**。
+// 本垫片逐条对齐（exists 用 stat、目录也算；absolutePath 先 absolutize 再取 dirname）。
+//
+// 归属：QFileInfo 属 PkImage 文件 I/O（R-15）那一族；`sdk/tests/qimage_test_util.h`
+// 已是登记的 [GAP]（关闭条件 = R-15 交付 PkImage 文件 I/O）。本垫片只覆盖上述
+// 唯一调用点所需的最小 API（构造/exists/absolutePath），一路一项不多。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkString.h"
+#include <sys/stat.h>
+#include <unistd.h>
+#include <climits>
+#include <string>
+
+class QFileInfo
+{
+public:
+    explicit QFileInfo(const PkString &path)
+        : m_path(path.PkToUtf8())
+    {
+    }
+
+    // 文件或目录存在即 true（探针实测）。
+    bool exists() const
+    {
+        struct stat st;
+        return stat(m_path.c_str(), &st) == 0;
+    }
+
+    // 父目录的绝对路径；相对路径按 cwd 解析（探针实测：`c.png` → cwd）。
+    PkString absolutePath() const
+    {
+        std::string abs = m_path;
+        if (abs.empty() || abs[0] != '/') {
+            char buf[PATH_MAX];
+            if (getcwd(buf, sizeof(buf)) == nullptr) {
+                return PkString();
+            }
+            abs = std::string(buf) + "/" + abs;
+        }
+        const std::size_t slash = abs.find_last_of('/');
+        if (slash == std::string::npos) {
+            return PkString();
+        }
+        if (slash == 0) {
+            return PkString("/"); // "/x" → "/"
+        }
+        return PkString(abs.substr(0, slash).c_str());
+    }
+
+private:
+    std::string m_path;
+};

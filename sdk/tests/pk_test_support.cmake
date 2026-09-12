@@ -33,6 +33,16 @@ target_include_directories(kritatestsdk_pk INTERFACE
     # 2) fork 内的本地垫片目录：pk/*/compat 里没有、而测试面真实需要的名字。
     #    排在 pk/*/compat 之前 —— 同名时本地垫片优先（顺序同薄壳 SHELL_COMPAT_DIRS）。
     "${CMAKE_CURRENT_SOURCE_DIR}/compat"
+    # 2b) Pk 名落点目录（复用捐赠目录，见 impact-map.md §3.12）：
+    #     PkXmlCompat.h 的激活清单写成 `#include PK_INC_(compat/PK_<N>_)`，当被激活的
+    #     别名宏（pk/<dir>/compat/<裸名> 的映射）已生效时，include 源文本里的裸名被
+    #     再扫描成 Pk 名 → 解析路径变成 `compat/Pk<N>`；pk 侧没有这个文件，报
+    #     `fatal error: 'compat/PkColor' file not found`（实测落点
+    #     libs/pigment/PkXmlCompat.h:45，经 libs/flake/PkFlakeBridge.h:743 进入 3 个
+    #     flake/canvas 测试 TU）。libs/flake/flake/noqt-compat/compat/ 已有 32 个同款
+    #     落点文件（其头注解释了「空实现与再 include 一次等价」），本行直接复用该目录
+    #     而不复制文件。该目录只有 compat/ 子目录，不会遮蔽任何非 <compat/*> include。
+    "${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat"
     # 3) 仓库根：wrap TU 写的是 <pk/test/compat/QObject>（工程根相对）——
     #    薄壳 SHELL_INCLUDE_DIRS 收 KRITA_ROOT 同因。
     "${CMAKE_SOURCE_DIR}"
@@ -104,7 +114,15 @@ target_link_libraries(kritatestsdk_pk INTERFACE pktest pkconcurrent)
 #   4. 转调之后关 AUTOMOC（pk 的 compat/QObject 没有元对象，moc_*.cpp 必然编不过）。
 # -----------------------------------------------------------------------------
 function(pk_add_test testbase)
-    cmake_parse_arguments(ARG "" "SRCDIR" "LINK_LIBRARIES" ${ARGN})
+    # HEADERLESS（R-65 T2+4 新增）：测试类声明写在自己的 <testbase>.cpp 里、
+    # 没有 <testbase>.h 的真实 Krita 测试（例：libs/canvas/tests/
+    # kis_selection_tool_factory_test.cpp —— 类 KisSelectionToolFactoryTest 定义在
+    # .cpp:53，末行 `#include "….moc"` 是 AUTOMOC 的落点）。此时 binder 的扫描输入
+    # 就是 .cpp 自己（pk_test_moc.py 对 .h/.cpp 一视同仁，实测
+    # `pk_test_moc.py <该 cpp> --stats` → `1  5`，5 个测试方法全列出），
+    # wrap TU 不再单独 include 源文件（binder 自己会 include，避免无 include guard
+    # 的 .cpp 被编两遍），并补一个空的 <testbase>.moc 占位（见下）。
+    cmake_parse_arguments(ARG "HEADERLESS;BENCHMARK" "SRCDIR;TEST_NAME;NAME_PREFIX;BENCHMARK_TARGET" "SOURCES;LINK_LIBRARIES" ${ARGN})
 
     if(ARG_SRCDIR)
         set(_srcdir "${ARG_SRCDIR}")
@@ -112,10 +130,22 @@ function(pk_add_test testbase)
         set(_srcdir "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
 
-    set(_header "${_srcdir}/${testbase}.h")
+    # target / ctest 名。默认 = 文件 basename；TEST_NAME 用于「目标名 != 文件名」
+    # 的真实 Krita 测试（如 kis_node_dummies_graph_test.cpp → KisNodeDummiesGraphTest）。
+    if(ARG_TEST_NAME)
+        set(_tgt "${ARG_TEST_NAME}")
+    else()
+        set(_tgt "${testbase}")
+    endif()
+
     set(_source "${_srcdir}/${testbase}.cpp")
-    set(_binder "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_${testbase}.inc")
-    set(_wrap "${CMAKE_CURRENT_BINARY_DIR}/pk_wrap_${testbase}.cpp")
+    if(ARG_HEADERLESS)
+        set(_header "${_source}")
+    else()
+        set(_header "${_srcdir}/${testbase}.h")
+    endif()
+    set(_binder "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_${_tgt}.inc")
+    set(_wrap "${CMAKE_CURRENT_BINARY_DIR}/pk_wrap_${_tgt}.cpp")
     set(_moc_script "${CMAKE_SOURCE_DIR}/pk/test/pk_test_moc.py")
 
     if(NOT EXISTS "${_header}")
@@ -133,11 +163,27 @@ function(pk_add_test testbase)
         OUTPUT "${_binder}"
         COMMAND "${Python3_EXECUTABLE}" "${_moc_script}" "${_header}" -o "${_binder}"
         DEPENDS "${_header}" "${_moc_script}"
-        COMMENT "pk_test_moc ${testbase}"
+        COMMENT "pk_test_moc ${_tgt}"
         VERBATIM)
 
     # wrap TU 在 configure 期写盘（内容全是固定路径字符串），与壳 add_shell_test
     # 的 file(WRITE) 同形。
+    if(ARG_HEADERLESS)
+        # binder 的 .inc 自己 `#include "<绝对路径>/<testbase>.cpp"`，所以这里不再
+        # 单独 include 源文件（该 .cpp 无 include guard，编两遍必然重定义）。
+        file(WRITE "${_wrap}"
+"// R-65 生成：pk 栈 wrap TU（HEADERLESS —— 测试类声明在自己的 .cpp 里）。
+// 顺序：compat/QObject -> compat/QTest -> binder（binder 内部再 include 源文件）。
+#include <pk/test/compat/QObject>
+#include <pk/test/compat/QTest>
+#include \"${_binder}\"
+")
+        # .cpp 末尾写死 `#include \"<testbase>.moc\"`（AUTOMOC 的落点）。pk 栈
+        # 关 AUTOMOC、没有 moc 产物，该 include 会报 file not found；写一个空文件
+        # 占位。真正的测试发现由上面的 binder 承担，本文件内容不参与编译语义。
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${testbase}.moc"
+"// R-65：AUTOMOC 落点占位（空文件）。真实测试发现见 pk_binder_${_tgt}.inc。\n")
+    else()
     file(WRITE "${_wrap}"
 "// R-65 生成：pk 栈 wrap TU（零测试源改动）。
 // 顺序照 brief §2 配方 4：compat/QObject -> compat/QTest -> 测试头 -> binder -> 测试源。
@@ -147,24 +193,64 @@ function(pk_add_test testbase)
 #include \"${_binder}\"
 #include \"${_source}\"
 ")
+    endif()
 
-    kis_add_test("${_wrap}"
-        TEST_NAME "${testbase}"
-        LINK_LIBRARIES ${ARG_LINK_LIBRARIES} kritatestsdk_pk
-    )
+    # NAME_PREFIX：只在显式给了才转发（否则 kis_add_test 按路径自动推导，
+    # 与基线一致）。libs/flake/flake/tests 这类目录的基线前缀是 libs-ui-，
+    # 必须逐字转发，否则 ctest 名与基线不符。
+    set(_nameprefix_arg)
+    if(ARG_NAME_PREFIX)
+        set(_nameprefix_arg NAME_PREFIX "${ARG_NAME_PREFIX}")
+    endif()
+
+    # ARG_SOURCES：额外源文件（如 sdk/tests/testutil.cpp），作为**独立 TU** 编进
+    # 同一 target（wrap TU 只负责把 <testbase>.h/.cpp 合成一个 TU）。
+    #
+    # BENCHMARK 分支（R-65 T2+4 新增，供 pk_add_benchmark 用）：基准不是 ctest
+    # 测试——krita_add_benchmark（cmake/modules/MacroKritaAddBenchmark.cmake）建的是
+    # 可执行文件 + <测试名> custom target，且**不** add_test。所以这里走 add_executable
+    # 而不是 kis_add_test（后者会注册 ctest 测试，改变测试计数）。其余步骤（wrap TU /
+    # binder / 编译定义 / AUTOMOC OFF）与测试分支完全同源，机制不重复实现。
+    if(ARG_BENCHMARK)
+        add_executable("${_tgt}" "${_wrap}" ${ARG_SOURCES})
+        target_link_libraries("${_tgt}" PRIVATE ${ARG_LINK_LIBRARIES} kritatestsdk_pk)
+        ecm_mark_nongui_executable("${_tgt}")
+        # 与 cmake/modules/KritaTestSuite.cmake 的 set_test_sdk_compile_definitions 同源：
+        # kis_add_test 分支经 KritaAddBrokenUnitTest.cmake 已带上这两个定义，benchmark
+        # 分支走 add_executable 拿不到 —— 补上（真实调用点：kis_low_memory_benchmark.cpp:56
+        # 的 QString(FILES_DATA_DIR)，以及 FILES_OUTPUT_DIR 的测试输出目录口径）。
+        target_compile_definitions("${_tgt}" PUBLIC FILES_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/")
+        if(WIN32)
+            target_compile_definitions("${_tgt}" PUBLIC FILES_OUTPUT_DIR="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+        else()
+            target_compile_definitions("${_tgt}" PUBLIC FILES_OUTPUT_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+        endif()
+        if(ARG_BENCHMARK_TARGET)
+            # 与 krita_add_benchmark 的 <测试名> custom target 同形：跑这个可执行文件。
+            add_custom_target("${ARG_BENCHMARK_TARGET}" COMMAND $<TARGET_FILE:${_tgt}>)
+            if(TARGET benchmark)
+                add_dependencies(benchmark "${ARG_BENCHMARK_TARGET}")
+            endif()
+        endif()
+    else()
+        kis_add_test("${_wrap}" ${ARG_SOURCES}
+            TEST_NAME "${_tgt}"
+            ${_nameprefix_arg}
+            LINK_LIBRARIES ${ARG_LINK_LIBRARIES} kritatestsdk_pk
+        )
+    endif()
 
     # pk 的 compat/QObject 没有元对象，AUTOMOC 生成的 moc_*.cpp 必然编不过。
-    set_target_properties(${testbase} PROPERTIES AUTOMOC OFF)
-    target_compile_definitions(${testbase} PRIVATE KRITA_TESTSDK_PK_NATIVE)
+    set_target_properties(${_tgt} PROPERTIES AUTOMOC OFF)
+    target_compile_definitions(${_tgt} PRIVATE KRITA_TESTSDK_PK_NATIVE)
     # binder 所在处（build 目录）与测试源目录（<simpletest.h> 等依赖由 kritatestsdk_pk
     # 提供，这里补测试源自身的同级头 include）。
-    target_include_directories(${testbase} PRIVATE
+    target_include_directories(${_tgt} PRIVATE
         "${CMAKE_CURRENT_BINARY_DIR}"
         "${_srcdir}")
     set_source_files_properties("${_wrap}" PROPERTIES OBJECT_DEPENDS "${_binder}")
 
-    # 让下游按 target 名引用；同时把 pk 依赖回灌到 kritatestsdk_pk 之外无需要。
-    set(${testbase}_PK_ADDED TRUE PARENT_SCOPE)
+    set(${_tgt}_PK_ADDED TRUE PARENT_SCOPE)
 endfunction()
 
 # -----------------------------------------------------------------------------
@@ -183,4 +269,36 @@ function(pk_add_tests)
     foreach(_testbase ${ARG_UNPARSED_ARGUMENTS})
         pk_add_test("${_testbase}" ${_extra})
     endforeach()
+endfunction()
+
+# -----------------------------------------------------------------------------
+# pk_add_benchmark(<目标名> TESTNAME <测试名> <testbase>
+#                  [SRCDIR <dir>] [LINK_LIBRARIES <libs...>])
+#
+# krita_add_benchmark 的 pk 版（形制照 cmake/modules/MacroKritaAddBenchmark.cmake：
+# 目标名 != 测试名）。用途：benchmarks/ 里那批用 SIMPLE_TEST_MAIN 的基准（如
+# KisLowMemoryBenchmark / KisFilterSelectionsBenchmark）要跑在 pk 测试栈上。
+#   * 目标名 = 可执行文件名 / CMake target 名（原宏的 _test_NAME）；
+#   * <测试名> = custom target 名（原宏的 _targetName），add_dependencies(benchmark ...)；
+#   * <testbase> = 测试类所在的源 basename（<testbase>.h / <testbase>.cpp），
+#     wrap TU + binder 由 pk_add_test 的 BENCHMARK 分支生成。
+# 通过 pk_add_test(… BENCHMARK …) 复用同一套 wrap/binder 机制，不另搓 add_executable。
+# -----------------------------------------------------------------------------
+function(pk_add_benchmark targetName)
+    cmake_parse_arguments(ARG "" "TESTNAME;SRCDIR" "LINK_LIBRARIES" ${ARGN})
+    list(LENGTH ARG_UNPARSED_ARGUMENTS _pk_n)
+    if(_pk_n LESS 1)
+        message(FATAL_ERROR "pk_add_benchmark(${targetName}): 缺少 <testbase>（测试类源 basename）")
+    endif()
+    list(GET ARG_UNPARSED_ARGUMENTS 0 _pk_testbase)
+    set(_pk_extra)
+    if(ARG_SRCDIR)
+        list(APPEND _pk_extra SRCDIR "${ARG_SRCDIR}")
+    endif()
+    pk_add_test("${_pk_testbase}"
+        TEST_NAME "${targetName}"
+        BENCHMARK
+        BENCHMARK_TARGET "${ARG_TESTNAME}"
+        ${_pk_extra}
+        LINK_LIBRARIES ${ARG_LINK_LIBRARIES})
 endfunction()

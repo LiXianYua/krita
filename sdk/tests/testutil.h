@@ -21,7 +21,21 @@
 #include <QImage>
 #include <QProcessEnvironment>
 #include <QRect>
+#ifndef KRITA_TESTSDK_PK_NATIVE
+// R-65（Task 2+4）· impact-map.md §3.14：这一行是 28 个可达 target 的**真根因**。
+// `QtCore/qtestsupport_core.h` 是**真 Qt 头**，它经 qcoreapplication.h → qglobal.h
+// 带来真 Qt 的 `qglobal.h`，与 pk/test/compat/QtGlobal 的 `qAbs` 撞
+// `redefinition of 'qAbs'`。真 Qt 头之所以还能解析得到：pk 编译行里仍有
+// `-F <CI 前缀>/lib`（KF5 frameworks 需要，**不能删**——删了连坐一批本来就绿的
+// 目标），于是 `QtCore/…` 经 .framework 形式解析得到。
+//
+// pk 分支不拉真 Qt 头。它原本提供的 `QTest::qWait/qSleep/qWaitFor` 由
+// sdk/tests/compat/PkTestSleepShim.h 那族垫片在 pk 栈上补（QTest→PkTest 由
+// pk/test/compat/QTest 的宏完成；qWait 的 pk 等价物 = 显式 pump 调用队列，
+// 见该垫片头注）。真 Qt 测试栈（kritatestsdk）不定义 KRITA_TESTSDK_PK_NATIVE，
+// 照旧拉真头、行为一个字不变。
 #include <QtCore/qtestsupport_core.h>
+#endif
 
 #include <simpletest.h>
 #include <QTime>
