@@ -75,7 +75,7 @@ KoToolFactoryBase::~KoToolFactoryBase()
     delete d;
 }
 
-PkList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
+PkList<QAction *> KoToolFactoryBase::createActions(PkObject *actionCollection)
 {
     PkList<QAction *> toolActions;
 

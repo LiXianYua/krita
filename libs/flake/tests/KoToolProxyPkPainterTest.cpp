@@ -119,7 +119,7 @@ public:
 class MinimalController final : public KoCanvasController
 {
 public:
-    explicit MinimalController(QObject *actionCollection = nullptr)
+    explicit MinimalController(PkObject *actionCollection = nullptr)
         : KoCanvasController(actionCollection)
     {
     }
@@ -327,6 +327,36 @@ public:
     void setNativeShortcut(const PkKeySequence &shortcut) { setShortcut(shortcut); }
 };
 
+// R-62 Task 2（(a) 裁决：宿主动作集合身份 = PkObject）下，qt 桶里造动作的唯一入口
+// 是内核自己的物化边界 `KoToolFactoryBase::createActions(PkObject *)`。本工厂经
+// createActionsImpl() 声明两个 spec——一个 shortcut==0、一个单 chord；createActions()
+// 把它们物化成真动作挂进 PkObject 集合，另外自产一个「激活动作」（objectName = 工厂
+// id，内核不给它挂 tool_action 属性）。这三条就是 hostActions() 回报的全集。
+class HostActionProbeFactory final : public KoToolFactoryBase
+{
+public:
+    HostActionProbeFactory()
+        : KoToolFactoryBase("native-chord-probe")
+    {
+    }
+
+    KoToolBase *createTool(KoCanvasBase *) override { return nullptr; }
+
+protected:
+    PkList<KisHostActionSpec> createActionsImpl() override
+    {
+        PkList<KisHostActionSpec> specs;
+        specs << createHostAction("Native chord probe (no shortcut)",
+                                  PkString("native-chord-probe-empty"),
+                                  static_cast<Pk::Key>(0));
+        specs << createHostAction("Native chord probe (Ctrl+R)",
+                                  PkString("native-chord-probe-ctrl-r"),
+                                  static_cast<Pk::Key>(static_cast<int>(Pk::ControlModifier) |
+                                                       static_cast<int>(Pk::Key_R)));
+        return specs;
+    }
+};
+
 class NativeTextPropertiesInterface final : public KoSvgTextPropertiesInterface
 {
 public:
@@ -459,32 +489,69 @@ private Q_SLOTS:
         QCOMPARE(action.shortcut()[0], qt515Oracle[0]);
     }
 
-    // 快捷键的宿主载荷 → 桶无关 encoded chord 的编码，已从管理器侧移到实现者
-    // KoCanvasController::hostActions()（impact map §5 的 #19）。这里直接测宿主回报的
-    // 这一面：丢掉空 chord、逐和弦取 int，且管理器侧再不出现任何 Qt 快捷键类型。
+    // 快捷键的宿主载荷 → 桶无关 encoded chord 的编码，由实现者
+    // KoCanvasController::hostActions() 完成（impact map §5 的 #19）。
+    //
+    // R-62 重写（2026-09-12，裁决 (a)：宿主动作集合身份 = PkObject）。原用例自建
+    // **真 Qt QAction** 挂在 **真 QObject** 集合上，再指望 native 的 hostActions()
+    // 找到它——而 hostActions() 走 PkObject::childSnapshot() 读 PkObject 自己的
+    // m_children，**真 QObject 没有那个成员**，这条期望在 (a) 下没有可达路径
+    // （impact-map §4）。重写口径：集合是 PkObject；动作对象只能由内核自己的
+    // 物化边界 `KoToolFactoryBase::createActions(PkObject *)` 产生（qt 桶里唯一的
+    // 造动作入口）。能保住的原断言逐条对应：枚举整个集合 / objectName 正确 /
+    // !carriesToolAction（激活动作）/ carriesToolAction（spec 动作，净增）/
+    // 空 chord 丢弃（shortcut==0 的 spec）/ 逐和弦取 int（与既有 oracle 相等）。
+    // 「一条动作挂 2 个 chord」这一档在 (a) 下无可达构造路径，已登记（见
+    // KoCanvasController.h 的 hostActions() 注释），指名归 R-70。
     void hostActionIdentitiesCarryNativeChordEncoding()
     {
-        QObject actionCollection;
-        QAction *hostAction = new QAction(&actionCollection);
-        hostAction->setObjectName(QStringLiteral("native-chord-probe"));
-        const QKeySequence oneChord(QStringLiteral("Ctrl+R"));
-        const QKeySequence twoChords(QStringLiteral("Ctrl+K, Ctrl+C"));
-        hostAction->setShortcuts({oneChord, QKeySequence(), twoChords});
+        PkObject actionCollection;
+        HostActionProbeFactory factory;
+        // 内核物化边界：spec → 真 action，挂进 PkObject 集合。返回值是 spec 动作表，
+        // 激活动作由 createActions() 自产、不进返回值。
+        factory.createActions(&actionCollection);
 
         MinimalController controller(&actionCollection);
         const PkList<KisHostActionIdentity> identities = controller.hostActions();
 
-        QCOMPARE(identities.size(), 1);
-        QCOMPARE(identities.at(0).objectName, PkString("native-chord-probe"));
-        QVERIFY(!identities.at(0).carriesToolAction);
+        // 枚举整个集合：激活动作 + 两个 spec 动作。
+        QCOMPARE(identities.size(), 3);
 
-        const PkList<std::vector<int>> &shortcuts = identities.at(0).shortcutChords;
-        QCOMPARE(shortcuts.size(), 2);
+        const auto identityByName = [&identities](const PkString &name) -> const KisHostActionIdentity * {
+            for (const KisHostActionIdentity &identity : identities) {
+                if (identity.objectName == name) {
+                    return &identity;
+                }
+            }
+            return nullptr;
+        };
+
+        // 激活动作：objectName = 工厂 id；内核不给它挂 tool_action，也不给它快捷键。
+        const KisHostActionIdentity *activation = identityByName(PkString("native-chord-probe"));
+        QVERIFY(activation);
+        QVERIFY(!activation->carriesToolAction);
+        QVERIFY(activation->shortcutChords.isEmpty());
+
+        // spec 动作（shortcut == 0）：无 chord ⇒ 空 chord 档落到空结果。
+        const KisHostActionIdentity *emptyChord = identityByName(PkString("native-chord-probe-empty"));
+        QVERIFY(emptyChord);
+        QVERIFY(emptyChord->carriesToolAction);
+        QVERIFY(emptyChord->shortcutChords.isEmpty());
+
+        // spec 动作（单 chord）：逐和弦取 int，与真 Qt 5.15 oracle 相等
+        // （oracle 同文件 factoryShortcutUsesNativeQt515ChordEncoding 已在用）。
+        const KisHostActionIdentity *oneChordIdentity = identityByName(PkString("native-chord-probe-ctrl-r"));
+        QVERIFY(oneChordIdentity);
+        QVERIFY(oneChordIdentity->carriesToolAction);
+
+        const int nativeChord = static_cast<int>(Pk::ControlModifier) | static_cast<int>(Pk::Key_R);
+        const QKeySequence qt515Oracle(QStringLiteral("Ctrl+R"));
+        QCOMPARE(nativeChord, qt515Oracle[0]);
+
+        const PkList<std::vector<int>> &shortcuts = oneChordIdentity->shortcutChords;
+        QCOMPARE(shortcuts.size(), 1);
         QCOMPARE(shortcuts.at(0).size(), std::size_t(1));
-        QCOMPARE(shortcuts.at(0).at(0), oneChord[0]);
-        QCOMPARE(shortcuts.at(1).size(), std::size_t(2));
-        QCOMPARE(shortcuts.at(1).at(0), twoChords[0]);
-        QCOMPARE(shortcuts.at(1).at(1), twoChords[1]);
+        QCOMPARE(shortcuts.at(0).at(0), qt515Oracle[0]);
     }
 
     void pathSelectionBulkOperationsCoalesceNativeNotification()
@@ -616,7 +683,7 @@ private Q_SLOTS:
     {
         MinimalShapeController shapeController;
         MinimalCanvas canvas(&shapeController);
-        QObject actionCollection;
+        PkObject actionCollection;
         MinimalController controller(&actionCollection);
         controller.setCanvas(&canvas);
         canvas.setCanvasController(&controller);

@@ -58,7 +58,7 @@ public:
     QObject *actionCollection;
 };
 
-KoCanvasController::KoCanvasController(QObject *actionCollection)
+KoCanvasController::KoCanvasController(PkObject *actionCollection)
     : d(new Private())
 {
     proxyObject = new KoCanvasControllerProxyObject(this);

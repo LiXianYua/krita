@@ -70,7 +70,7 @@ public:
      * Constructor.
      * @param actionCollection the action collection for this canvas
      */
-    explicit KoCanvasController(QObject *actionCollection);
+    explicit KoCanvasController(PkObject *actionCollection);
     virtual ~KoCanvasController();
 
 public:
@@ -200,6 +200,16 @@ public:
      * 原样存入，这里 static_cast 回来拿到的就是调用者交进来的那个对象，
      * 与改动前的位模式逐位相同。
      */
+    // R-62 裁决 (a)（2026-09-12）：内核的宿主动作集合身份 = PkObject。
+    // m_hostActionCollection 里的句柄**恒为 `PkObject *`**（native 侧 ctor 从形参
+    // 原样存入），这条 qt 支访问器因此**树内已无合法生产者**——谁调它谁就是把
+    // `PkObject *` 当真 `QObject *` 用。它的两个消费方都在 R-70 的锁内
+    // （`plugins/tools/svgtexttool`）：
+    //   plugins/tools/svgtexttool/SvgTextTool.cpp:94
+    //   plugins/tools/svgtexttool/SvgTextQtPlatformHost.cpp:79
+    // 本任务**删不了它**（删了产品侧 target `krita_tool_svgtext_static` 会编译不过），
+    // 删除与改写**归 R-70**。旁证：native 侧先例 libs/flake/tools/KoPathTool.cpp:73
+    // 已经走桶无关的 actionCollectionObject()。
     QObject *actionCollection() const { return static_cast<QObject *>(m_hostActionCollection); }
 #endif
 
@@ -224,6 +234,16 @@ public:
      * 管理器（KoToolManager）不再认识 QAction：它拿到的是 identity + 已编码的
      * shortcut chord，逐条决定启用/禁用后再经 setHostActionEnabled() 写回。
      * 快捷键载荷的解码（丢空 chord、逐和弦取 int）就发生在这里，管理器只做等值比较。
+     *
+     * **覆盖边界登记（R-62，2026-09-12；`libs/flake` 下没有 README，登记落在这里）**：
+     * 编码由 `encodeHostActionShortcuts()`（KoCanvasController.cpp）完成，其输入来自内核
+     * 物化边界 `KoToolFactoryBase::createActions(PkObject *)`。裁决 (a)（集合身份 =
+     * PkObject）下，`KisHostActionSpec::shortcut` 是**单个** `Pk::Key`
+     * （`KoCanvasActionHost.h:24`），物化边界只调 `QAction::setShortcut(int)` 单数形
+     * （`KoToolFactoryBase.cpp`），而 qt 桶又造不出 compat `QAction`。⇒ **「一条动作上
+     * 挂 2 个 chord」这一档在 (a) 下没有可达构造路径**——这是**覆盖边界，不是漏测**
+     * （只能从 native 侧直建 compat `QAction` 才构造得出）。指名归 **R-70**（它持有
+     * `plugins/tools/svgtexttool` 的宿主侧，在改那 4 个用例时一并覆盖）。
      */
     PkList<KisHostActionIdentity> hostActions() const override;
 
