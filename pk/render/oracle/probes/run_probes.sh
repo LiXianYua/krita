@@ -3,12 +3,15 @@
 # 并打印五条关键读数。任何一步失败 → 非 0 退出。
 #
 # 每支探针回答什么问题、读数怎么读：见同目录 README.md。
-# 五条读数（与 docs/superpowers/plans/R-64.md §1.2/§1.3 逐字对应）：
-#   ① probe   (SUMMARY)  mism[bounds-vs-qtVB]=0  mism[default-vs-qtNoVB]=2  mism[default-vs-qtVB]=161
+# 五条读数（**修复轮 1 之后**的实跑值，2026-09-12）：②③④ 的取值与 docs/superpowers/plans/R-64.md
+#   §1.2/§1.3 一致；①⑤ 因本次修复而改变，改前值（= §1.2/§1.3 记的值）见文末两行注：
+#   ① probe   (SUMMARY)  mism[bounds-vs-qtVB]=0  mism[default-vs-qtNoVB]=0  mism[default-vs-qtVB]=161
 #   ② isolate            ellipse-vs-path6=4  ellipse-vs-path17=0  path6-vs-path17=4
 #   ③ control            diff Qt(drawEllipse) vs Qt(drawPath) under implicit stretch = 4
 #   ④ mirror             MIRROR total=288 mismatch=0
-#   ⑤ focus              qt/pk viewBox 逐位相同，px dA=-2 ×4，diff pixels = 4
+#   ⑤ focus              qt/pk viewBox 逐位相同，diff pixels = 0
+#   ※ ①⑤ 改前值：mism[default-vs-qtNoVB]=2；diff pixels = 4（focus 另打 4 行 `px … dA=-2`）。
+#     改前/改后逐字对照见同目录 README.md「期望读数」。
 #
 # 形态照抄 pk/render/oracle/run_svg_primitive.sh：find_env_script() 向上找 krita-ci-env/env、
 # macOS 用 otool -L / ccache / pkg-config 取 Qt5Svg。Pk 侧编译与链接 flags **现场**从已经在的

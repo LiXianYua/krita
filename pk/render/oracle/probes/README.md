@@ -46,6 +46,26 @@ PK_RENDER_BUILD_DIR=<已配置的 pk/render 构建目录> \
 
 Qt 侧参照由 `QSvgGenerator` 产出、`QSvgRenderer` 渲染。
 
+## 覆盖边界（`<ellipse>`/`<circle>` 发射路径）—— 2026-09-12 第 2 轮评审登记
+
+上面的 **288 例输入集实际只覆盖**：**solid color brush**、`penWidth` 恒 **2.5** 的
+**非 cosmetic** 笔、**无 dash**、**无 clip**、**无 transform**。所以
+`PkSvgPainterBackend` 的 `<ellipse>`/`<circle>` 发射**只在 288 例上验证过** ——
+下列 5 项**没有覆盖**（**本次未补测，只登记边界**）：
+
+- **gradient brush**、**dash**、**clip**、**transform**、**cosmetic pen**
+
+**已被覆盖、不算边界的**（第 2 轮评审现场核实，订正了早期两条猜测）：
+
+- `w == h` 的 `<circle>` 分支 —— rect `{0,0,31,31}` 与 `{5,5,0,0}` 都是 w==h，
+  在 `svg-ellipse` 族共 **6 例**（2 rect × 3 个 pen/brush 组合）吃到该分支；
+- **非整数尺寸** —— rect `{3.5,2.25,19.75,15.5}` 即非整数。
+
+**判的是「登记缺失」，不是「新偏离」**：`<ellipse>`/`<circle>` 的 fill/stroke 属性拼装与
+`drawPath` **共用同一段** `strokeAttributes()` + `brushAttributes()`（见 `pk/render/README.md`
+R-64 §5/§6），改的只是几何元素；这 5 项即便未测也**不应产生新偏离**。依据
+`R线-spec`〈覆盖度限制要写下来〉。
+
 ## 六支探针
 
 | 文件 | 侧 | 回答什么问题 |
