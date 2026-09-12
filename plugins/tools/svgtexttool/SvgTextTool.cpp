@@ -51,6 +51,7 @@
 #include <KoColor.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
+#include "KoCanvasCursorHost.h"
 #include <KoSelection.h>
 #include <KoShapeManager.h>
 #include <KoShapeController.h>
@@ -316,6 +317,13 @@ constexpr double INLINE_SIZE_DASHES_PATTERN_B = 8.0; /// Size of the hidden part
 constexpr int INLINE_SIZE_DASHES_PATTERN_LENGTH = 3; /// Total amount of trailing dashes on inline-size handles.
 constexpr double INLINE_SIZE_HANDLE_THICKNESS = 1.0; /// Linethickness.
 
+// 两个游标资源位图的尺寸，**取资源位图自身的尺寸**——即每个 `tool_text_*.xpm` 第 3 行的
+// `"32 32 3 1"` / `"22 22 4 1"`（也与 `tests/SvgTextCursorTest.cpp` 的 oracle 尺寸表逐格一致）。
+// 宿主按资源名载入游标真值，这里只需要同一份尺寸参与 token 身份；旧代码为此构造一个
+// 平台位图再读它的宽高。形制照同族的 `libs/flake/tools/KoZoomTool.cpp:26` 的 `kZoomCursorSize`。
+constexpr PkSize kSvgTextCursorSize(32, 32);
+constexpr PkSize kSvgTextIBeamCursorSize(22, 22);
+
 
 static bool debugEnabled()
 {
@@ -384,17 +392,21 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
     m_textOutlineHelper->setDrawBoundingRect(false);
     m_textOutlineHelper->setDrawTextWrappingArea(true);
 
-    KisCanvasToolServices *cursorHost = dynamic_cast<KisCanvasToolServices *>(canvas);
-    KIS_SAFE_ASSERT_RECOVER_RETURN(cursorHost);
-
-    m_base_cursor = cursorHost->toolImportCursor(QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::Basic)), 7, 7));
-    m_text_inline_horizontal = cursorHost->toolImportCursor(QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::InlineHorizontal)), 7, 7));
-    m_text_inline_vertical = cursorHost->toolImportCursor(QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::InlineVertical)), 7, 7));
-    m_text_on_path = cursorHost->toolImportCursor(QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::OnPath)), 7, 7));
-    m_text_in_shape = cursorHost->toolImportCursor(QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::InShape)), 7, 7));
-    m_ibeam_horizontal = cursorHost->toolImportCursor(QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::IBeamHorizontal)), 11, 11));
-    m_ibeam_vertical = cursorHost->toolImportCursor(QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::IBeamVertical)), 11, 11));
-    m_ibeam_horizontal_done = cursorHost->toolImportCursor(QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::IBeamHorizontalDone)), 5, 11));
+    // 游标不再由工具自己持有平台对象：把「资源名 + 尺寸 + 热点」交给宿主，换回一个不可变
+    // 快照的 token（同族先例见 libs/flake/tools/KoZoomTool.cpp:37-45 与 KoPathTool.cpp:126-134）。
+    // 没有宿主时 8 个 token 保持零（= 平台默认游标）。资源名取自 svgtexttool.qrc 的
+    // `<qresource prefix="/">`；热点照抄旧构造式的后两个实参。
+    const KoCanvasCursorHost *cursorHost = dynamic_cast<const KoCanvasCursorHost *>(canvas);
+    if (cursorHost) {
+        m_base_cursor = cursorHost->loadCursorResource(PkString(":/tool_text_basic.xpm"), kSvgTextCursorSize, PkPoint(7, 7));
+        m_text_inline_horizontal = cursorHost->loadCursorResource(PkString(":/tool_text_inline_horizontal.xpm"), kSvgTextCursorSize, PkPoint(7, 7));
+        m_text_inline_vertical = cursorHost->loadCursorResource(PkString(":/tool_text_inline_vertical.xpm"), kSvgTextCursorSize, PkPoint(7, 7));
+        m_text_on_path = cursorHost->loadCursorResource(PkString(":/tool_text_on_path.xpm"), kSvgTextCursorSize, PkPoint(7, 7));
+        m_text_in_shape = cursorHost->loadCursorResource(PkString(":/tool_text_in_shape.xpm"), kSvgTextCursorSize, PkPoint(7, 7));
+        m_ibeam_horizontal = cursorHost->loadCursorResource(PkString(":/tool_text_i_beam_horizontal.xpm"), kSvgTextIBeamCursorSize, PkPoint(11, 11));
+        m_ibeam_vertical = cursorHost->loadCursorResource(PkString(":/tool_text_i_beam_vertical.xpm"), kSvgTextIBeamCursorSize, PkPoint(11, 11));
+        m_ibeam_horizontal_done = cursorHost->loadCursorResource(PkString(":/tool_text_i_beam_horizontal_done.xpm"), kSvgTextIBeamCursorSize, PkPoint(5, 11));
+    }
 }
 
 SvgTextTool::~SvgTextTool()
