@@ -80,6 +80,28 @@ add_test(NAME test_svg_primitive COMMAND test_svg_primitive)
 set_tests_properties(test_svg_primitive PROPERTIES
     ENVIRONMENT "PK_RENDER_SVG_PRIMITIVE_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/svg_primitive_golden.txt")
 
+# R-54 Task 3 · 判据② 的依赖墙 driver（R线-spec〈依赖墙挡住真实测试类时〉降级路径）。
+#   tests/graft/svg_backend_driver.cpp —— 逐行复刻 libs/flake/svg/SvgWriter.cpp:242-254
+#   （SvgWriter::saveGeneric）的代码形状。
+# 形态照抄先例 pk/render/tests/graft/text_draw_driver.cpp（R-55 Task 5）与
+# pk/time/tests/graft/date_parser_driver.cpp（R-16 Task 3）：独立可执行体、不接 pk/test
+# harness，**也不 add_test**——它是判据② 的试接证据，不是一条判据（判据是 test_svg_primitive
+# 那条，见上）。
+#
+# 编译闭包与 svg_primitive_oracle_pk 相同：本 driver include 的 svg_primitive_cases.h 拉进
+# PkSvgPainterBackend.h → "../shapes/ImageShapePngData.h"，所以同样要补那份实现与它的码流
+# 依赖（pk/variant include、PNG/TIFF、pkstring/pkcontainer）。
+# Qt-free：本工程不得 find_package(Qt...)，也不得链 Qt；真 Qt 侧只由手工探针给（见报告 §3）。
+add_executable(svg_backend_driver
+    tests/graft/svg_backend_driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../libs/flake/shapes/ImageShapePngData.cpp)
+target_link_libraries(svg_backend_driver PRIVATE pkrender pkstring pkcontainer PNG::PNG TIFF::TIFF)
+target_include_directories(svg_backend_driver PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/oracle          # svg_primitive_cases.h 的根
+    ${CMAKE_CURRENT_SOURCE_DIR}/../variant)
+# 不给它 add_test：它是判据② 的试接证据，不是一条判据。跑法与真 Qt 探针命令见
+# .superpowers/sdd/R-54/task-3-report.md §3。
+
 # R-52: 两处 blur 滤镜内核构造（AA 1px cosmetic 直线 / AA 凸多边形填充 + translate）对拍。
 #   blur_kernel_oracle_pk —— Pk 侧 oracle 输出体（Qt-free，正常进本工程构建）。
 #   test_blur_kernel      —— ctest 目标，期望值来自 oracle/blur_kernel_golden.txt，

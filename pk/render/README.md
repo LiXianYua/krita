@@ -50,13 +50,16 @@ commands belongs above `pk/render` (currently the `libs/flake` boundary).
 
 ## Backend command coverage
 
-`pk/render/PkPaintCommand.h` defines 27 command types. `PkImageRasterBackend::submit`
-(`libs/flake/PkImageRasterBackend.cpp`) dispatches 26 of them; **25 do work and 2 throw**
-`std::logic_error("PkImageRasterBackend does not support this paint command")` — those two
-are `PkDrawArcCommand` (no branch at all, falls through to the generic throw at `:621`) and
-`PkDrawTextInRectCommand` (an explicit throw-only branch at `:612-618`). **Counts
-re-measured by R-55 Task 5 on this tree** (the sentence read `21` when R-51 wrote it; R-51
-then implemented polygon+ellipse and R-55 Task 3 implemented `drawText`@point + `setFont`).
+`pk/render/PkPaintCommand.h` defines **27** command types. `PkImageRasterBackend::submit`
+(`libs/flake/PkImageRasterBackend.cpp`) explicitly handles **all 27** — 24 via
+`std::get_if<...>` branches (`:448`-`:624`) plus `PkSaveCommand` / `PkRestoreCommand` /
+`PkDrawTextInRectCommand` via `std::holds_alternative<...>` (`:574` / `:578` / `:624`). Of
+those, **26 do work and 1 throws** unconditionally (`PkDrawTextInRectCommand`, the explicit
+throw-only branch at `:624-631`); the generic throw at `:636` is a defensive fallback no
+known command reaches. **Counts re-measured live on this tree, 2026-09-12, R-54 Task 3**
+(the sentence it replaces read "dispatches 26 of them; **25 do work and 2 throw**", which was
+internally inconsistent — 25+2=27≠26). R-54 batch 1b is what moved `PkDrawArcCommand` out of
+the throw set; R-55 Task 3 had implemented `drawText`@point + `setFont`.
 
 The table below is the **diff set** R-51 measured, with R-55 Task 5's re-measured
 call-site counts. Every count is call sites verified by receiver type (not by grep), over
@@ -65,12 +68,13 @@ the retained range (`libs/ plugins/ pk/ sdk/`, excluding `tests/`, `benchmarks/`
 
 | Command | Raster backend | Live call sites | Files | Batch |
 |---|---|---|---|---|
-| `PkDrawPolygonCommand` | **implemented 2026-09-11** (`addPolygon` + `closeSubpath`) | 13 | 4 | R-51 |
+| `PkDrawPolygonCommand` | **implemented 2026-09-11** (`addPolygon` + `closeSubpath`) | **14** | **5** | R-51 |
 | `PkDrawEllipseCommand` | **implemented 2026-09-11** (`addEllipse`) | 10 | 6 | R-51 |
-| `PkDrawArcCommand` | throws | 2 | 1 | R-51/1b |
+| `PkDrawArcCommand` | **implemented 2026-09-12** (`normalized()` + `arcMoveTo`/`arcTo`) | 2 | 1 | R-54/1b |
 | `PkDrawTextAtPointCommand` | **implemented 2026-09-12** (`PkImageRasterBackend::drawText`) | **2** | **2** | R-55/3 |
 | `PkDrawTextInRectCommand` | throws (registered deviation — see the R-55 Task 5 table below) | **0** | **0** | R-55/5 |
 | `PkSetFontCommand` | **implemented 2026-09-12** | 0 | 0 | R-55/3 |
+| `PkSvgPainterBackend` (SVG-export backend, `libs/flake/svg/`) | **models 21 of 27 commands**; R-54 batch 2 added the three draw primitives (ellipse / arc / polygon); 6 still fall to `m_supported = false` | 1 | 1 | R-54/2 |
 
 Two rows were corrected by R-55 Task 5 and the correction matters: R-51 recorded
 `PkDrawTextAtPointCommand` as 1 site / 1 file and `PkDrawTextInRectCommand` as **1 site /
@@ -99,31 +103,33 @@ Both live call sites pass a **point**, so the `PkRectF` overload's live-call-sit
 a `PkSetFontCommand` call site. There is no `PkPainter::setFont` call in the retained
 range at all.
 
-`drawPolygon` and `drawEllipse` are Qt 5.15.7-pixel-identical to building the
-corresponding `PkPainterPath` and routing it through the existing fill/stroke
-machinery — verified case-by-case by `oracle/run_shape_primitive.sh`: **36 cases, of
-which 29 are discriminating and 7 are degenerate/no-op** (integer / non-integer /
-out-of-bounds / negative-size rects, single-point and two-point polygons,
-self-intersecting polygons, pen+brush combinations). The 7 no-op cases are kept as
-"degenerate input draws nothing, on both sides" assertions; they are not independent
-evidence of drawing correctness and the test binary prints the split so the number
-cannot be misread.
+`drawPolygon`, `drawEllipse` and (since R-54 batch 1b) `drawArc` are Qt 5.15.7-pixel-identical
+to building the corresponding `PkPainterPath` and routing it through the existing fill/stroke
+machinery — verified case-by-case by `oracle/run_shape_primitive.sh`. **Re-measured live on
+this tree, 2026-09-12 (R-54 Task 3): 288 cases, of which 161 are discriminating and 127 are
+degenerate/no-op** (the R-51 figure this replaces was "36 cases, 29 discriminating, 7
+degenerate"; R-54 batch 1b added the arc family, which is most of the no-op growth — a
+`pen==0, brush==1` arc draws nothing on both sides because arcs ignore the brush). The
+degenerate cases are kept as "degenerate input draws nothing, on both sides" assertions; they
+are not independent evidence of drawing correctness, and the test binary prints the split
+(`288 cases (161 discriminating, 127 degenerate/no-op)`) so the number cannot be misread.
 
 The one empirical trap: `QPainter::drawPolygon` **closes the subpath** before
 stroking; `PkPainterPath::addPolygon` produces an *open* one. Omitting `closeSubpath()`
-changes 74 / 76 / 106 pixels for the 4-vertex, self-intersecting and explicitly-closed
-quads (32x32 ARGB32, per-pixel packed-value compare) and turns 6 of the 36 cases red.
+turns **6 of the 288 cases red** (re-measured live, R-54 Task 3 — the six 4-vertex /
+self-intersecting / explicitly-closed polygon stroke cases
+`polygon#22/23/28/29/31/32`); R-51's per-case pixel cost for those quads was 74 / 76 / 106
+pixels (32x32 ARGB32, per-pixel packed-value compare) — **not re-derived here**, because the
+shape oracle compares per-image digests, not pixel counts.
 
 **Registered gaps, with their blockers:**
 
-- **`drawArc` is blocked on `pk/geometry`, not on this module.** Qt's `drawArc` is
-  `arcMoveTo(rect, a/16.0)` + `arcTo(rect, a/16.0, span/16.0)`, stroke only (the brush
-  is ignored — measured). `PkPainterPath::arcMoveTo` exists but is **private**
-  (`pk/geometry/PkPainterPath.h`, marked "for addRoundedRect only"); real Qt exposes
-  `QPainterPath::arcMoveTo` as public API. Without it, calling `arcTo` on an empty path
-  starts from `(0, 0)` (`PkPainterPath::lineTo` moves to the origin on an empty path),
-  which is not what Qt does. Making it public is a one-line move in `pk/geometry`,
-  whose lock is currently held by another task.
+- **`drawArc` — ~~blocked on `pk/geometry`~~ — closed by R-54 (batch 1b).** The blocker
+  was that `PkPainterPath::arcMoveTo` was `private:` (real Qt exposes
+  `QPainterPath::arcMoveTo` as public API), so `arcTo` on an empty path started from
+  `(0, 0)`, unlike Qt. R-54 batch 1b made `arcMoveTo` public in `pk/geometry` and gave
+  `PkImageRasterBackend::submit` an arc branch (`libs/flake/PkImageRasterBackend.cpp:499`).
+  Semantics and the `normalized()` deviation are in the R-54 section below.
 - **`drawText`/`setFont`** need glyph rasterisation and layout. `pk/font` already has
   `PkFontRasterizer` (FreeType/HarfBuzz/Raqm all available), but Qt's text path goes
   through the raster engine's glyph cache and `QTextLayout`, so parity is a batch of
@@ -145,8 +151,13 @@ quads (32x32 ARGB32, per-pixel packed-value compare) and turns 6 of the 36 cases
   `Qt::WindingFill`, on the lens-blur iris polygon; it is equivalent there only because
   that polygon is always convex — measured in R-52 plan §2.1 P2.)
 - **`PkSvgPainterBackend`** (`libs/flake/svg/`, the SVG-export backend) marks any
-  command it does not model as unsupported, which invalidates the whole document and
-  falls back to raster. Ellipse/arc/polygon are not modelled there either.
+  command it does not model as unsupported, which invalidates the whole document
+  (`document()` returns `{}`) and makes the caller fall back to raster. **R-54 batch 2
+  models three primitives there** — ellipse / arc / polygon, semantics aligned
+  command-for-command with the raster backend — so it now handles **21 of 27**
+  commands; **6 still fall to `m_supported = false`**: `PkFillTexturePathCommand`,
+  `PkDrawPointCommand`, `PkDrawPixmapCommand`, `PkDrawTiledPixmapCommand`,
+  `PkDrawTextAtPointCommand`, `PkDrawTextInRectCommand`. See the R-54 section below.
 - **Two `[GAP]` regressions in `plugins/filters/blur/`** were not "unimplemented" but
   **deleted**: `kis_motion_blur_filter.cpp` and `kis_lens_blur_filter.cpp` used to build
   their convolution kernel by filling a polygon into a `PkImage` and reading the pixels
@@ -465,3 +476,97 @@ scope decision, not an omission); **item 4** — the coloured-glyph (CBDT/COLR) 
 path has no test on either side; **item 5** — without `FONTCONFIG_PATH` pointing at the CI
 prefix's `_install/etc/fonts` the same binary goes red for environment reasons (measured
 once; hence the value is baked into the ctest environment in `CMakeLists.txt`).
+
+## R-54 — shape primitives, batch 2: the SVG-export backend (plus batch 1b's raster `drawArc`)
+
+R-54 lands two batches over the same oracle pattern R-51/R-52/R-55 built:
+
+- **Batch 1b** — `PkDrawArcCommand` in the **raster** backend
+  (`libs/flake/PkImageRasterBackend.cpp:499-511`). Qt's `drawArc(rect, a, span)` is
+  `arcMoveTo(rect, a/16.0)` + `arcTo(rect, a/16.0, span/16.0)`, **stroke only** (the brush
+  is ignored — measured), and Qt **normalises the rect inside `drawArc`**, so the branch uses
+  `arc->rect.normalized()` (`arcMoveTo`/`arcTo` do *not* normalise themselves — R-54 §4b).
+- **Batch 2** — `PkSvgPainterBackend` (`libs/flake/svg/PkSvgPainterBackend.h`), the
+  SVG-export backend, gains the same three primitives (ellipse / polygon / arc), semantics
+  aligned command-for-command with the raster backend. Any command it does not model still
+  sets `m_supported = false`, and `document()` then returns `{}` — the caller's
+  raster-fallback path.
+
+**Oracle shape (判据④).** Batch 1b reuses R-51's `oracle/run_shape_primitive.sh` (per-pixel
+FNV-1a over a 32×32 ARGB32 image; both sides render through the shared
+`oracle/shape_primitive_cases.h`). Batch 2 **cannot** diff document text — the two sides' SVG
+documents differ by definition (`<ellipse>` vs `<path>`, different attribute sets) — so
+`oracle/run_svg_primitive.sh` renders **both** documents through the **same** `QSvgRenderer`
+into a 32×32 ARGB32 image and compares pixels. `tests/test_svg_primitive.cpp` is a Qt-free
+ctest guard that compares only the `doc=` column (the Pk document's FNV-1a); it proves "the
+Pk document has not drifted", **not** equivalence with Qt — the two must be run on the same
+commit, and the batch-2 CMake block says so at the target.
+
+**Measured live on this tree, 2026-09-12 (R-54 Task 3), thin-shell build `/tmp/r54-pkrender-build`:**
+
+| item | value |
+|---|---|
+| `run_shape_primitive.sh` | `identical (288 cases)` — 161 discriminating, 127 degenerate/no-op |
+| `run_svg_primitive.sh` | `identical (204 cases)`; comparator `DIFF total=204 mismatch=0` |
+| thin-shell ctest | **7 / 7 pass, 0 skipped** (`test_pksvg_rasterizer`, `test_shape_primitive`, `test_svg_primitive`, `test_blur_kernel`, `test_text`, `test_pkfont`, `test_pkxml`) |
+| 判据③ `nm -u -C libpkrender.a \| grep -E '\bQ[A-Z][A-Za-z0-9_]*\b'` | **0 hits** (denominator: 12 objects, 16998 raw `nm` lines, 683 undefined symbols) |
+| 判据③ same command on `svg_primitive_oracle_pk` / `svg_backend_driver` | **0 / 0** (6805 / 6883 raw lines; 163 / 166 undefined symbols) |
+| discriminating control: same command on `krita/build-macos/bin/libkritaflake.dylib` (links Qt 5.15.7 — `otool -L`) | **39 hits** — the criterion has discriminating power |
+| deprecated negative control: `nm -u libpkrender.a \| grep -i qt` | **1 hit** — a false positive on a Qt-free target (`pk_qt_assert`). This is why `grep -i qt` is retired. |
+
+**判据② — both batches sit behind a dependency wall, so the R线-spec degrade path is used.**
+Batch 1b's driver is `tests/test_shape_primitive.cpp` (R-51's product — R-54 Task 3 did **not**
+rewrite it); its header self-declares as a driver replicating the real call-site shape. Batch
+2's driver is `tests/graft/svg_backend_driver.cpp` (new in R-54 Task 3), shaped after the R-55
+precedent `tests/graft/text_draw_driver.cpp`: a standalone executable, **no `add_test`**. Both
+satisfy the four conditions of 〈依赖墙挡住真实测试类时〉:
+
+- **(1) transcribe the real code shape.** Batch 2 replicates `libs/flake/svg/SvgWriter.cpp:242-254`
+  — `PkSvgPainterBackend backend;` (the **default** ctor), `PkPainter painter(backend);`, the same
+  pen/brush/transform order, `backend.document()` — and documents the real SVG consumption path
+  (`SvgWriter.cpp:255-277`: non-empty → `addCompleteElement`, empty → raster fallback) in its
+  header comment. Batch 1b's arc cases reach the backend through the shared `renderCase()`,
+  whose arc branch is verbatim `painter.drawArc(c.shapeRect, c.startAngle16, c.spanAngle16)` —
+  the same function, same parameter types / count / order as the two real call sites
+  `plugins/tools/tool_knife/CutThroughShapeStrategy.cpp:371-372`.
+- **(2) validation values from a real-Qt probe.** Batch 1b compares against
+  `oracle/shape_primitive_golden.txt`, whose provenance header is `# qt=5.15.7` /
+  `# backend=Qt5Gui`. Batch 2's driver is Qt-free and prints only **its own** document hashes,
+  so its validation comes from a hand-compiled real-Qt probe; run over the driver's 192
+  call-site-shaped cases the probe reports **`PROBE2 total=192 mismatch=0`** (probe command
+  and raw output in `.superpowers/sdd/R-54/task-3-report.md` §3).
+- **(3) explicitly a substitute.** Batch 2's driver header and four `DRIVER-NOTICE` stdout
+  lines state that it is **not** `libs/flake/svg/SvgWriter.cpp`, and that its printed hashes
+  are not a Qt-equivalence claim.
+- **(4) name the wall.** Batch 2's real call site compiles into target **`kritaflake`** (same
+  conclusion as R-55): **holding the `libs/flake/svg` lock means "allowed to edit that
+  directory", not "can build the target"** — `kritaflake`'s CMake-generated products
+  (`kritaflake_export.h`, the ECM macros) and its `PUBLIC` closure (`kritaimage`/`kritaui`)
+  are outside R-54's locks. Batch 1b's call site compiles into `plugins/tools/tool_knife/`,
+  likewise outside the locks.
+
+**Registered gap — the batch-2 angle-coverage hole (measured, not fixed here).** Batch 1b's
+case table originally had a 判据④ coverage hole: every arc angle was a multiple of 16, so
+`startAngle16 / 16.0` → `/ 16` was a compile-time no-op with zero discriminating power over
+the whole arc family. **R-54 Task 3 Step 1b fixed that for batch 1b**: `oracle/shape_primitive_cases.h`
+appends four `x % 16 != 0` angle groups, and the falsification (`/16.0` → `/16` in
+`PkImageRasterBackend.cpp:509-510`) now turns the oracle **red** — 48 differing cases, **all**
+at index ≥ 204 (the four new angle groups); the 204 pre-existing cases are untouched. The same
+hole exists in **batch 2** (`oracle/svg_primitive_cases.h`'s `arcAngles[]` are all `k*16`, and
+`PkSvgPainterBackend.h:215-216` has the same `/ 16.0`). Measured: mutating batch 2's `/ 16.0`
+→ `/ 16` leaves `run_svg_primitive.sh` at `identical (204 cases), mismatch=0` — i.e. zero
+discriminating power there too. **Not fixed by this task**: batch 2 is Task 2's product, and
+the brief permits editing Task 1/2 products only for Step 1b. Registered so a later batch can
+close it.
+
+**Batch-2 driver input set (why 192 of 204).** The driver replicates the real call site's
+**default** ctor, which emits an `<svg>` with **no** `width`/`height`/`viewBox`, whereas the
+oracle uses the **bounds** ctor (`canvasRect()` = 32×32) for 1:1 pixel comparison. Measured
+consequence: on the adversarial rects (degenerate point / negative size / off-canvas / the
+flat `{2,2,1,28}`) a no-`viewBox` document is **stretched by its content bbox** to the render
+target (~8× here), amplifying Pk's four-cubic-Bézier ellipse approximation into a 4-pixel edge
+difference. Over **all 204** cases with the default ctor the probe reports `mismatch=2` (only
+`svg-ellipse#19` and `#20`, the flat rect); over the **192 call-site-shaped** cases the driver
+actually emits it reports `mismatch=0`. Those adversarial rects are 判据④ coverage inputs, not
+call-site shapes, so the driver set excludes them — the reasoning is written out in
+`.superpowers/sdd/R-54/task-3-report.md` §3.
