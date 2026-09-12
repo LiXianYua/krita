@@ -1091,7 +1091,7 @@ T1 真正交付的东西）。
 | 证据链 | 证明了什么 | **看不见什么** |
 |---|---|---|
 | `tests/`（PK_* 单测） | 期望值来自真 Qt 探针，逐条钉住反直觉语义；**唯一**能钉住"预处理期宏改写"与"共存 include 顺序"的地方 | ① 期望值是**我们挑的**输入，不是输入空间；② include 顺序是**我们写的**，不是真实调用点的；③ `PK_COMPARE` 对 `double` 走模糊比较（相对 1e-12），主张"逐位一致"必须改用 `PK_VERIFY(sameBits(...))` |
-| `oracle/`（逐输入对拍） | 1.56 亿次逐输入与真 Qt 比取值；**唯一**能抓住"单测全绿但取值分家"的地方（实测：`PkSizeF` 隐式提升丢精度，单测 33 用例全绿、对拍抓到 962 323 处） | ① 只覆盖**写了 `rec()` 的重载**，漏一条就是整个重载零覆盖（规则三的机器闸门补这一条；本目录 **11 个族**进了闸门 —— `API_GROUPS` 十一项 —— 但 **`PkPainterPath.h` 不在其中**，它由 R-39 的 pathops oracle 单独守，所以 `PP::*` 那七条是**手工登记**在 `api_seen.expected` 的。**这是本目录规则三覆盖面的已知缺口，不是遗漏**：`PkPainterPath` 新增重载时闸门②**不会**替你抓）；② 编译行里**没有 `compat/`、没有 `pk/test` 的垫片**（硬闸门禁止），所以预处理期语义偷换与 include 顺序问题它一概看不见；③ 输入是**全组合不是穷举**，覆盖靠输入集选得对 |
+| `oracle/`（逐输入对拍） | 1.56 亿次逐输入与真 Qt 比取值；**唯一**能抓住"单测全绿但取值分家"的地方（实测：`PkSizeF` 隐式提升丢精度，单测 33 用例全绿、对拍抓到 962 323 处） | ① 只覆盖**写了 `rec()` 的重载**，漏一条就是整个重载零覆盖（规则三的机器闸门补这一条；本目录 **12 个族**进了闸门 —— `API_GROUPS` 十二项，含 R-58 新增的 `PkPainterPath.h` —— 头文件类体里**每条声明都必须显式分类**，`PkPainterPath` 新增重载现在**当场 FAIL**，R-58 三次注入实测。**但这是一次可数、可见的放宽**：`PkPainterPath.h` 的 **68 条声明里只有 12 条有真 `rec()`**（对应 8 个 `PP::*` 标签），其余 **56 条写 `-`**、在摘要行里计数 —— 摘要行为 `… PkPainterPath.h 声明 68 条 / painterpath_api.map 68 行（其中 56 条无 rec()，登记为覆盖边界）`。为什么放宽：那 56 条里绝大多数由 R-39 的 `painterpath_pathops_difftest.cpp` 对拍与单测守，而**那只对拍不产出 `APISEEN`**，它的 `rec()` 是 `rec(bool, const std::string&)`、只打 `DIFFTAG`/`FAMILY`，**闸门③消费不了它**；把它们逐条搬进本对拍是**另一个任务**的量级。两条骨架边界：**嵌套类型（如 `class Element`）的成员不在这套闸门的覆盖面上**；`-` **不能**用来放行「名字与某个 `PP::` 标签相同的重载」—— 判定规则是 `rec()` 的**实参类型直接压到**那一个重载，「A 转发到 B、B 有 rec」不算（规格规则三））；② 编译行里**没有 `compat/`、没有 `pk/test` 的垫片**（硬闸门禁止），所以预处理期语义偷换与 include 顺序问题它一概看不见；③ 输入是**全组合不是穷举**，覆盖靠输入集选得对 |
 | `graft/`（真实调用点试接） | 真实 Krita 测试类**零改动**编译并跑绿；**唯一**能抓住"接口形状对但接不上"的地方 | ① 只有 **2 个**目标、**14 个**测试函数，覆盖的 API 面远小于前两条；② 它证明的是"能编能跑"，不证明取值对（取值对是前两条的事）；③ stub 顶住的那些依赖等于**没被验证** |
 
 **这一节的由来是一个真实的 Critical：`compat/` 漏复刻 Qt 的传递 include。**
@@ -1286,39 +1286,94 @@ Qt 的 `addRect`（`qpainterpath.cpp:1086-1113`）是 `moveTo` 之后**直接 ap
   （含 `null-rect`/`degenerate-w` 两个专属档）；F 条只删 `isNull()` 早退也红出
   `null-rect` 一对 —— 证明 `isNull` 那一支**有自己的判别输入**，不是被顺带压出来的。
 
-#### 6. 覆盖边界（**必须登记，不许静默**）：`arcTo` 的大角度档
+#### 6. `arcTo` / `arcMoveTo` 的大角度档（原「覆盖边界」）：**已收口 + 已常驻守**（2026-09-12，R-58）
 
-`arcTo` 的 `startAngle` 落在 **`2^31 ≤ |angle| < 1e128`** 时，两侧都在守卫**之后**
-做越界的 `int(...)` 转换：
+R-56 时这一节登记的是「`arcTo` 的大角度档从此无人常驻守、是登记的缺口」，并只列了 **3 个**
+UB 站点。R-58 实测这条路径上有 **6 个可达站点**，把它们全部收口并常驻守 —— 本节是该收口的落点。
 
-- 本模块：`pkCurvesForArc` 里 `int startSegment = int(std::floor(startAngle / 90));`
-- Qt：`qt_find_ellipse_coords:134` 的 `360 * qFloor(angles[i] / 360)`（`qFloor` 返回
-  `int`），随后 `360 * (越界 int)` 又是有符号溢出。
+**这是 pk 自己可达的 UB**（任何喂大角度 `arcTo`/`arcMoveTo` 的调用者 —— 用户 SVG/文档数据
+—— 都能走到，不需要 Qt 参与），不是「两侧观测不可比」那种纯对拍问题。
 
-**两侧编译器不同 ⇒ 这个区间上的"Qt 值"是一次 UB 的观测值，不可能稳定对齐**（本 README
-「对拍侧为什么不带 `-fwrapv`」给这类问题起过名字）。所以语料的 `startAngle` 那一格改用
-int 安全值：`|angle| < 2.147e9`（实测取 `1e9`）—— `|360*qFloor(x/360)|` 要落在 `int`
-内就是这个界。守卫的**界外**档（`1e128`/`1e200`/±inf/nan）**照旧全覆盖** —— 它们在
-入口就被 `isValidCoord` 丢掉、根本走不到那段 UB，所以判别力不受损。
+**六个站点**（`-fsanitize=undefined`，`PkPainterPath.cpp`，探针逐值扫）：
 
-> **这一档从此无人常驻守，是登记的缺口** —— 不是静默丢弃：写在这里，也写在
-> `geometry_difftest.cpp` 的 `kArcStartTok` 定义处。
+| # | 站点 | 代码 | 实测首次可达的 `startAngle` | R-56 时登记过？ |
+|---|---|---|---|---|
+| 1 | `:263` | `int startSegment = int(std::floor(startAngle / 90));` | `1e12` | ✅ |
+| 2 | `:264` | `int endSegment = int(std::floor((startAngle + sweepLength) / 90));` | `1e12` | ✅ |
+| 3 | `:265` | `qreal startT = (startAngle - startSegment * 90) / 90;`（**int 乘法溢出**） | **`1e10`** | ❌ **从未登记** |
+| 4 | `:266` | `qreal endT = (startAngle + sweepLength - endSegment * 90) / 90;`（同上） | **`1e10`** | ❌ **从未登记** |
+| 5 | `:273` | `int end = endSegment + delta;`（**有符号加法溢出**） | 负向 `-2^31` | ✅ |
+| 6 | `:230` | `int quadrant = int(t);`（在 `pkFindEllipseCoords` 里） | **`1e127`**；**经 `arcMoveTo` 单独可达** | ❌ **从未登记** |
 
-**单记一笔（本条是 pk **自己**的可达 UB，与上面「两侧都 UB」不同 —— 它不依赖 Qt，也不在
-「观测不可比」的掩护下）**：`pkCurvesForArc` 里除上面的 `int startSegment` 外还有两处：
+站点 **3/4 把 UB 阈值从「`1e12` 档」提前到「`1e10` 档」**：`|angle| >= 2147483700`
+（= `90 × 23860930`）时 `startSegment * 90` 就溢出。站点 **6 与 `arcTo` 无关** ——
+`arcMoveTo` 直接调 `pkFindEllipseCoords`，是本轮新暴露的一条独立入口（它没有入口守卫）。
 
-- `PkPainterPath.cpp:263` `int startSegment = int(std::floor(startAngle / 90));`
-- `PkPainterPath.cpp:264` `int endSegment = int(std::floor((startAngle + sweepLength) / 90));`
-  —— 这两处 `int(double)` 在 `|startAngle/90|`（或 `|(startAngle+sweepLength)/90|`）超出
-  `int` 可表示范围时是**未定义行为（C++ `[conv.fpint]`）**；
-- `PkPainterPath.cpp:273` `int end = endSegment + delta;` —— `endSegment == INT_MIN` 且
-  `delta == -1` 时有符号 `int` 溢出（同属 UB）。
+**这是 Qt 5.15.7 同款 UB 的逐字移植，不是 pk 移植时写歪的**。Qt 侧六处逐处对应
+（`qFloor` 就是 `int(std::floor(v))`，`qmath.h:74`）：
 
-**为什么单列**：任何调 `arcTo(rect, 大角度, sweep)` 的调用者（用户数据）都能走到这段 —— **不需要
-Qt 参与**。它现在**没有独立闸门、也没进对拍的可观测档**（那一段 pk 值本身就是 UB 的观测值）。
-**本轮不修**：收口要动这些算式的形态，属交付面变更；且对拍语料已把该档的 `startAngle` 换成
-int 安全值（`1e9`），改了没有判别输入背书。**归 PkPainterPath / geometry 线，等人裁决**是否
-按「转换前先夹取到 `int` 范围」收口。
+| Qt 站点 | 文件:行 | pk 站点 |
+|---|---|---|
+| `int startSegment = int(qFloor(startAngle / 90));` | `qstroker.cpp:922` | `:263` |
+| `int endSegment = int(qFloor((startAngle + sweepLength) / 90));` | `qstroker.cpp:923` | `:264` |
+| `qreal startT = (startAngle - startSegment * 90) / 90;` | `qstroker.cpp:925` | `:265` |
+| `qreal endT = (startAngle + sweepLength - endSegment * 90) / 90;` | `qstroker.cpp:926` | `:266` |
+| `const int end = endSegment + delta;` | `qstroker.cpp:952` | `:273` |
+| `int quadrant = int(t);` | `qpainterpath.cpp:137` | `:230` |
+
+**`-fwrapv` 把六个站点分成两类**：`pkgeometry` 的 PUBLIC 旗标带 `-fwrapv`（库/单测侧），
+于是**有符号 `int` 乘法/加法溢出**（站点 3/4/5）在本库构建下是**定义良好的回绕**；但
+**浮点→`int` 越界转换**（站点 1/2/6，`int(1e127)` 这类，C++ `[conv.fpint]`）**`-fwrapv`
+管不着**，两种旗标下都是 UB —— 这正是它们长期没被发现的原因之一。**对拍侧与 UBSan 闸门
+刻意不带 `-fwrapv`**（与编好的 `libQt5Core.so` 对等，见「对拍侧为什么不带 `-fwrapv`」），
+所以在那两处**六个站点全部按 UB 判**。
+
+**收口形态（R-58）**：
+
+- **越界档先折角**：`arcAngle = std::fmod(startAngle, 360.0)`，只在
+  `pkArcAngleUnsafe(startAngle) || pkArcAngleUnsafe(startAngle + sweepLength)` 时做
+  （`PkPainterPath.cpp:324-326`）。
+- **段索引与其后的 int 算术全改 `long long`**：`pkArcSegmentOf` 返回 `long long`
+  （夹到 `±2^31` 兜底，`:233`），`startSegment`/`endSegment`/`end`/`i` 都是 `long long`
+  （`:332`/`:333`/`:342`/`:346`）。
+- **`pkFindEllipseCoords` 的 `theta` 大角先取模**：`|aa| >= 2^53` 时
+  `aa = std::fmod(aa, 360.0)`（`:284-285`）。
+
+**为什么是「折回」而不是「夹取到 `int` 边界」**：精确算术下 `angle mod 360` 就是段索引之差
+与 `startT`/`endT` 分数部分的**全部信息** —— Qt 自己的 `qt_find_ellipse_coords` 就是这么做的
+（`theta = angles[i] - 360*qFloor(angles[i]/360)`），所以折角给出的是**同一个答案**，而 int
+算术不再越界。夹取会让段索引与起点/控制点角度**互相矛盾**（一个说 `0°`、一个说 `280°`），
+与本族既有的折角意图分家。
+
+**定义域内逐位不变**：折角只在越界档做 —— 安全档（`|angle| < 2147483700`）**逐位不变**。
+实测 **27 个安全档代表值 × 2 个入口 = 54 组**逐字符与真 Qt 比较，**全 SAME**（Task 1 Step 7；
+计划正文写「28 档 / 58 组」是计数笔误 —— 命令清单只有 27 档）。守卫的**界外**档
+（`1e128`/`1e200`/±inf/nan）**照旧全覆盖** —— 它们在入口就被 `isValidCoord` 丢掉、根本走不到
+这些算术，判别力不受损。
+
+**现在有常驻覆盖了**：
+
+- **对拍语料**（`oracle/geometry_difftest.cpp`，覆盖 `PP::arcTo` 与 `PP::arcMoveTo` 两个入口）：
+  - `kArcSafeAngleTok`（**27** 个安全档代表值）—— 把上面那次核对**常驻化**；
+  - `kArcBandTok`（**14** 个 `|angle| >= 2147483700` 的档）—— 这一档 Qt 侧是 UB、**不能直接
+    比**，语料改用**折角等价形式**：`Pk@a` 对 `Qt@fmod(a, 360)`；
+  - `shapeOfArcBand` 把档内按量级分三格（tag 规则一）：`band/int-mul`（`2e11` 起，只有站点
+    3/4 那一类）/ `band/int-conv`（`2e11` 起加上站点 1/2）/ `band/theta-loss`（`1e19` 起加上站点 6）。
+- **UBSan 闸门**（`tests/arc_band_ubsan.cpp`，`tests/run_tests.sh` 里接线）：用
+  `-fsanitize=undefined -fno-sanitize-recover=all`、**不带 `-fwrapv`** 编，扫 **22 个大角度值**
+  （4 条入口路径），绿 = `arc_band_ubsan: 扫完 22 个大角度值，无 UB 报告`。
+- **常驻单测**：`PkPainterPathCase::testPainterpathArcBand()`（`tests/test_painterpath.cpp`）。
+- **判别力（R-58 实测）**：注入 A（删折角行）红 `PP::arcTo band/int-conv` 与 `band/theta-loss`
+  （`mismatch` 3 → 17）；注入 C（删 `pkFindEllipseCoords` 的取模）红 `PP::arcMoveTo band/*`
+  （`mismatch` 3 → 7）；注入 D（段索引还原成 int 写法）UBSan 闸门 `exit=134` +
+  `signed integer overflow: 23860930 * 90` —— 三条路都**有牙**。
+
+**仍然覆盖不到的（必须留下，不许静默）**：**越界档与 Qt 的「直接逐位比较」原理上不存在** ——
+Qt 侧在那一段是 UB，「Qt 值」是一次 UB 的观测值，**不可能稳定对齐**（实测 `startAngle=1e10`：
+`Qt[1]=0x1.7b607d136065cp+1`、`Pk[1]=0x1.616ef6ce696adp+1`，已分家）。所以这一档判的是
+「**折角后两侧一致**」（折角等价形式），不是「pk 与 Qt 逐位相同」。这一条与「对拍侧为什么不带
+`-fwrapv`」那节登记的「溢出输入上两侧一致只是同旗标下的巧合」**并列** —— 两条都是**覆盖边界**，
+不是偏离，也不是遗漏。
 
 #### 7. 判别力对照（spec 判据③ 要的那一半）
 
