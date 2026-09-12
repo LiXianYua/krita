@@ -67,20 +67,24 @@ function(pigment_add_pk_test_binder target header)
     target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 endfunction()
 
-# 只覆盖「AUTOMOC 是唯一拦路虎」的 7 个 target —— 即关掉 AUTOMOC、接上生成器
-# 之后就能真正编出并跑通的那些。同一目录里其余 9 个测试虽然也报 AUTOMOC 形状的
-# 错，但那是被 AUTOMOC 错误遮住的表象，真拦路虎是源码层未迁：5 个
-# （TestKoColor、TestColorConversionSystem、KoRgbU8ColorSpaceTester、
-# TestKoColorSpaceSanity、TestKoStopGradient）入口仍是 kistest.h 的 KISTEST_MAIN
-# （真 Qt 应用对象，S-06 Task 9 登记的 [GAP]）；另 4 个（TestKoColorSet、
-# TestCompositeOpInversion、TestKoIntegerMaths、TestKisSwatchGroup）的 .cpp/.h
-# 仍引用 Qt 名（Qt::red / pkAbs / qHash 等，靠 simpletest.h 的 Qt 分支才可见）。
-# 两者都属类 II 源码迁移，不在本任务的构建系统范围内 —— 见任务报告。
+# 覆盖「AUTOMOC 是唯一拦路虎」的 target —— 即关掉 AUTOMOC、接上生成器之后就能
+# 真正编出并跑通的那些。M5 轮 3 Task B 的 B5 又收进两个：TestKoIntegerMaths 与
+# TestKisSwatchGroup（它们的源码层残留一并迁了：qAbs→pkAbs 见 TestKoIntegerMaths.cpp、
+# Qt::blue/red→Pk::blue/red 见 TestKisSwatchGroup.cpp、pair 哈希重载由 qHash 换成
+# Pk 唯一的扩展点 pkHash 见 TestKisSwatchGroup.h），7 + 2 = 9 个。
+#
+# 同一目录里其余 7 个测试虽然也报 AUTOMOC 形状的错，但那是被 AUTOMOC 错误遮住的
+# 表象，真拦路虎是源码层未迁：5 个（TestKoColor、TestColorConversionSystem、
+# KoRgbU8ColorSpaceTester、TestKoColorSpaceSanity、TestKoStopGradient）入口仍是
+# kistest.h 的 KISTEST_MAIN（真 Qt 应用对象，S-06 Task 9 登记的 [GAP]）；另 2 个
+# （TestKoColorSet、TestCompositeOpInversion）的 .cpp/.h 仍引用 Qt 名，靠
+# simpletest.h 的 Qt 分支才可见。两者都属类 II 源码迁移，不在本任务范围内 —— 见任务报告。
 foreach(_pigment_pk_target
         TestKoColorSpaceRegistry TestKoColorSpaceAbstract
         TestConvolutionOpImpl
         TestFallBackColorTransformation TestKoChannelInfo
-        TestColorConversion TestKoColorSpaceMaths)
+        TestColorConversion TestKoColorSpaceMaths
+        TestKoIntegerMaths TestKisSwatchGroup)
     pigment_add_pk_test_binder(${_pigment_pk_target}
         "${CMAKE_CURRENT_SOURCE_DIR}/${_pigment_pk_target}.h")
 endforeach()

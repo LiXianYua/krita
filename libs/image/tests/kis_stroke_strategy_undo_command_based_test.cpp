@@ -28,11 +28,11 @@ public:
     }
 
     void undo() override {
-        m_result += QString(" ") + text().toString() + undoString(true);
+        m_result += QString(" ") + pkSchedulerQString(text().toString()) + undoString(true);
     }
 
     void redo() override {
-        m_result += QString(" ") + text().toString() + undoString(false);
+        m_result += QString(" ") + pkSchedulerQString(text().toString()) + undoString(false);
     }
 
 private:
@@ -43,12 +43,12 @@ private:
 void KisStrokeStrategyUndoCommandBasedTest::testFinishedStroke()
 {
     QString result;
-    KUndo2CommandSP initCommand(new TestingUndoCommand(kundo2_noi18n("init"), result));
-    KUndo2CommandSP dabCommand(new TestingUndoCommand(kundo2_noi18n("dab"), result));
-    KUndo2CommandSP finishCommand(new TestingUndoCommand(kundo2_noi18n("finish"), result));
+    KUndo2CommandSP initCommand(new TestingUndoCommand(kundo2_text_raw("init"), result));
+    KUndo2CommandSP dabCommand(new TestingUndoCommand(kundo2_text_raw("dab"), result));
+    KUndo2CommandSP finishCommand(new TestingUndoCommand(kundo2_text_raw("finish"), result));
 
     KisStrokeStrategy *strategy =
-        new KisStrokeStrategyUndoCommandBased(kundo2_noi18n("test"), false, 0,
+        new KisStrokeStrategyUndoCommandBased(kundo2_text_raw("test"), false, 0,
                                               initCommand, finishCommand);
 
     KisStroke stroke(strategy);
@@ -64,15 +64,15 @@ void KisStrokeStrategyUndoCommandBasedTest::testFinishedStroke()
 void KisStrokeStrategyUndoCommandBasedTest::testCancelledStroke()
 {
     QString result;
-    KUndo2CommandSP initCommand(new TestingUndoCommand(kundo2_noi18n("init"), result));
-    KUndo2CommandSP dabCommand(new TestingUndoCommand(kundo2_noi18n("dab"), result));
-    KUndo2CommandSP finishCommand(new TestingUndoCommand(kundo2_noi18n("finish"), result));
+    KUndo2CommandSP initCommand(new TestingUndoCommand(kundo2_text_raw("init"), result));
+    KUndo2CommandSP dabCommand(new TestingUndoCommand(kundo2_text_raw("dab"), result));
+    KUndo2CommandSP finishCommand(new TestingUndoCommand(kundo2_text_raw("finish"), result));
 
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisImageSP image = new KisImage(0, 300, 300, cs, "test");
 
     KisStrokeStrategy *strategy =
-        new KisStrokeStrategyUndoCommandBased(kundo2_noi18n("test"), false,
+        new KisStrokeStrategyUndoCommandBased(kundo2_text_raw("test"), false,
                                               image.data(),
                                               initCommand, finishCommand);
 
@@ -137,7 +137,7 @@ void KisStrokeStrategyUndoCommandBasedTest::stressTestSequentialCommands()
     QAtomicInt hadConcurrency;
 
     KisStrokeStrategy *strategy =
-        new KisStrokeStrategyUndoCommandBased(kundo2_noi18n("test"), false, 0);
+        new KisStrokeStrategyUndoCommandBased(kundo2_text_raw("test"), false, 0);
 
     KisStrokeId id = image->startStroke(strategy);
 

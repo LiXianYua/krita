@@ -8,15 +8,35 @@
 #include <simpletest.h>
 
 #include <QRandomGenerator>
+// 本 TU 是 qt 桶（-DQT_CORE_LIB、无 pk/*/compat），测试自己的线程夹具仍用 Qt 原语
+// （QRunnable/QThreadPool/QReadWriteLock）——这些是**测试侧**的并发夹具，不是产品面，
+// 形制照抄同目录 kis_low_memory_tests.cpp:11 的 `#include <QThreadPool>`。
+// 迁移后产品头不再带这些 Qt 头进来，故在此显式补。
+#include <QReadWriteLock>
+#include <QReadLocker>
+#include <QWriteLocker>
+#include <QRunnable>
+#include <QThreadPool>
+#include <QTime>
+#include <QRegion>
 
 #include "tiles3/kis_tiled_data_manager.h"
 
 #include "tiles_test_utils.h"
 #include "config-limit-long-tests.h"
 
+// qDebug 分支要打 PkRect（KisTile::extent() 迁 Pk 后返 PkRect），qt 桶里 qDebug
+// 解析成真 QDebug，需要一个打印器。形制照抄 libs/image/tests/scheduler_utils.h:27
+// 的同名 operator<<（那边是共享头所以 inline；这里是单 TU，inline 一样安全）。
+static inline QDebug operator<<(QDebug debug, const PkRect &rect)
+{
+    return debug.nospace() << "PkRect(" << rect.x() << ", " << rect.y() << ", "
+                           << rect.width() << ", " << rect.height() << ")";
+}
+
 bool KisTiledDataManagerTest::checkHole(quint8* buffer,
-                                        quint8 holeColor, QRect holeRect,
-                                        quint8 backgroundColor, QRect backgroundRect)
+                                        quint8 holeColor, PkRect holeRect,
+                                        quint8 backgroundColor, PkRect backgroundRect)
 {
     for(qint32 y = backgroundRect.y(); y <= backgroundRect.bottom(); y++) {
         for(qint32 x = backgroundRect.x(); x <= backgroundRect.right(); x++) {
@@ -37,7 +57,7 @@ bool KisTiledDataManagerTest::checkTilesShared(KisTiledDataManager *srcDM,
                                                KisTiledDataManager *dstDM,
                                                bool takeOldSrc,
                                                bool takeOldDst,
-                                               QRect tilesRect)
+                                               PkRect tilesRect)
 {
     for(qint32 row = tilesRect.y(); row <= tilesRect.bottom(); row++) {
         for(qint32 col = tilesRect.x(); col <= tilesRect.right(); col++) {
@@ -63,7 +83,7 @@ bool KisTiledDataManagerTest::checkTilesNotShared(KisTiledDataManager *srcDM,
                                                   KisTiledDataManager *dstDM,
                                                   bool takeOldSrc,
                                                   bool takeOldDst,
-                                                  QRect tilesRect)
+                                                  PkRect tilesRect)
 {
     for(qint32 row = tilesRect.y(); row <= tilesRect.bottom(); row++) {
         for(qint32 col = tilesRect.x(); col <= tilesRect.right(); col++) {
@@ -85,7 +105,7 @@ void KisTiledDataManagerTest::testUndoingNewTiles()
 {
     // "growing extent bug"
 
-    const QRect nullRect;
+    const PkRect nullRect;
 
     quint8 defaultPixel = 0;
     KisTiledDataManager srcDM(1, &defaultPixel);
@@ -98,7 +118,7 @@ void KisTiledDataManagerTest::testUndoingNewTiles()
     KisTileSP createdTile = srcDM.getTile(0, 0, true);
     srcDM.commit();
 
-    QCOMPARE(srcDM.extent(), QRect(0,0,64,64));
+    QCOMPARE(srcDM.extent(), PkRect(0,0,64,64));
 
     srcDM.rollback(memento0);
     QCOMPARE(srcDM.extent(), nullRect);
@@ -111,9 +131,9 @@ void KisTiledDataManagerTest::testPurgedAndEmptyTransactions()
 
     quint8 oddPixel1 = 128;
 
-    QRect rect(0,0,512,512);
-    QRect clearRect1(50,50,100,100);
-    QRect clearRect2(150,50,100,100);
+    PkRect rect(0,0,512,512);
+    PkRect clearRect1(50,50,100,100);
+    PkRect clearRect2(150,50,100,100);
 
     quint8 *buffer = new quint8[rect.width()*rect.height()];
 
@@ -182,9 +202,9 @@ void KisTiledDataManagerTest::testUnversionedBitBlt()
     quint8 oddPixel1 = 128;
     quint8 oddPixel2 = 129;
 
-    QRect rect(0,0,512,512);
-    QRect cloneRect(81,80,250,250);
-    QRect tilesRect(2,2,3,3);
+    PkRect rect(0,0,512,512);
+    PkRect cloneRect(81,80,250,250);
+    PkRect tilesRect(2,2,3,3);
 
     srcDM.clear(rect, &oddPixel1);
     dstDM.clear(rect, &oddPixel2);
@@ -217,9 +237,9 @@ void KisTiledDataManagerTest::testVersionedBitBlt()
 
     quint8 oddPixel4 = 131;
 
-    QRect rect(0,0,512,512);
-    QRect cloneRect(81,80,250,250);
-    QRect tilesRect(2,2,3,3);
+    PkRect rect(0,0,512,512);
+    PkRect cloneRect(81,80,250,250);
+    PkRect tilesRect(2,2,3,3);
 
 
     KisMementoSP memento1 = srcDM1.getMemento();
@@ -271,8 +291,8 @@ void KisTiledDataManagerTest::testBitBltOldData()
     quint8 oddPixel1 = 128;
     quint8 oddPixel2 = 129;
 
-    QRect rect(0,0,512,512);
-    QRect cloneRect(81,80,250,250);
+    PkRect rect(0,0,512,512);
+    PkRect cloneRect(81,80,250,250);
 
     quint8 *buffer = new quint8[rect.width()*rect.height()];
 
@@ -307,10 +327,10 @@ void KisTiledDataManagerTest::testBitBltRough()
     quint8 oddPixel2 = 129;
     quint8 oddPixel3 = 130;
 
-    QRect rect(0,0,512,512);
-    QRect cloneRect(81,80,250,250);
-    QRect actualCloneRect(64,64,320,320);
-    QRect tilesRect(1,1,4,4);
+    PkRect rect(0,0,512,512);
+    PkRect cloneRect(81,80,250,250);
+    PkRect actualCloneRect(64,64,320,320);
+    PkRect tilesRect(1,1,4,4);
 
     srcDM.clear(rect, &oddPixel1);
     dstDM.clear(rect, &oddPixel2);
@@ -472,7 +492,7 @@ void KisTiledDataManagerTest::testUndoSetDefaultPixel()
     quint8 oddPixel1 = 128;
     quint8 oddPixel2 = 129;
 
-    QRect fillRect(0,0,64,64);
+    PkRect fillRect(0,0,64,64);
 
     KisTileSP tile00;
     KisTileSP tile10;
@@ -671,7 +691,7 @@ void KisTiledDataManagerTest::benchmarkCOWWithPooler()
 class KisStressJob : public QRunnable
 {
 public:
-    KisStressJob(KisTiledDataManager &dataManager, QRect rect, QReadWriteLock &_lock)
+    KisStressJob(KisTiledDataManager &dataManager, PkRect rect, QReadWriteLock &_lock)
         : m_accessRect(rect), dm(dataManager), lock(_lock)
     {
     }
@@ -715,7 +735,7 @@ public:
                 break;
             case 3:
                 run_concurrent(lock,t) {
-                    QRect newRect = dm.extent();
+                    PkRect newRect = dm.extent();
 		    Q_UNUSED(newRect);
                 }
                 break;
@@ -782,7 +802,7 @@ public:
 
 private:
     KisMementoSP m_memento;
-    QRect m_accessRect;
+    PkRect m_accessRect;
     KisTiledDataManager &dm;
     QReadWriteLock &lock;
 };
@@ -804,7 +824,7 @@ void KisTiledDataManagerTest::stressTest()
     QThreadPool pool;
     pool.setMaxThreadCount(numThreads);
 
-    QRect accessRect(0,0,512,512);
+    PkRect accessRect(0,0,512,512);
     for(qint32 i = 0; i < numWorkers; i++) {
         KisStressJob *job = new KisStressJob(dm, accessRect, lock);
         pool.start(job);
@@ -814,7 +834,7 @@ void KisTiledDataManagerTest::stressTest()
 }
 
 template <typename Func>
-void applyToRect(const QRect &rc, Func func) {
+void applyToRect(const PkRect &rc, Func func) {
     for (int y = rc.y(); y < rc.y() + rc.height(); y += KisTileData::HEIGHT) {
         for (int x = rc.x(); x < rc.x() + rc.width(); x += KisTileData::WIDTH) {
             const int col = x / KisTileData::WIDTH;
@@ -830,7 +850,7 @@ class LazyCopyingStressJob : public QRunnable
 {
 public:
     LazyCopyingStressJob(KisTiledDataManager &dataManager,
-                         const QRect &rect,
+                         const PkRect &rect,
                          QReadWriteLock &dmExclusiveLock,
                          QReadWriteLock &tileExclusiveLock,
                          int numCycles,
@@ -893,7 +913,7 @@ public:
 
 private:
     KisMementoSP m_memento;
-    QRect m_accessRect;
+    PkRect m_accessRect;
     KisTiledDataManager &dm;
     QReadWriteLock &m_dmExclusiveLock;
     QReadWriteLock &m_tileExclusiveLock;
@@ -921,7 +941,7 @@ void KisTiledDataManagerTest::stressTestLazyCopying()
     QThreadPool pool;
     pool.setMaxThreadCount(numThreads);
 
-    const QRect accessRect(0,0,512,256);
+    const PkRect accessRect(0,0,512,256);
     for(qint32 i = 0; i < numWorkers; i++) {
         const bool isWriter = i == 0;
         LazyCopyingStressJob *job = new LazyCopyingStressJob(dm, accessRect,
@@ -987,13 +1007,13 @@ void KisTiledDataManagerTest::stressTestExtentsColumn()
 
 void KisTiledDataManagerTest::benchmarkQRegion()
 {
-    QVector<QRect> rects;
+    PkVector<PkRect> rects;
 
     int poison = 0;
     for (int y = 0; y < 8000; y += 64) {
         for (int x = 0; x < 8000; x += 64) {
             if (poison++ % 7 == 0) continue;
-            rects << QRect(x, y, 64, 64);
+            rects << PkRect(x, y, 64, 64);
         }
     }
 
@@ -1006,8 +1026,12 @@ void KisTiledDataManagerTest::benchmarkQRegion()
 
     QRegion region;
 
-    Q_FOREACH (const QRect &rc, rects) {
-        region += rc;
+    Q_FOREACH (const PkRect &rc, rects) {
+        // 本 benchmark 的用意就是拿 Qt 的 QRegion 跟 KisRegion 比（函数名 benchmarkQRegion），
+        // 所以这里保留真 Qt 的 QRegion，只在调用点把 PkRect 显式折成 QRect
+        // （QRegion::operator+= 收的是 QRect，PkRect 没有到它的转换）。
+        // 比较对象与测量内容不变。
+        region += QRect(rc.x(), rc.y(), rc.width(), rc.height());
     }
 
     qDebug() << "compressed rects:" << ppVar(rects.size()) << "-->" << ppVar(region.rectCount());
@@ -1017,14 +1041,14 @@ void KisTiledDataManagerTest::benchmarkQRegion()
 #include "KisRegion.h"
 void KisTiledDataManagerTest::benchmarkKisRegion()
 {
-    QVector<QRect> rects;
+    PkVector<PkRect> rects;
 
     int poison = 0;
 
     for (int y = 0; y < 8000; y += 64) {
         for (int x = 0; x < 8000; x += 64) {
             if (poison++ % 7 == 0) continue;
-            rects << QRect(x, y, 64, 64);
+            rects << PkRect(x, y, 64, 64);
         }
     }
 
@@ -1041,7 +1065,7 @@ void KisTiledDataManagerTest::benchmarkKisRegion()
     qDebug() << "compression time:" << timer.elapsed() << "ms";
 }
 
-inline bool findPoint (const QPoint &pt, const QVector<QRect> &rects)
+inline bool findPoint (const PkPoint &pt, const PkVector<PkRect> &rects)
 {
     for (auto it = rects.begin(); it != rects.end(); ++it) {
         if (it->contains(pt)) return true;
@@ -1052,18 +1076,18 @@ inline bool findPoint (const QPoint &pt, const QVector<QRect> &rects)
 
 void KisTiledDataManagerTest::benchmarkOverlappedKisRegion()
 {
-    QVector<QRect> rects;
+    PkVector<PkRect> rects;
 
     int poison = 0;
     for (int y = 0; y < 8000; y += 13) {
         for (int x = 0; x < 8000; x += 17) {
             if (poison++ % 7 == 0) continue;
-            rects << QRect(x, y, 13 + (poison % 17) * 7, 17 + (poison % 13) * 7);
+            rects << PkRect(x, y, 13 + (poison % 17) * 7, 17 + (poison % 13) * 7);
         }
     }
 
     const int originalSize = rects.size();
-    QVector<QRect> originalRects = rects;
+    PkVector<PkRect> originalRects = rects;
 
     std::random_device randomDevice;
     std::mt19937 generator(randomDevice());
@@ -1075,7 +1099,7 @@ void KisTiledDataManagerTest::benchmarkOverlappedKisRegion()
 #if 0
     // speed reference: executes for about 150 seconds! (150000ms)
     QRegion region;
-    Q_FOREACH (const QRect &rc, rects) {
+    Q_FOREACH (const PkRect &rc, rects) {
         region += rc;
     }
 #endif
@@ -1101,16 +1125,16 @@ void KisTiledDataManagerTest::benchmarkOverlappedKisRegion()
     /// very slow sanity check for invariant: "all source rects are
     /// represented in the deoverlapped set of rects"
 
-    QVector<QRect> compressedRects = region.rects();
+    PkVector<PkRect> compressedRects = region.rects();
     int i = 0;
-    Q_FOREACH(const QRect &rc, originalRects) {
+    Q_FOREACH(const PkRect &rc, originalRects) {
         if (i % 1000 == 0) {
             qDebug() << ppVar(i);
         }
 
         for (int y = rc.y(); y <= rc.bottom(); ++y) {
             for (int x = rc.x(); x <= rc.right(); ++x) {
-                QVERIFY(findPoint(QPoint(x, y), compressedRects));
+                QVERIFY(findPoint(PkPoint(x, y), compressedRects));
             }
         }
         i++;

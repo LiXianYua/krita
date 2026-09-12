@@ -60,7 +60,7 @@ public:
                     voidTile->unlockForWrite();
                 }
 
-                QRect cloneRect(0, 0, m_numTiles * 64, 64);
+                PkRect cloneRect(0, 0, m_numTiles * 64, 64);
                 m_dstDM.bitBltRough(&m_srcDM, cloneRect);
 
                 if(j % 50 == 0) dbgKrita << "Producer:" << j << "of" << m_numCycles;
@@ -153,7 +153,7 @@ void KisLowMemoryTests::hangingTilesTest()
 
 
     KisTiledDataManager dstDM(1, &defaultPixel);
-    dstDM.bitBlt(&srcDM, QRect(0,0,64,64));
+    dstDM.bitBlt(&srcDM, PkRect(0,0,64,64));
 
     KisTileSP dstTile = dstDM.getTile(0, 0, true);
 

@@ -6,7 +6,19 @@
 
 #include "KisColorsmudgeOpTest.h"
 
-#include <pk/test/compat/QTest>
+// 本测试**不进 Pk 测试栈**，走 sdk/tests/simpletest.h 的 SIMPLE_TEST_MAIN（Qt 分支）。
+// 理由：它经 qimage_based_test.h 依赖 sdk/tests/testutil.h，而后者已被 S-06 Task 9
+// 登记为 [GAP]——保留 Qt 类型（QImage 文件 I/O + TestNode 的 Q_OBJECT），关闭条件是
+// R-15 的 PkImage 文件 I/O。testutil.h:511 有一处 PATTERN-2 的 `QTest::qWait`
+// 要靠真 Qt 的 QTest。所以这个 TU 里 `QTest` 必须仍是真 Qt 的 QTest。
+//
+// 原先此处的 `#include <pk/test/compat/QTest>` 定义了 `#define QTest PkTest`
+// （pk/test/compat/QTest:8），于是 testutil.h:511 的 `QTest::qWait` 被改写成
+// `PkTest::qWait` 而报「no member named 'qWait' in namespace 'PkTest'」；
+// 文件末尾又是 PK_TEST_MAIN ⇒ 还要求 PkTestBinder<KisColorsmudgeOpTest>（未生成）。
+// 同目录同类测试 KisBrushOpTest（kis_brushop_test.h + .cpp）用的就是
+// `<simpletest.h>` + SIMPLE_TEST_MAIN 这一形态，此处与之对齐；测试体、断言、
+// QImageBasedTest 的像素比对全部不动。
 
 #define USE_DOCUMENT 0
 #include <qimage_based_test.h>
@@ -34,14 +46,14 @@ public:
         KisSurrogateUndoStore *undoStore = new KisSurrogateUndoStore();
         KisImageSP image = createTrivialImage(undoStore);
         image->initialRefreshGraph();
-        image->resizeImage(QRect(0,0,200,200));
+        image->resizeImage(PkRect(0,0,200,200));
         image->waitForDone();
 
         KisNodeSP paint1 = findNode(image->root(), "paint1");
 
         QVERIFY(paint1->extent().isEmpty());
 
-        paint1->paintDevice()->fill(QRect(80, 5, 50, 190), KoColor(Pk::red, image->colorSpace()));
+        paint1->paintDevice()->fill(PkRect(80, 5, 50, 190), KoColor(Pk::red, image->colorSpace()));
 
         KisNodeSP targetNode = paint1;
 
@@ -52,7 +64,7 @@ public:
 
             KisPaintLayerSP paintBg = new KisPaintLayer(image, "paintBg", OPACITY_OPAQUE_U8);
             image->addNode(paintBg, paint1->parent(), 0);
-            paintBg->paintDevice()->fill(QRect(0, 100, 200, 100), KoColor(Pk::white, image->colorSpace()));
+            paintBg->paintDevice()->fill(PkRect(0, 100, 200, 100), KoColor(Pk::white, image->colorSpace()));
 
             image->initialRefreshGraph();
         }
@@ -60,7 +72,7 @@ public:
         KisPainter gc(targetNode->paintDevice());
 
         PkScopedPointer<KoCanvasResourceProvider> manager(
-            utils::createResourceManager(image, 0, presetFileName));
+            utils::createResourceManager(image, 0, TestUtil::pkStringFromQString(presetFileName)));
 
         manager->setResource(KoCanvasResource::ForegroundColor, KoColor(Pk::green, image->colorSpace()));
 
@@ -96,16 +108,16 @@ public:
         Q_FOREACH (qreal pressure, pressureLevels) {
             {
                 KisDistanceInformation dist;
-                KisPaintInformation p1(QPointF(20, yOffset), pressure);
-                KisPaintInformation p2(QPointF(180, yOffset), pressure);
+                KisPaintInformation p1(PkPointF(20, yOffset), pressure);
+                KisPaintInformation p2(PkPointF(180, yOffset), pressure);
 
                 gc.paintLine(p1, p2, &dist);
             }
 
             {
                 KisDistanceInformation dist;
-                KisPaintInformation p1(QPointF(100, yOffset + 30), pressure);
-                KisPaintInformation p2(QPointF(180, yOffset + 30), pressure);
+                KisPaintInformation p1(PkPointF(100, yOffset + 30), pressure);
+                KisPaintInformation p2(PkPointF(180, yOffset + 30), pressure);
 
                 gc.paintLine(p1, p2, &dist);
             }
@@ -140,9 +152,9 @@ void KisColorsmudgeOpTest::test_data()
         Q_FOREACH (const QString &file, files) {
             const int prefixLength = int(PkString("test_smudge_").size());
             const int suffixLength = int(PkString(".0001.kpp").size());
-            const PkString caseName = file.mid(prefixLength, file.size() - prefixLength - suffixLength);
+            const QString caseName = file.mid(prefixLength, file.size() - prefixLength - suffixLength);
             const QString name = QString("%1_%2").arg(useOverlay ? "over" : "norm").arg(caseName);
-            const std::string rowName = name.PkToUtf8();
+            const std::string rowName = name.toStdString();
             QTest::addRow("%s", rowName.c_str()) << name << file << useOverlay;
         }
     }
@@ -158,4 +170,7 @@ void KisColorsmudgeOpTest::test()
     t.test(testName, preset, overlay);
 }
 
-PK_TEST_MAIN(KisColorsmudgeOpTest)
+// SIMPLE_TEST_MAIN（simpletest.h）的默认分支 = QApplication + 真 QTest::qExec，
+// 正是「未迁移的 QObject fixture」那一档；kis_brushop_test / kis_processings_test /
+// kis_projection_leaf_test 三个 qimage_based_test.h 消费者全都在这条路径上。
+SIMPLE_TEST_MAIN(KisColorsmudgeOpTest)

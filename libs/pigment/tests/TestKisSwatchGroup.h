@@ -8,19 +8,22 @@
 #include <PkHash.h>
 #include <PkPair.h>
 
-// 原测试用哈希容器<std::pair<int,int>, KisSwatch>：真 Qt 在 qhashfunctions.h 里给
-// `qHash(std::pair)` 提供全局重载，PkHashFunctions 的 qHash 族没有 pair 重载
-// （PkHasher 模板定义点普通查找命中不了后加的声明，只靠实例化点 ADL）。
-// 这里补一份 `namespace std` 的 qHash 重载，靠 ADL 让 PkHasher 找到它——语义
-// 照 Qt 5.15（hash(first, seed) ^ hash(second, ~seed)，seed=0）。仅供本测试的
-// 期望镜像表使用，哈希值本身不参与断言。
+// 原测试用哈希容器<std::pair<int,int>, KisSwatch>。PkHasher 的哈希扩展点只有一个
+// 名字 pkHash（pk/container/PkHashFunctions.h:180 明写「不给 qHash 留回退」），而
+// PkHashFunctions.h 那批重载里没有 pair 形（只有 PkStringHash.h:40 的
+// pair<PkString,PkString>）。PkPair<int,int> 就是 std::pair<int,int>
+// （pk/container/PkPair.h 是别名），ADL 的关联命名空间只有 std，所以这条重载必须
+// 放进 namespace std 才找得到——PkHasher 的普通查找在模板定义点进行，命中不了
+// 实例化点之后才可见的声明，只有 ADL 这一条路。语义照 Qt 5.15 的 qHash(std::pair)：
+// hash(first, seed) ^ hash(second, ~seed)，seed=0。仅供本测试的期望镜像表使用，
+// 哈希值本身不参与断言。
 #include <utility>
 namespace std {
-inline unsigned int qHash(const std::pair<int, int> &key) noexcept
+inline unsigned int pkHash(const std::pair<int, int> &key) noexcept
 {
     // 普通查找在第一个命中的命名空间（std）处停止，必须 :: 限定到全局的
-    // qHash(int)（PkHashFunctions.h 定义），否则 pair 重载把自己隐藏了。
-    return ::qHash(key.first) ^ ::qHash(key.second, ~0u);
+    // pkHash(int)（PkHashFunctions.h:90 定义），否则这条 pair 重载把自己隐藏了。
+    return ::pkHash(key.first) ^ ::pkHash(key.second, ~0u);
 }
 }
 

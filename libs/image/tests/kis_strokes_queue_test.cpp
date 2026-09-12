@@ -16,6 +16,21 @@
 #include "kis_merge_walker.h"
 
 
+// ENTER_FUNCTION()（libs/global/kis_debug.h:183）展开成
+// `qDebug() << "Entering" << __METHOD_NAME__`，而 __METHOD_NAME__ 是 PkString
+// （同文件 :175 `__methodName(__PRETTY_FUNCTION__)`）。本 TU 是 qt 桶 ⇒ qDebug()
+// 是真 QDebug，没有吃 PkString 的 operator<<，这一行就编不过。形制照抄同批
+// scheduler_utils.h 里的 `QDebug operator<<(QDebug, const PkRect&)`（同一支：
+// 真 QDebug 需要一个 Pk 类型的打印器，内核对象才能落进日志）。
+// ⚠ 产品头缺口：kis_debug.h 的 ENTER_FUNCTION/LEAVE_FUNCTION 只在 native 桶可编译
+// （那边 qDebug() 解析到 pk/log/PkDebug.h，有 Pk 类型分支）。不在本任务的面，已写进报告。
+inline QDebug operator<<(QDebug debug, const PkString &value)
+{
+    const std::string utf8 = value.PkToUtf8();
+    return debug << QString::fromUtf8(utf8.data(), int(utf8.size()));
+}
+
+
 void KisStrokesQueueTest::testSequentialJobs()
 {
     KisStrokesQueue queue;
@@ -26,7 +41,7 @@ void KisStrokesQueueTest::testSequentialJobs()
     queue.endStroke(id);
 
     KisTestableUpdaterContext context(2);
-    QVector<KisUpdateJobItem*> jobs;
+    PkVector<KisUpdateJobItem*> jobs;
 
     queue.processQueue(context, false);
 
@@ -66,7 +81,7 @@ void KisStrokesQueueTest::testConcurrentSequentialBarrier()
 
     // make the number of threads higher
     KisTestableUpdaterContext context(3);
-    QVector<KisUpdateJobItem*> jobs;
+    PkVector<KisUpdateJobItem*> jobs;
 
     queue.processQueue(context, false);
 
@@ -99,10 +114,10 @@ void KisStrokesQueueTest::testExclusiveStrokes()
     queue.endStroke(id);
 
     // well, this walker is not initialized... but who cares?
-    KisBaseRectsWalkerSP walker = new KisMergeWalker(QRect());
+    KisBaseRectsWalkerSP walker = new KisMergeWalker(PkRect());
 
     KisTestableUpdaterContext context(2);
-    QVector<KisUpdateJobItem*> jobs;
+    PkVector<KisUpdateJobItem*> jobs;
 
     context.addMergeJob(walker);
     queue.processQueue(context, false);
@@ -168,11 +183,11 @@ void KisStrokesQueueTest::testBarrierStrokeJobs()
     queue.endStroke(id);
 
     // yes, this walker is not initialized again... but who cares?
-    KisBaseRectsWalkerSP walker = new KisMergeWalker(QRect());
+    KisBaseRectsWalkerSP walker = new KisMergeWalker(PkRect());
     bool externalJobsPending = false;
 
     KisTestableUpdaterContext context(3);
-    QVector<KisUpdateJobItem*> jobs;
+    PkVector<KisUpdateJobItem*> jobs;
 
     queue.processQueue(context, externalJobsPending);
 
@@ -296,7 +311,7 @@ void KisStrokesQueueTest::testStrokesOverlapping()
     // queue.addJob(id, 0);
 
     KisTestableUpdaterContext context(2);
-    QVector<KisUpdateJobItem*> jobs;
+    PkVector<KisUpdateJobItem*> jobs;
 
     queue.processQueue(context, false);
 
@@ -363,7 +378,7 @@ void KisStrokesQueueTest::testAsyncCancelWhileOpenedStroke()
     bool externalJobsPending = false;
 
     KisTestableUpdaterContext context(3);
-    QVector<KisUpdateJobItem*> jobs;
+    PkVector<KisUpdateJobItem*> jobs;
 
     queue.processQueue(context, externalJobsPending);
 
@@ -385,11 +400,11 @@ struct KisStrokesQueueTest::LodStrokesQueueTester {
             []() {
                 KisSuspendResumePair suspend(
                     new KisTestingStrokeStrategy(QLatin1String("susp_u_"), false, true, true),
-                    QList<KisStrokeJobData*>());
+                    PkList<KisStrokeJobData*>());
 
                 KisSuspendResumePair resume(
                     new KisTestingStrokeStrategy(QLatin1String("resu_u_"), false, true, true),
-                    QList<KisStrokeJobData*>());
+                    PkList<KisStrokeJobData*>());
 
                 return std::make_pair(suspend, resume);
             });
@@ -399,7 +414,7 @@ struct KisStrokesQueueTest::LodStrokesQueueTester {
                 Q_UNUSED(forgettable);
                 return KisLodSyncPair(
                     new KisTestingStrokeStrategy(QLatin1String("sync_u_"), false, true, true),
-                    QList<KisStrokeJobData*>());
+                    PkList<KisStrokeJobData*>());
             });
     }
 
@@ -408,7 +423,7 @@ struct KisStrokesQueueTest::LodStrokesQueueTester {
     KisTestableUpdaterContext fakeContext;
     KisUpdaterContext realContext;
     KisUpdaterContext &context;
-    QVector<KisUpdateJobItem*> jobs;
+    PkVector<KisUpdateJobItem*> jobs;
 
     void processQueueNoAdd() {
         if (&context != &fakeContext) return;
@@ -474,7 +489,7 @@ struct KisStrokesQueueTest::LodStrokesQueueTester {
     void checkOnlyExecutedJob(const QString &name) {
         realContext.waitForDone();
         QVERIFY(!globalExecutedDabs.isEmpty());
-        QCOMPARE(globalExecutedDabs[0], name);
+        QCOMPARE(pkSchedulerQString(globalExecutedDabs[0]), name);
 
         QCOMPARE(globalExecutedDabs.size(), 1);
         globalExecutedDabs.clear();
@@ -483,7 +498,7 @@ struct KisStrokesQueueTest::LodStrokesQueueTester {
     void checkExecutedJobs(const QStringList &list) {
         realContext.waitForDone();
 
-        QCOMPARE(globalExecutedDabs, list);
+        QCOMPARE(pkSchedulerQStringList(globalExecutedDabs), list);
         globalExecutedDabs.clear();
     }
 
@@ -512,10 +527,10 @@ void KisStrokesQueueTest::testStrokesLevelOfDetail()
 
     // create a update with LOD == 0 (default one)
     // well, this walker is not initialized... but who cares?
-    KisBaseRectsWalkerSP walker = new KisMergeWalker(QRect());
+    KisBaseRectsWalkerSP walker = new KisMergeWalker(PkRect());
 
     KisTestableUpdaterContext context(2);
-    QVector<KisUpdateJobItem*> jobs;
+    PkVector<KisUpdateJobItem*> jobs;
 
     context.addMergeJob(walker);
     queue.processQueue(context, false);
@@ -875,7 +890,7 @@ void KisStrokesQueueTest::testUFOVisitBetweenLodNStrokes()
 #include <kis_post_execution_undo_adapter.h>
 struct TestUndoCommand : public KUndo2Command
 {
-    TestUndoCommand(const QString &text) : KUndo2Command(kundo2_noi18n(text)) {}
+    TestUndoCommand(const char *text) : KUndo2Command(kundo2_text_raw(text)) {}
 
     void undo() override {
         ENTER_FUNCTION();
@@ -915,13 +930,13 @@ void KisStrokesQueueTest::testLodUndoBase()
     t.checkOnlyJob("clone2_str1_dab");
 
 
-    QSharedPointer<TestUndoCommand> undoStr1(new TestUndoCommand("str1_undo"));
+    PkSharedPointer<TestUndoCommand> undoStr1(new TestUndoCommand("str1_undo"));
     queue.lodNPostExecutionUndoAdapter()->addCommand(undoStr1);
 
     t.processQueue();
     t.checkOnlyJob("clone2_str2_dab");
 
-    QSharedPointer<TestUndoCommand> undoStr2(new TestUndoCommand("str2_undo"));
+    PkSharedPointer<TestUndoCommand> undoStr2(new TestUndoCommand("str2_undo"));
     queue.lodNPostExecutionUndoAdapter()->addCommand(undoStr2);
 
     t.processQueue();
@@ -958,13 +973,13 @@ void KisStrokesQueueTest::testLodUndoBase2()
     t.processQueue();
     t.checkOnlyExecutedJob("clone2_str1_dab");
 
-    QSharedPointer<TestUndoCommand> undoStr1(new TestUndoCommand("str1_undo"));
+    PkSharedPointer<TestUndoCommand> undoStr1(new TestUndoCommand("str1_undo"));
     queue.lodNPostExecutionUndoAdapter()->addCommand(undoStr1);
 
     t.processQueue();
     t.checkOnlyExecutedJob("clone2_str2_dab");
 
-    QSharedPointer<TestUndoCommand> undoStr2(new TestUndoCommand("str2_undo"));
+    PkSharedPointer<TestUndoCommand> undoStr2(new TestUndoCommand("str2_undo"));
     queue.lodNPostExecutionUndoAdapter()->addCommand(undoStr2);
 
     t.processQueue();
@@ -973,7 +988,7 @@ void KisStrokesQueueTest::testLodUndoBase2()
     queue.tryUndoLastStrokeAsync();
     t.processQueue();
 
-    while (queue.currentStrokeName() == kundo2_noi18n("str2_undo")) {
+    while (queue.currentStrokeName() == kundo2_text_raw("str2_undo")) {
         //queue.debugPrintStrokes();
         t.processQueue();
     }

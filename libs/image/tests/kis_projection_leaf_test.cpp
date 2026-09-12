@@ -52,7 +52,7 @@ bool safeCompare(KisProjectionLeafSP leaf, KisNodeSP node)
 
 void checkNode(KisNodeSP node, const QString &prefix)
 {
-    qDebug() << prefix << node->name();
+    qDebug() << prefix << TestUtil::diagnosticQString(node->name());
 
     if (!node->inherits("KisSelectionMask")) {
         safeCompare(node->projectionLeaf()->parent(), node->parent());
@@ -75,7 +75,7 @@ void checkNode(KisNodeSP node, const QString &prefix)
 
 void printNodes(KisNodeSP node, const QString &prefix = "")
 {
-    qDebug() << prefix << node->name();
+    qDebug() << prefix << TestUtil::diagnosticQString(node->name());
 
     KisNodeSP prevNode = node->lastChild();
     while(prevNode) {
@@ -86,8 +86,8 @@ void printNodes(KisNodeSP node, const QString &prefix = "")
 
 void printLeafsBackward(KisProjectionLeafSP leaf, QList<QString> &refNodes, const QString &prefix = "")
 {
-    qDebug() << prefix << leaf->node()->name();
-    QCOMPARE(leaf->node()->name(), refNodes.takeFirst());
+    qDebug() << prefix << TestUtil::diagnosticQString(leaf->node()->name());
+    QCOMPARE(TestUtil::diagnosticQString(leaf->node()->name()), refNodes.takeFirst());
 
     KisProjectionLeafSP prevLeaf = leaf->lastChild();
     while(prevLeaf) {
@@ -102,8 +102,8 @@ void printLeafsBackward(KisProjectionLeafSP leaf, QList<QString> &refNodes, cons
 
 void printLeafsForward(KisProjectionLeafSP leaf, QList<QString> &refNodes, const QString &prefix = "")
 {
-    qDebug() << prefix << leaf->node()->name();
-    QCOMPARE(leaf->node()->name(), refNodes.takeFirst());
+    qDebug() << prefix << TestUtil::diagnosticQString(leaf->node()->name());
+    QCOMPARE(TestUtil::diagnosticQString(leaf->node()->name()), refNodes.takeFirst());
 
     KisProjectionLeafSP prevLeaf = leaf->firstChild();
     while(prevLeaf) {
@@ -114,8 +114,8 @@ void printLeafsForward(KisProjectionLeafSP leaf, QList<QString> &refNodes, const
 
 void printParents(KisProjectionLeafSP leaf, QList<QString> &refNodes, const QString &prefix = "")
 {
-    qDebug() << prefix << leaf->node()->name();
-    QCOMPARE(leaf->node()->name(), refNodes.takeFirst());
+    qDebug() << prefix << TestUtil::diagnosticQString(leaf->node()->name());
+    QCOMPARE(TestUtil::diagnosticQString(leaf->node()->name()), refNodes.takeFirst());
 
     leaf = leaf->parent();
     if (leaf) {

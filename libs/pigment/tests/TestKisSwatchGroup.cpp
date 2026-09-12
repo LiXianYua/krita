@@ -156,17 +156,23 @@ void TestKisSwatchGroup::testInfoList()
 
 KoColor TestKisSwatchGroup::blue()
 {
-    PkColor c(Qt::blue);
+    PkColor c(Pk::blue);   // Qt::GlobalColor → Pk::GlobalColor（pk/global/PkGlobal.h:307）
     KoColor  kc(c, KoColorSpaceRegistry::instance()->rgb8());
     return kc;
 }
 
 KoColor TestKisSwatchGroup::red()
 {
-    PkColor c(Qt::red);
+    PkColor c(Pk::red);    // 同上
     KoColor  kc(c, KoColorSpaceRegistry::instance()->rgb8());
     return kc;
 }
 
+
+#ifdef PK_SHELL_MOC_BINDER
+// pk 测试发现：本 target 已关 AUTOMOC（CMakeLists.txt 的 pigment_add_pk_test_binder），
+// PkTestBinder<T> 特化由 pk_test_moc.py 生成到这个 .inc，必须在 qExec 的实例化点之前可见。
+#include "pk_binder_TestKisSwatchGroup.inc"
+#endif
 
 PK_TEST_GUILESS_MAIN(TestKisSwatchGroup)

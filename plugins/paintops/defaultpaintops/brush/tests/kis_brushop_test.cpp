@@ -131,7 +131,10 @@ public:
 
         doPaint(gc, rotation, mirrorX, mirrorY);
 
-        checkOneLayer(image, paint1, testName);
+        // testName 已是 PkString（上面用 PkString::arg 拼的），而 checkOneLayer 的
+        // prefix 形参仍是 QString（qimage_based_test.h 归 S-06 Task 9 的 [GAP]，保留 Qt 类型）。
+        // 与 kis_projection_leaf_test.cpp 同款：UTF-8 转一手，比对的参考图名不变。
+        checkOneLayer(image, paint1, TestUtil::diagnosticQString(testName));
     }
 
     virtual void doPaint(KisPainter &gc, qreal rotation, bool mirrorX, bool mirrorY) {

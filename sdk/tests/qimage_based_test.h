@@ -77,10 +77,10 @@ protected:
     KisImageSP createImage(KisSurrogateUndoStore *undoStore) {
         QImage sourceImage(fetchDataFileLazy("hakonepa.png"));
 
-        QRect imageRect = QRect(QPoint(0,0), sourceImage.size());
+        PkRect imageRect(0, 0, sourceImage.width(), sourceImage.height());
 
-        QRect transpRect(50,50,300,300);
-        QRect blurRect(66,66,300,300);
+        PkRect transpRect(50,50,300,300);
+        PkRect blurRect(66,66,300,300);
         QPoint blurShift(34,34);
         QPoint cloneShift(75,75);
 
@@ -107,7 +107,7 @@ protected:
         blur1->setY(blurShift.y());
 
         KisPaintLayerSP paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8);
-        paintLayer1->paintDevice()->convertFromQImage(sourceImage, 0, 0, 0);
+        paintLayer1->paintDevice()->convertFromQImage(pkImageFromQImage(sourceImage), 0, 0, 0);
 
         KisCloneLayerSP cloneLayer1 =
             new KisCloneLayer(paintLayer1, image, "clone1", OPACITY_OPAQUE_U8);
@@ -131,7 +131,7 @@ protected:
      * a surrogate undo store
      */
     KisImageSP createTrivialImage(KisSurrogateUndoStore *undoStore) {
-        QRect imageRect = QRect(0, 0, 640, 441);
+        PkRect imageRect(0, 0, 640, 441);
 
         const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
         KisImageSP image = new KisImage(undoStore, imageRect.width(), imageRect.height(), cs, "merge test");
@@ -143,7 +143,7 @@ protected:
     }
 
     void addGlobalSelection(KisImageSP image) {
-        QRect selectionRect(40,40,300,300);
+        PkRect selectionRect(40,40,300,300);
 
         KisSelectionSP selection = new KisSelection(new KisDefaultBounds(image), toQShared(new KisImageResolutionProxy(image)));
         KisPixelSelectionSP pixelSelection = selection->pixelSelection();
@@ -166,8 +166,8 @@ protected:
         KoShape *shape1 = f1->createDefaultShape();
         KoShape *shape2 = f2->createDefaultShape();
 
-        shape1->setPosition(QPointF(100,100));
-        shape2->setPosition(QPointF(200,200));
+        shape1->setPosition(PkPointF(100,100));
+        shape2->setPosition(PkPointF(200,200));
 
         shapeLayer->addShape(shape1);
         shapeLayer->addShape(shape2);
@@ -234,7 +234,7 @@ protected:
                         const QString &name,
                         int baseFuzzyness = 0)
     {
-        QImage image = device->convertToQImage(0);
+        QImage image = diagnosticQImage(device->convertToQImage(0));
         return checkOneQImage(image, prefix, name, baseFuzzyness);
     }
 
@@ -297,31 +297,31 @@ private:
         return valid;
     }
 
-    void fillNamesImages(KisNodeSP node, const QRect &rc,
+    void fillNamesImages(KisNodeSP node, const PkRect &rc,
                          QVector<QImage> &images,
                          QVector<QString> &names,
                          bool recursive = true) {
 
         while (node) {
             if(node->paintDevice()) {
-                names.append(node->name() + "_paintDevice");
-                images.append(node->paintDevice()->
+                names.append(diagnosticQString(node->name() + "_paintDevice"));
+                images.append(diagnosticQImage(node->paintDevice()->
                               convertToQImage(0, rc.x(), rc.y(),
-                                              rc.width(), rc.height()));
+                                              rc.width(), rc.height())));
             }
 
             if(node->original() && node->original() != node->paintDevice()) {
-                names.append(node->name() + "_original");
-                images.append(node->original()->
+                names.append(diagnosticQString(node->name() + "_original"));
+                images.append(diagnosticQImage(node->original()->
                               convertToQImage(0, rc.x(), rc.y(),
-                                              rc.width(), rc.height()));
+                                              rc.width(), rc.height())));
             }
 
             if(node->projection() && node->projection() != node->paintDevice()) {
-                names.append(node->name() + "_projection");
-                images.append(node->projection()->
+                names.append(diagnosticQString(node->name() + "_projection"));
+                images.append(diagnosticQImage(node->projection()->
                               convertToQImage(0, rc.x(), rc.y(),
-                                              rc.width(), rc.height()));
+                                              rc.width(), rc.height())));
             }
 
             if (recursive) {

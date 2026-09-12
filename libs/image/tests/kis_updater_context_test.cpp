@@ -28,7 +28,7 @@ void KisUpdaterContextTest::testJobInterference()
 {
     KisTestableUpdaterContext context(3);
 
-    QRect imageRect(0,0,100,100);
+    PkRect imageRect(0,0,100,100);
 
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisImageSP image = new KisImage(0, imageRect.width(), imageRect.height(), cs, "merge test");
@@ -39,7 +39,7 @@ void KisUpdaterContextTest::testJobInterference()
     image->addNode(paintLayer);
     image->unlock();
 
-    QRect dirtyRect1(0,0,50,100);
+    PkRect dirtyRect1(0,0,50,100);
     KisBaseRectsWalkerSP walker1 = new KisMergeWalker(imageRect);
     walker1->collectRects(paintLayer, dirtyRect1);
 
@@ -49,7 +49,7 @@ void KisUpdaterContextTest::testJobInterference()
 
     // overlapping job --- forbidden
     {
-        QRect dirtyRect(30,0,100,100);
+        PkRect dirtyRect(30,0,100,100);
         KisBaseRectsWalkerSP walker = new KisMergeWalker(imageRect);
         walker->collectRects(paintLayer, dirtyRect);
 
@@ -60,7 +60,7 @@ void KisUpdaterContextTest::testJobInterference()
 
     // not overlapping job --- allowed
     {
-        QRect dirtyRect(60,0,100,100);
+        PkRect dirtyRect(60,0,100,100);
         KisBaseRectsWalkerSP walker = new KisMergeWalker(imageRect);
         walker->collectRects(paintLayer, dirtyRect);
 
@@ -75,7 +75,7 @@ void KisUpdaterContextTest::testJobInterference()
 
         QCOMPARE(paintLayer->paintDevice()->defaultBounds()->currentLevelOfDetail(), 1);
 
-        QRect dirtyRect(60,0,100,100);
+        PkRect dirtyRect(60,0,100,100);
         KisBaseRectsWalkerSP walker = new KisMergeWalker(imageRect);
         walker->collectRects(paintLayer, dirtyRect);
 
@@ -89,7 +89,7 @@ void KisUpdaterContextTest::testSnapshot()
 {
     KisTestableUpdaterContext context(3);
 
-    QRect imageRect(0,0,100,100);
+    PkRect imageRect(0,0,100,100);
 
     KisBaseRectsWalkerSP walker1 = new KisMergeWalker(imageRect);
 
@@ -193,7 +193,7 @@ public:
         m_counter.deref();
     }
 
-    QString debugId() const override {
+    PkString debugId() const override {
         return "ExclusivenessCheckerStrategy";
     }
 

@@ -7,6 +7,10 @@
 #include "TestKoIntegerMaths.h"
 #include "KoIntegerMaths.h"
 
+// pkAbs 是 Pk 侧的 qAbs（pk/global/PkGlobal.h:138）。原调用点写 qAbs，靠
+// <simpletest.h> 的 Qt 分支才可见；本 TU 已迁 Pk，故补真 Pk 头。
+#include <PkGlobal.h>
+
 #include <simpletest.h>
 
 void TestKoIntegerMaths::UINT8Tests()
@@ -78,5 +82,11 @@ void TestKoIntegerMaths::conversionTests()
     PK_COMPARE((int)UINT16_TO_UINT8(0), 0);
     PK_COMPARE((int)UINT16_TO_UINT8(128 * 257), 128);
 }
+
+#ifdef PK_SHELL_MOC_BINDER
+// pk 测试发现：本 target 已关 AUTOMOC（CMakeLists.txt 的 pigment_add_pk_test_binder），
+// PkTestBinder<T> 特化由 pk_test_moc.py 生成到这个 .inc，必须在 qExec 的实例化点之前可见。
+#include "pk_binder_TestKoIntegerMaths.inc"
+#endif
 
 PK_TEST_GUILESS_MAIN(TestKoIntegerMaths)

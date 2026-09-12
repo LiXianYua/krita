@@ -9,6 +9,17 @@
 // the migrated production APIs. Qt is confined to the test harness diagnostics.
 
 
+// IMPACT §1 的 qt 桶约定：本 TU 是真 Qt（-DQT_CORE_LIB、include 面里无 pk/*/compat），
+// 该显式补真 Qt 头。这里补 `<QtGlobal>` 不是为 Q_D/Q_FOREACH，而是为 qPrintable：
+// qglobal.h:828 的 `#ifndef qPrintable` 与 pk/log/PkMessageLogger.h:122 的同名宏是
+// 「先来后到」关系，而本 TU 走 stroke_testing_utils.h → 产品头（DebugPigment.h 一族）
+// 先到达 PkMessageLogger.h（实测 include 序：PkMessageLogger.h 在前、QtTest/qtest.h 在后），
+// 于是 Pk 版 `((str).PkToUtf8().c_str())` 胜出，QtTest 自己模板体里的
+// `qPrintable(QString)` 就报 "no member named 'PkToUtf8' in 'QString'"
+// （qtest.h:109/116/123/142/201、qtestmouse.h:104 共 6 处）。把真 Qt 的 qglobal.h
+// 提到最前，Qt 版先落地，PkMessageLogger.h 的同名分支自然让位。
+#include <QtGlobal>
+
 #include "stroke_testing_utils.h"
 
 #include <simpletest.h>

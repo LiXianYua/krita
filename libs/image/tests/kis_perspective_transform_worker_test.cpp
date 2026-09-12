@@ -49,7 +49,7 @@ void KisPerspectiveTransformWorkerTest::testSimpleTransform()
     PerspectiveWorkerTester t;
     KisPaintDeviceSP dev = t.paintDevice();
 
-    QPointF dx(326, 214);
+    PkPointF dx(326, 214);
     qreal aX = 1.32;
     qreal aY = 0.8;
     qreal z = 1024;

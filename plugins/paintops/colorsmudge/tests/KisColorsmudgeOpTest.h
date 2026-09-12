@@ -7,7 +7,8 @@
 #ifndef KISCOLORSMUDGEOPTEST_H
 #define KISCOLORSMUDGEOPTEST_H
 
-#include <QTest>
+// 与 kistest.h / testutil.h 同一条 include 链；见 .cpp 顶部说明。
+#include <simpletest.h>
 
 class KisColorsmudgeOpTest : public QObject
 {
