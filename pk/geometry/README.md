@@ -223,7 +223,13 @@ libstdc++ 的 `operator==` 本就带 `strcmp` 回退）。⇒ 跨镜像用例在
 | `oracle/painterpath_pathops_difftest.cpp` / `run_pathops_oracle.sh`（**R-39 T1**） | 同一 TU 内保持真 `QPainterPath` 与 `pkoracle::PkPainterPath` 为不同类型，不使用 `compat/`。除矩形、椭圆、折线、嵌套环、离散复合和自交形状外，也覆盖零元素/仅 move/连续 move/零长度 line、close 后同点/异点 line 与 fuzzy-close append/snap 归一、末元素编辑（unique/COW 后接同点/异点 line/cubic）、未闭合 polygon 后接 line/cubic、大小坐标近重合对与大尺度抵消三次曲线；在 OddEven/Winding 下逐输入比较具名运算、四个运算符别名、路径关系、成员关系、bounds/fill/empty 与拓扑保持的规范化元素签名。签名按子路径解析，绑定 cubic 的两个控制点与端点，只归一化闭合路径循环起点并排序整条子路径；内建同点集重连/重排 mutation 与 de Casteljau 数值自测。stdout 只包含 `DIFF` / `DIFFTAG`，`FAMILY` 覆盖记录写到独立 stderr coverage log 并由 runner 验证；`pathops.deviation` 默认必须为空；脚本**两栖**（R-56 起）：macOS 用 `otool -L` 确认真实链接 `QtCore.framework`/`QtGui.framework`（运行时 `DYLD_FRAMEWORK_PATH`/`DYLD_LIBRARY_PATH`），Linux 仍用 `ldd` + `LD_LIBRARY_PATH`，**两侧判据逐字相同**。 |
 | `graft/` | 真实调用点试接（判据②）：`graft_run.sh` 拿 **两个真实 Krita 测试类零改动**编译并跑绿——`KisRectsGridTest`（`libs/global/tests`）与 `KisFourPointInterpolatorTest`（`libs/image/tests`），分属两个不同 target。`stubs/` 是把不属于 R-03 的上游依赖顶住的最小垫片（清单与归属见下面「`graft/` 的 stub 清单」），`rename.sed` 做 `QTest`→`PK_*` 的机械改写，`git diff --quiet` 自证源树零改动 |
 
-### 判据② 的工具 `graft/graft_run.sh` 在当前树上不可执行（R-58 登记，**R-58 未修**）
+### 判据② 的工具 `graft/graft_run.sh`（R-58 登记 → **R-63 已修，现场跑绿**）
+
+**R-63 已把它修到 macOS 上 `exit=0`**（本节末贴原始输出）。下面是 R-58 的**原始登记**
+（它当时实测到的三层是对的，只是**止步于第三层**），再往下是 R-63 补全的**五层（六行）**
+全貌 —— 缺口远比 R-58 登记的深。
+
+#### R-58 的原始登记（三层；当时的实测是对的，只是止步于第三层）
 
 **R-58 没有修它** —— 这属于另一个碰 `pk/geometry` 的后续任务，本轮只按实测登记。
 现场复跑 `./pk/geometry/graft/graft_run.sh`（只写 `pk/geometry/graft/build/`，被
@@ -258,6 +264,71 @@ libstdc++ 的 `operator==` 本就带 `strcmp` 回退）。⇒ 跨镜像用例在
 **落在本任务 locks 内**，本可跑/可修。若要恢复判据②，补 `-I pk/container`（及
 `pk/pointer`）+ POSIX sed + min-version 三处即可 —— **归一个碰 `pk/geometry` 的后续
 任务，R-58 不做**。
+
+#### R-63 的现场复跑：**五层（六行），R-58 止步于第三层**
+
+R-63 逐层单独复现过（每层单独跑，上一层用 `/tmp` 里的**树外**垫片绕开 ——
+`/tmp/r63shim/ccwrap` 补 `-mmacosx-version-min=13.3`、`/tmp/r63shim/sed` 把 `-i -f`
+转成 BSD 形态；**两个垫片都不进仓库**）。三层是**依次**挡住的（库 → 试接① → 试接②），
+不是并列：
+
+| # | 层 | 平台相关？ | 现场 | 修法（全在 `pk/geometry` 内） |
+|---|---|---|---|---|
+| a | `source <env>` 设的 `MACOSX_DEPLOYMENT_TARGET=10.15` 让 clang 默认带 `-mmacosx-version-min=10.15`，`pk/string/PkString_format.cpp:408/:743` 的 `std::to_chars` 浮点重载判 `'to_chars' is unavailable: introduced in macOS 13.3` | macOS（**且只在 `source env` 之后**；不 source 则跟宿主系统） | 2 errors, exit 1 | `CXXFLAGS` 加 `-mmacosx-version-min=13.3`，**仅 Darwin** |
+| b1 | GNU `sed -i -f SCRIPT FILE` 撞 BSD sed（`/usr/bin/sed` 把 `-f` 当 `-i` 的后缀）：`sed: 1: "…": extra characters at the end of p command` | macOS | exit 1（`set -e` 当场退出） | 不用 `-i` 家族：`sed -f SCRIPT FILE > tmp && mv` |
+| b2 | **R-58 未登记的第二半**：冻结表 `rename.sed` 的 18 条模式全用 GNU 的 `\b` 词边界，**BSD sed 不认 `\b` 且不报错**（当普通字符），于是**改名一条都不生效** → 试接编译期整屏 `use of undeclared identifier 'QCOMPARE'` | macOS | 编译失败 | 探本机 sed 认不认 `\b`；不认才在**构建目录**派生 `\b`→`[[:<:]]`（18 条全在模式首，等价），派生表反向替换后与冻结表逐字节比对的闸门守着 |
+| c | `INCS` 缺 `-I pk/container` + `-I pk/pointer`：`libs/global/KisRectsGrid.h:11` 已 `#include <PkVector.h>`、`libs/global/kis_pointer_utils.h:10` 已 `#include <PkSharedPointer.h>`（都是 R-03 之后新增的依赖） | **与平台无关（Linux 同样编不过）** | `fatal error: 'PkVector.h' file not found` / `'PkSharedPointer.h' file not found` | 两条 `-I` 补进 `INCS` |
+| d | 只建 `libpkstring.a` 不够：`PkString_format.cpp` 的 `PkString::toLatin1/toUtf8` 要 `pk/container/PkByteArray.cpp` 的构造 | **与平台无关** | `Undefined symbols: PkByteArray::PkByteArray(char const*, int)` | 增建 `libpkcontainer.a`（源表 = `pk/container/CMakeLists.txt` 的 `add_library(pkcontainer STATIC …)` 9 项，加一条对账闸门盯着它）并加进链接行 |
+| e | 目标② 的调用点**还没迁移**：`KisFourPointInterpolatorTest.cpp` 写的是 `QPolygonF`/`QPointF`，而**被测头已经迁移**（`kis_four_point_interpolator_backward.h:14` 从 `#include <QPolygonF>` 变成 `#include <PkPolygon.h>`）⇒ Qt 类型名不再随包含链进来 | **与平台无关** | `error: unknown type name 'QPolygonF'` | 编译行加 `-include pk/geometry/compat/QPolygonF -include pk/geometry/compat/QPointF`（复用 compat 垫片，不新写别名） |
+
+**R-58 只登记了层 b 的**前一半**（b1，`-i` 形态），漏了 b2（`\b` 词边界）；层 c / d / e
+三处与平台无关**（Linux 上同样编不过）。层 e 的根因不是脚本写错，是**被测头在 R-03
+之后被迁移过**。
+
+**R-63 修完后的现场输出**（`source <env>` 之后跑 `./pk/geometry/graft/graft_run.sh`）：
+
+```
+  sed 不认 GNU \b ⇒ 已派生 BSD 形态改名表：pk/geometry/graft/build/rename.bsd.sed
+  建 pk/geometry/graft/build/libpkgeometry.a
+  建 pk/geometry/graft/build/libpktest.a
+  建 pk/geometry/graft/build/libpkstring.a
+  建 pk/geometry/graft/build/libpkcontainer.a
+  试接跑绿: KisRectsGridTest (libs/global/tests)
+    PASS   : KisRectsGridTest::initTestCase()
+    PASS   : KisRectsGridTest::test()
+    PASS   : KisRectsGridTest::cleanupTestCase()
+    Totals: 3 passed, 0 failed, 0 skipped
+    nm -u KisRectsGridTest | grep -i qt: 无输出
+  试接跑绿: KisFourPointInterpolatorTest (libs/image/tests)
+    PASS   : KisFourPointInterpolatorTest::initTestCase()
+    PASS   : KisFourPointInterpolatorTest::testForwardInterpolator()
+    PASS   : KisFourPointInterpolatorTest::testBackwardInterpolatorXShear()
+    PASS   : KisFourPointInterpolatorTest::testBackwardInterpolatorYShear()
+    PASS   : KisFourPointInterpolatorTest::testBackwardInterpolatorXYShear()
+    PASS   : KisFourPointInterpolatorTest::testBackwardInterpolatorRoundTrip()
+    PASS   : KisFourPointInterpolatorTest::testBackwardInterpolatorUnevenlyShearedTetragon()
+    PASS   : KisFourPointInterpolatorTest::testBackwardInterpolatorFoldedTetragon()
+    PASS   : KisFourPointInterpolatorTest::testBackwardInterpolatorSpecialCase()
+    PASS   : KisFourPointInterpolatorTest::testBackwardInterpolatorSpecialCaseSecond()
+    PASS   : KisFourPointInterpolatorTest::cleanupTestCase()
+    Totals: 11 passed, 0 failed, 0 skipped
+    nm -u KisFourPointInterpolatorTest | grep -i qt: 无输出
+  git diff --quiet 自证（8 个文件）: 源树零改动
+```
+
+`exit=0`。**三处新加的守卫都做了注入自证（改了立刻还原）**：① 往
+`graft/rename.sed` 追加一条 → 冻结表零分叉闸门先响（`rename.sed 与 pk/test/graft/rename.sed
+不一致 —— D-23 的规则表分叉了`，exit 1）；② 往 `pk/container/CMakeLists.txt` 的
+`add_library` 里多塞一个 `.cpp` → `R-63: graft 的 libpkcontainer.a 源表与
+pk/container/CMakeLists.txt 不一致`，exit 1；③ 注释掉 `-mmacosx-version-min=13.3` 那行 →
+层 a 的 `'to_chars' is unavailable: introduced in macOS 13.3` 回来、exit 1（⇒ 那一行是
+**必要**的，非空操作）。
+
+**R-63 没有把 `graft_run.sh` 接进任何收尾路径** —— `pk/geometry/tests/run_tests.sh`
+（标准收尾路径）只调 `run_pathops_oracle.sh`，既不调 `graft_run.sh` 也不调
+`oracle/run_oracle.sh`（`grep -n 'graft_run' pk/geometry/tests/run_tests.sh` 零命中）。
+「工具红着没人看」的根因是**没有任何路径会跑它**，但把新步骤接进**所有 R 任务共用的**
+收尾路径是另一个决定，超出 R-63 判据 —— 登记在此，留给主会话/线级 spec 决定。
 
 ### 规则三的机器闸门
 
@@ -843,6 +914,18 @@ out-of-line 成员：`PkPolygonF(const PkRectF&)`（矩形四顶点顺时针 + �
 `length()`），等 R-02 补上 `QVector::length()` 或 S 线全量替换时处理。这条已写进
 最终回报的 NOTE 转给主会话。
 
+**⚠ R-63 订正（2026-09-12）**：上面那整段的前提**已不成立** ——
+`pk/container/PkArrayContainer.h:83` 现在就有这一段：
+
+```cpp
+    size_type length() const noexcept { return size(); }
+```
+
+（R-02 之后补上的。）所以「`stubs/QPolygon` 不能删、因为 `PkVector` 没有 `length()`」
+这条**已过期**。那两个 stubs 现在**确实不在树里**（见上「`graft/` 的 stub 清单」口径：
+现在是 10 个文件），目标② 改由**构建行**的 `-include pk/geometry/compat/QPolygonF` /
+`-include pk/geometry/compat/QPointF` 顶住。
+
 ## VectorND 族（R-21 T3）
 
 `PkVectorND.h`/`PkVectorND.cpp` 文件头注释（比这里详细得多，这里只汇总判据口径）：
@@ -1124,19 +1207,22 @@ KisUsageLogger::log(QString("… Grid size: %1, log grid size: %2 …")
 
 判据②要求「真实调用点试接、零改动」。零改动意味着**上游依赖一个都不能改**，
 只能在编译行外面垫。下面这些垫片**没有一个是 R-03 的交付物**，每一个的头注释里
-都写着自己的归属。**口径：`git ls-files pk/geometry/graft/stubs` 现在得 12 个文件，
-下表 11 行**（`QPolygon` 与 `QPolygonF` 合成了一行，真 Qt 里两个名字也指向
-同一个 `qpolygon.h`）——**R-21 T1 删了两个**：`stubs/QString`（`PkGraftQString::arg(int,int)`
+都写着自己的归属。**口径：`git ls-files pk/geometry/graft/stubs` 现在得 10 个文件，
+下表 10 行**（一行一个文件）——**R-21 T1 删了两个**：`stubs/QString`（`PkGraftQString::arg(int,int)`
 已被 R-13 补进 `pk/string/PkString.h` 正式实现，垫片冗余，见上「已关闭（R-21 T1）」）、
 `stubs/QLineF`（T1 交付了真实 `PkLineF` 与 `compat/QLineF`，继续留着旧垫片会让
 `-I` 顺序把真实实现挡住——试接会一直在测那个只有 `p1()`/`p2()` 的占位符，不是
-T1 真正交付的东西）。
+T1 真正交付的东西）。**`stubs/QPolygon` 与 `stubs/QPolygonF` 也已不在树里**（R-21 T2
+当时试删未果——被真实测试类的 `src.length()` 挡住，而那个理由**已过期**：
+`pk/container/PkArrayContainer.h:83` 现在就有 `length()`，见下文那段订正）；
+R-63 的目标② 现在靠**构建行**的 `-include pk/geometry/compat/QPolygonF` /
+`-include pk/geometry/compat/QPointF` 顶住（复用 compat 垫片的那一份真源，不再需要
+stubs 里自己写一个同名类）。
 
 | stub | 是什么 | 真正的归属 |
 |---|---|---|
 | `stubs/QtGlobal` | 第一行就 `#include "../../compat/QtGlobal"`（**标量工具的真身是 R-03 的交付物，不重复实现**），另补三类：定长整数 typedef、版本宏 + `qt_noop`/`Q_FOREACH`/`Q_UNUSED`、`qIsFinite` | typedef → **R-02**；版本宏与 `Q_*` → **S-00**；`qIsFinite` → **R-03 的口径缺口**（见上②） |
 | `stubs/QVector` | `std::vector` 薄包装，成员刻意压到试接真用到的 14 个 | **R-02（容器）** |
-| `stubs/QPolygon` + `stubs/QPolygonF` | `class QPolygonF : public QVector<QPointF>`，照真 Qt 的继承关系；只给浮点版 | **归属未定**（见上一节；R-21 T2 交付时应比照 `QLineF` 的处置一并清理） |
 | `stubs/QSharedPointer` | **刻意只前置声明、不写类体**：`kis_pointer_utils.h` 里全是模板，一个都没被实例化 | **R-02 之后的智能指针面** |
 | `stubs/QtCore/qmath.h` | 只补 `qFloor` / `qCeil` 两个（调用点写的是 `#include <QtCore/qmath.h>`，带前缀，垫片也得放同名子目录） | `qmath.h` 整套归属未定；`qFloor`/`qCeil` 在 R-03 的 Rect 族**无调用点**，导出去才是违反判据①（偏离 18） |
 | `stubs/kis_algebra_2d.h` | 真品 1 254 行、是一整个二维代数库；只做试接用到的三个模板 | **它自己是一个独立迁移单元**，既不属 R-03 也不属 R-02 |
@@ -1260,7 +1346,7 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 21 | **`PkTransform::mapRect` 的两个重载在「`type() == TxProject` 且需要透视裁剪」那一支落回四角包围盒，Qt 走 `QPainterPath`** —— R-03 唯一一条**真实**的行为偏离。**✅ 2026-09-12 已闭合（S-18 实现了 `mapProjective`，见下面「偏离清单」一节）** | **已不成立。** 当年登记它的理由是「`QPainterPath` 归属未定、决策文档划在范围外」，而该理由**已过期**：`PkPainterPath` 由 R-22 交付，消费方是活的（`plugins/tools/tool_transform2/kis_perspective_transform_strategy.cpp:274` 的 `handlesTransform.map(handles)` 正是这条路径）。按 `S线-spec.md`「S-18 撞到的投影偏离：不声明，实现 mapProjective」（2026-09-12 人拍板）实现了 Qt 的 `mapProjective` 后，这一族**整族归零**：`geometry.deviation` 回到 canary-only，`DIFF total=155625778 mismatch=3`。当年的实测对照仍值得留着当历史：Qt 给 `(0,0,999999.00000000035,1e7)`、四角包围盒给 `(0,0,1e7,1e7)` —— 现在两侧都给前者。 |
 | 22 | **`PkTransform` 不留 Qt5 那个永远是 `nullptr` 的 `Private *d`**，代价是 `sizeof(PkTransform) != sizeof(QTransform)` | 那个字段不经任何 API 露出来（Qt6 已删）。**代价诚实登记**：对拍里 Transform 族**没有** `sizeof` 相等的 `static_assert`，而 Point/Size/Rect 三族都有。**无行为差异**，但「布局一致」这条在这一族上确实弱一档。 |
 | 23 | **`PkTransform` 不复刻 `#ifndef QT_NO_DEBUG` 的七个 NaN 早退分支** | 与偏离 8（`Q_ASSERT`）同一条口径：实测本机 `libQt5Gui.so` 是带 `QT_NO_DEBUG` 编的（探针：`translate(NaN,1)` 之后 `dx == nan`，说明早退分支不在），Krita 的发布构建同样带 `QT_NO_DEBUG`。对齐的是**发布形态**。**未对齐的部分**：Debug 构建下 Qt 会 `nanWarning()` 并早退而 `PkTransform` 不会 —— 行为差异，只是它发生在 Krita 不发布的那种构建里。 |
-| 24 | **`graft/stubs/` 里 14 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |
+| 24 | **`graft/stubs/` 里 10 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |
 | 25 | **`PkTransform::isAffine()` 实现了，但 Transform 族实测调用点 = 0** —— **这条违反判据①「一项不多」，没有站得住的理由，登记在案等人裁决** | **这不是一条有理由的偏离，是一个未闭合的口子。** 三形态 6 处命中没有一处是 `QTransform`：`kis_transform_mask.cpp:459/512/578/634` 与 `inplace_transform_stroke_strategy.cpp:1003` 是 `KisTransformMaskParamsInterface::isAffine()`，`kis_transform_mask_adapter.cpp:52` 是 `KisTransformMaskAdapter` 自己的定义行。形状与 `unite`/`intersect`（都是 `QSet` 的）一模一样：**实施计划把它列进了「必须实现」清单，那是计划的实测错误** —— 与 `dotProduct`（计划说 0、实际非 0）方向相反。**它没有任何内部调用者**（与 `adjoint` 不同 —— 那个是 `inverted` 的 TxProject 路径要用才留成私有 helper，`PkTransform.cpp:1065` 出现的 `isAffine` 只是一条 `static_assert` 的消息字符串）。**收口时才查出来，本 Task 没删**：删一个已实现成员要同时动 `PkTransform.h`、`api_seen.expected`、`transform_api.map`、对拍 `rec()` 与单测五处，属于交付面变更而非收口。**两条出路二选一，由人定**：按判据①删掉，或改判为一条有意的偏离并在这里补上理由。 |
 | 26 | ~~**规则三闸门被导出宏卡死：R-53（`1687a1e`）给四个几何头里的八个类挂上 `class PK_TYPE_VISIBILITY <类名>` 后，`run_oracle.sh` 的类体正则写死 `class <类名>`，八个类全部解析不出、闸门②③同时失守**~~ —— **R-56 已修，本条不再是偏离** | 与偏离 16/21 同一写法：保留本行让「这条曾经存在、什么时候消的」留在 README 里。原 `run_oracle.sh` 的类体正则只认 `class <类名>`，而 R-53 加的是 `class PK_TYPE_VISIBILITY <类名>` ⇒ 八个类全部落空、`run_oracle.sh` **恒 `exit 1`**（实测 13 条 FAIL）。R-56 把正则放宽成「类名前允许一个『全大写 + 数字/下划线』的可选宏」。**同时记一笔：该闸门只活在 `run_oracle.sh` 里**（`grep -n 'API_GATE\|规则三\|APIEXP' pk/geometry/oracle/run_oracle.sh` 有命中，`tests/run_tests.sh` 里同名 grep 零命中 ⇒ 那条路径走不到它）**；而标准收尾路径 `tests/run_tests.sh` 只调 `run_pathops_oracle.sh`、从不调 `run_oracle.sh`**（`grep -n 'run_oracle\|run_pathops_oracle' pk/geometry/tests/run_tests.sh` 只命中 `run_pathops_oracle.sh` 一行）**⇒ 规则三闸门在标准收尾路径上根本够不着**。（旁证：R-53（`1687a1e`）的收尾 commit message 举的绿证据是 `./test_pk_cross_image`、落点在 `pk/geometry` 的 RTTI 可见性上，未提 `run_oracle.sh`。）**⇒ 它引出的那 13 条 FAIL 是静默引入的** —— 正是「修好了但没有回归守卫，改回去不会让任何东西变红」那一类，本 README 给它起过名字（见「三条证据链各自的盲区」末尾那句）。 |
 | 27 | ~~**`PkPainterPath::arcMoveTo` 长期是 `private:`** —— 与真 Qt 的公开 API 形状偏离~~ —— **R-54 已对齐成 `public:`，本条不再是偏离** | 真 Qt 的 `QPainterPath::arcMoveTo(const QRectF&, qreal)` 就是公开成员（`qpainterpath.h` 公开段），R-22 交付 `PkPainterPath` 时把它放进了 `private:`（当时唯一调用方 `addRoundedRect` 在同一文件内），`grep -n arcMoveTo pk/geometry/README.md` 当时**零命中** ⇒ 这处 API 形状偏离**从未登记**（R-51 §5 点名要求批 1b 确认）。R-54 把它搬进公开段（**1 行声明搬家 + 注释改写，函数体与签名一字未动**），消费方是 R-54 批 1b 的后端（`libs/flake/PkImageRasterBackend.cpp` 在另一目录、够不到私有段）。改动零风险的依据（`codegraph explore "arcMoveTo"` 现场复核）：调用方全集 = 1 处且同文件内（`PkPainterPath::addRoundedRect`，`PkPainterPath.cpp:727`），无外部调用方；放宽访问权不产生重载歧义（同名成员只有这一个）；R-56 的坐标守卫七个入口不含 `arcMoveTo`，`pk/geometry/oracle/api_seen.expected` 也无 `PP::arcMoveTo` ⇒ 规则三机器闸门不因本次改动而变。保留本行让「曾经偏离、R-54 对齐」留痕（与偏离 16/21/26 同一写法）。出处：R-51 §3/§5、R-54 plan §3 第 1 条。 |
