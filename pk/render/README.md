@@ -585,3 +585,36 @@ its content bbox** to the render target (~8× here), amplifying Pk's four-cubic-
 approximation into a 4-pixel edge difference. That stretch is why the driver set excludes
 those ellipse rects — the reasoning is written out in `.superpowers/sdd/R-54/task-3-report.md`
 §3.
+
+**Still owed — the main-tree test `PkSvgPainterBackendTest.cpp` was not given the three primitives
+(registered debt; lock boundary).** `libs/flake/flake/tests/PkSvgPainterBackendTest.cpp` is the
+pre-existing main-tree test for `PkSvgPainterBackend` — 120 lines, 2 `private Q_SLOTS` functions
+(`preservesVectorPathPainting()` and `preservesGradientAndImagePainting()`). Its comparison surface
+is **the same one batch 2 built**: a Qt `QSvgGenerator` reference document beside the backend's own
+`document()`, each rendered through `QSvgRenderer` and compared pixel-for-pixel (`:63-71`, `:109-116`
+— `QSvgGenerator generator` … `PkSvgPainterBackend backend` … `QSvgRenderer expected(reference),
+actual(native)`). Its purpose is to exercise the backend's primitives, so the three primitives batch
+2 adds — `drawEllipse` / `drawPolygon` / `drawArc` — **belong** in it: measured live on this tree
+(2026-09-12, `grep -c` over the file), each of the three occurs **0** times, while `fillPath`,
+`drawLine`, `drawImage` and `fillRect` are present.
+
+- **What is owed:** main-tree test cases for the three primitives.
+- **Why it is owed:** the file is in `libs/flake/flake/tests/`, which is **not** in R-54's `locks`
+  (`libs/flake/svg` covers only `svg/**`; `libs/flake/PkImageRasterBackend.cpp` covers only that one
+  file). Per the R-52 §1.5 precedent this batch does **not** cross the boundary — crossing it would
+  only make "is this one task or two" less clear.
+- **Who pays, and can it be paid now:** a later task, or this one **after** the lock line is
+  corrected — not from inside the current lock set.
+- **Request to the main session: correct R-54's lock line** to include `libs/flake/flake/tests/`.
+  **This is a request, not a self-correction — do not edit `.exec/` from the implementation side**
+  (R-52 §1.4 disposition).
+
+**Still open, registered — the compile-level 判据② evidence for the real call sites is still owed**
+(same standing as R-51 §2 and R-55 §5). Batch 1b's real call site compiles into
+`plugins/tools/tool_knife/`; batch 2's into target `kritaflake`. Both, together with their
+CMake-generated products and `PUBLIC` closure, are **outside** R-54's `locks` and build closure —
+**the same wall R-55 names**: holding the `libs/flake/svg` lock means "allowed to edit that
+directory", not "can build the target". The driver-level evidence registered above
+(`tests/test_shape_primitive.cpp`, `tests/graft/svg_backend_driver.cpp`) is **accepted as this
+batch's completion criterion**; the compile-level evidence can be added once the blocking modules
+have had their Qt stripped by later tasks. It is **not** required to be backfilled here.
