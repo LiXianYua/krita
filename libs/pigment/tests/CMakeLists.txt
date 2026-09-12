@@ -92,3 +92,18 @@ endforeach()
 
 macos_test_fixrpath(CCSGraph)
 
+
+# R-61 Task 2 降级 driver（R线-spec「依赖墙挡住真实测试类时：允许降级成复刻调用点
+# 形状的 driver」）：逐行复刻 TestColorConversionSystem 里 p709SRGBProfile() 的调用点
+# 形状（三元组构造 + existsPath/existsGoodPath + calcPath 的 findBestPath 走法）。
+# 真实测试类本树编不过（四类源码层阻塞，见该 .cpp 头注释与 plan §1 F4），故用
+# plain main() driver 落常驻证据。零 Qt：只链 kritapigment + kritalcmsengine，
+# include 目录只要 lcms 引擎头（registerLcmsEngine）。
+kis_add_test(
+    PkP709SRgbProfileNoResourceDirsDriver.cpp
+    LINK_LIBRARIES kritapigment kritalcmsengine
+)
+target_include_directories(PkP709SRgbProfileNoResourceDirsDriver PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugins/color/lcms2engine
+)
+

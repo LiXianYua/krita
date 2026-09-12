@@ -93,6 +93,15 @@ void TestColorConversionSystem::testAlphaConnectionPaths()
 
     using NodeKey = KoColorConversionSystem::NodeKey;
 
+    // R-61 裁决 B：p709SRGBProfile() 可返空（R-59 裁决 A：返空契约不变）。
+    // 本用例的前提是 elle V2 sRGB（p709）参与转换路径；无资源目录 / 未注册色彩引擎时
+    // 它返 nullptr，下面每一处 `->name()` 都是裸解引用 ⇒ 崩。取一次受检局部量，
+    // 为空时明确报失败——不崩、也不静默跳过：R-59 裁决 C，本线不免除宿主配资源的义务。
+    const KoColorProfile *srgbProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
+    if (!srgbProfile) {
+        PK_VERIFY2(false, PkString("p709SRGBProfile() == nullptr: elle V2 sRGB profile is unavailable, so the p709 conversion-path premise does not hold (no resource dirs / color engine not registered)").PkToUtf8());
+    }
+
     std::vector<NodeKey> expectedPath;
 
        // to Alpha8 conversions. Everything should go via GrayA color space,
@@ -122,25 +131,25 @@ void TestColorConversionSystem::testAlphaConnectionPaths()
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
-        {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
+        {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), srgbProfile->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
-        {{RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
+        {{RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), srgbProfile->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
-        {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
+        {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), srgbProfile->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {AlphaColorModelID.id(), Integer16BitsColorDepthID.id(), alpha8->profile()->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
-        {{RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
+        {{RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), srgbProfile->name()},
          {GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {AlphaColorModelID.id(), Integer16BitsColorDepthID.id(), alpha8->profile()->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
@@ -172,26 +181,26 @@ void TestColorConversionSystem::testAlphaConnectionPaths()
     expectedPath =
         {{alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
-         {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
+         {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), srgbProfile->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
 
     expectedPath =
         {{alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
-         {RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
+         {RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), srgbProfile->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{AlphaColorModelID.id(), Integer16BitsColorDepthID.id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
-         {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
+         {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), srgbProfile->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{AlphaColorModelID.id(), Integer16BitsColorDepthID.id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
-         {RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
+         {RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), srgbProfile->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 }
 
@@ -314,6 +323,12 @@ void TestColorConversionSystem::testGrayAConnectionPaths()
 {
     using NodeKey = KoColorConversionSystem::NodeKey;
 
+    // R-61 裁决 B：见 testAlphaConnectionPaths 的同款受检局部量说明。
+    const KoColorProfile *srgbProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
+    if (!srgbProfile) {
+        PK_VERIFY2(false, PkString("p709SRGBProfile() == nullptr: elle V2 sRGB profile is unavailable, so the p709 conversion-path premise does not hold (no resource dirs / color engine not registered)").PkToUtf8());
+    }
+
     std::vector<NodeKey> expectedPath;
 
     expectedPath =
@@ -324,7 +339,7 @@ void TestColorConversionSystem::testGrayAConnectionPaths()
 
     expectedPath =
        {{GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
-        {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
+        {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), srgbProfile->name()}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
@@ -334,7 +349,7 @@ void TestColorConversionSystem::testGrayAConnectionPaths()
 
 
     expectedPath =
-       {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
+       {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), srgbProfile->name()},
         {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"}};
     PK_COMPARE(calcPath(expectedPath), expectedPath);
 
