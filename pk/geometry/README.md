@@ -109,7 +109,7 @@ grep -i qt` 必须无输出（判据③）→ 自证改动全部落在**本任�
 | 运行输出 `Totals` 行 | 15 / 26 / 33 / 40 / 48 / 58 | harness 的口径：每个测试类的 slot 数 + `initTestCase` + `cleanupTestCase`，**不是**测试函数数，也不是断言数。六个类合计 220 |
 | 翻译单元 | 13 | `test_main` `test_global` `test_point` `test_size` `test_rect` `test_rectf` `test_transform` + 三个 `coexist_*` + 三个 `*_macro_proof` |
 | 对拍比对次数 | 155 626 078 | **R-56 现场重测。** `run_oracle.sh` 输出的 `DIFF total=`，`mismatch=3`（**全部是那三条 canary**）。R-56 相对上一版 **+300**：来源是新增的 `PP::*` 一族（七个坐标守卫入口各两种起点，见「坐标守卫」一节），150 次 `cmp_pp_entry` 调用 × 2 种起点 = 300 次 `rec()`（其中 Task 2 的 `cubicTo`/`quadTo`/`arcTo`/`addRect`/`addEllipse` +294、Task 3 的退化/空矩形专属档 +6）。**「新增覆盖」（7 个入口）与「新增比对次数」（300）是两个数，别混用。** |
-| 规则三 map 的声明数 | `point` 56 / `size` 56 / `rect` 66 / `rectf` 68 / `transform` 48 / `line` 43 / `margins` 40 / `polygon` 16 / `vectornd` 137 / `matrix4x4` 27 / `region` 41 | **11 份 map** 的非注释行数（顺序同上），与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` **603 行（同口径：非注释非空行；裸 `wc -l` 是 613，差的 10 行是注释或空行）**。⚠ 但**闸门① 打印的是「APISEEN 597 个（期望 597）」**—— 两个数口径不同、**都是真的**：闸门①按**集合**比（`seen != expected`，`run_oracle.sh:275`；`expected` 在 `:270` 是集合推导、自动去重），而 `api_seen.expected` 里有 **6 行既有重复**（`R::intersected` / `R::intersects` / `R::isEmpty` / `R::isNull` / `R::operator&=` / `R::united`），去重后正是 **597**。**那 6 行非本轮引入，本轮一字节不动**（`api_seen.expected` 是冻结文件）。**本行是 R-56 现场重测的**：上一版写的 5 份 map / 303 行是 R-03–R-21 时代的快照，已随 R-21 的六族与 R-22 的 `PkPainterPath` 过期。 |
+| 规则三 map 的声明数 | `point` 56 / `size` 56 / `rect` 66 / `rectf` 68 / `transform` 48 / `line` 43 / `margins` 40 / `polygon` 16 / `vectornd` 137 / `matrix4x4` 27 / `painterpath` 68 / `region` 41 | **12 份 map** 的非注释行数（顺序同上），与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` **604 行（同口径：非注释非空行；裸 `wc -l` 是 **614**，差的是 **9 行注释 + 1 行空行**）**。⚠ 但**闸门① 打印的是「APISEEN 598 个（期望 598）」**—— 两个数口径不同、**都是真的**：闸门①按**集合**比（`seen != expected`，`run_oracle.sh:275`；`expected` 在 `:270` 是集合推导、自动去重），而 `api_seen.expected` 里有 **6 行既有重复**（`R::intersected` / `R::intersects` / `R::isEmpty` / `R::isNull` / `R::operator&=` / `R::united`），去重后正是 **598**。**那 6 行非本轮引入，本轮一字节不动**（`api_seen.expected` 是冻结文件）。**沿革**：最早那版写的 5 份 map / 303 行是 R-03–R-21 时代的快照，已随 R-21 的六族与 R-22 的 `PkPainterPath` 过期。 **R-63 现场重测（2026-09-12）**：`wc -l pk/geometry/oracle/api_seen.expected` = **614**、空行 **1**、`#` 开头 **9** ⇒ 非注释非空 **604**；闸门①按集合比得 **598**；两者之差仍是那 **6 行既有重复**。**R-58 加 `painterpath_api.map` 时漏跟本行**，上一版的 11 份 / 603 / 613 / 597 是 R-56 现场的。 |
 
 **优化档矩阵**（`-fwrapv` 由 `CMakeLists.txt` 的 `target_compile_options(... PUBLIC)`
 统一带上；`-fno-wrapv` 那一列是手工编译出来的对照，不是可用配置）：
@@ -383,10 +383,39 @@ Point 族没有对应物）。已补两条 `rec()`（`cmp_point_constants`），
 计数 +1。**这是棘轮、不是配额**：它不会自己变小，也不阻止你**关掉**一个覆盖缺口 ——
 每补一条 `rec()` 把某条 `-` 换成真标签，就**应当手工把上限调小一格**（现状只能往「覆盖更多」
 的方向动）；**调大 = 承认一个新缺口，必须在 README 说明理由**（这条要求写在 `run_oracle.sh`
-`DASH_MAX` 的注释里）。今天 12 族里只有 `PkPainterPath.h` 一族的上限非 0（= 上面那个 56），
+`DASH_MAX` 的注释里）。今天 12 族里只有 `PkPainterPath.h` 一族的上限非 0（= R-63 之后的 52），
 其余 11 族为 0。（实测：现状 `DASH_MAX` 下 exit 0 不误伤；把 `PkPainterPath.h` 的上限
-56 调到 55，同一份对拍日志立刻 FAIL `…的 `-` 数超过棘轮上限 —— 56 > 55`；棘轮表少写一项 →
+52 调到 51，同一份对拍日志立刻 FAIL `…的 `-` 数超过棘轮上限 —— 52 > 51`；棘轮表少写一项 →
 FAIL「两表必须逐行对齐」。）
+
+**R-63 收口四条平凡转发重载（2026-09-12 现场）**：`PkPainterPath.h` 的
+`addRect(qreal,qreal,qreal,qreal)` / `addEllipse(qreal,qreal,qreal,qreal)` /
+`addEllipse(const PkPointF&,qreal,qreal)` / `arcTo(qreal,qreal,qreal,qreal,qreal,qreal)`
+四条重载在真 Qt（`qpainterpath.h:311/333/338/343`）与 pk 侧都是 `inline` 一行转发到
+**已被本对拍覆盖**的那个重载，各自唯一独有行为只有一次实参搬运。R-63 给它们各补一条
+`cmp_pp_entry`（4 个入口 × 2 种起点 = 8 条 `rec()`；复用既有 `PP::addRect` / `PP::addEllipse` /
+`PP::arcTo` 标签 ⇒ 无新标签、`api_seen.expected` 一字节不动、`APISEEN` 仍 598），
+`-` 计数 56 → 52，`DASH_MAX` 手工下调到 52。四条重载的**真实消费方**（codegraph + grep
+复核，全仓口径）：`addRect(qreal×4)` 3 处（`libs/flake/text/KisTofuGlyph.cpp`）、
+`addEllipse(center,rx,ry)` ≥10 处（散在 `libs/image`、`libs/canvas`、`plugins/tools`）、
+`arcTo(qreal×6)` 2 处（`plugins/tools/basictools/kis_basic_tools_geometry_utils.h`）、
+`addEllipse(qreal×4)` **全仓 0 处**（仅 pk 自己的单测）—— 按规格判据①「零用量留着并登记」，不删。
+收口后 `run_oracle.sh` **exit 0**，摘要行逐字为
+`… PkPainterPath.h 声明 68 条 / painterpath_api.map 68 行（其中 52 条无 rec()，棘轮上限 52）`，
+`DIFF total=155626254 mismatch=3`（三条 canary），`APISEEN 598 个（期望 598）`。
+
+**闸门粒度边界（R-63 Step 4 实测，不可推断）**：规则三的三道闸门**机器只验到 api 粒度**。
+把四条 `-` 直接改成真标签、同时把 `DASH_MAX` 降到 52，**在一条 `rec()` 都没加的情况下
+闸门仍 `exit 0` 放行**（实测摘要行 `…（其中 52 条无 rec()，棘轮上限 52）`、
+`DIFF total=155626246`——比补 `rec()` 之后**少 8**，即那些重载一次都没被比到）。
+闸门③ 只查 `lab in seen`，而 `seen` 是程序打出的 `APISEEN` **api 名集合** ⇒ 只要
+`PP::addRect` 这个名字被本 api 的**任意一条** `rec()` 打过，闸门就过；棘轮比的是
+「`-` 行数 vs 上限」，与 `rec()` 有无无关。**⇒「标签确实直接压到那一个重载」这条规矩，
+机器验不了，只有注入能守**：R-63 对四个入口各注入一次（顺序搬错 / `h→0` / 少乘 2 /
+`startAngle→0`），四次注入四次红、每次 `mismatch` 由 3 变 5，且每次 `DIFFTAG` 都**指名新那一格**
+（`PP::addRect fwd-qreal4/*`、`PP::addEllipse fwd-qreal4/*`、
+`PP::addEllipse fwd-center-rx-ry/*`、`PP::arcTo fwd-qreal6/*`，各带 `empty-subpath` 与
+`open-subpath` 两条），三条 canary 逐字不变。
 
 **闸门自证**（注入实验，两族各一次，`run_tests.sh` 与 `run_oracle.sh` 都跑）：
 
@@ -1248,7 +1277,7 @@ stubs 里自己写一个同名类）。
 | 证据链 | 证明了什么 | **看不见什么** |
 |---|---|---|
 | `tests/`（PK_* 单测） | 期望值来自真 Qt 探针，逐条钉住反直觉语义；**唯一**能钉住"预处理期宏改写"与"共存 include 顺序"的地方 | ① 期望值是**我们挑的**输入，不是输入空间；② include 顺序是**我们写的**，不是真实调用点的；③ `PK_COMPARE` 对 `double` 走模糊比较（相对 1e-12），主张"逐位一致"必须改用 `PK_VERIFY(sameBits(...))` |
-| `oracle/`（逐输入对拍） | 1.56 亿次逐输入与真 Qt 比取值；**唯一**能抓住"单测全绿但取值分家"的地方（实测：`PkSizeF` 隐式提升丢精度，单测 33 用例全绿、对拍抓到 962 323 处） | ① 只覆盖**写了 `rec()` 的重载**，漏一条就是整个重载零覆盖（规则三的机器闸门补这一条；本目录 **12 个族**进了闸门 —— `API_GROUPS` 十二项，含 R-58 新增的 `PkPainterPath.h` —— 头文件类体里**每条声明都必须显式分类**，`PkPainterPath` 新增重载现在**当场 FAIL**，R-58 三次注入实测。**但这是一次可数、可见的放宽**：`PkPainterPath.h` 的 **68 条声明里只有 12 条有真 `rec()`**（对应 8 个 `PP::*` 标签），其余 **56 条写 `-`**、在摘要行里计数 —— 摘要行为 `… PkPainterPath.h 声明 68 条 / painterpath_api.map 68 行（其中 56 条无 rec()，棘轮上限 56）`。为什么放宽：那 56 条里绝大多数由 R-39 的 `painterpath_pathops_difftest.cpp` 对拍与单测守，而**那只对拍不产出 `APISEEN`**，它的 `rec()` 是 `rec(bool, const std::string&)`、只打 `DIFFTAG`/`FAMILY`，**闸门③消费不了它**；把它们逐条搬进本对拍是**另一个任务**的量级。两条骨架边界：**嵌套类型（如 `class Element`）的成员不在这套闸门的覆盖面上**；`-` **不能**用来放行「名字与某个 `PP::` 标签相同的重载」—— 判定规则是 `rec()` 的**实参类型直接压到**那一个重载，「A 转发到 B、B 有 rec」不算（规格规则三））；② 编译行里**没有 `compat/`、没有 `pk/test` 的垫片**（硬闸门禁止），所以预处理期语义偷换与 include 顺序问题它一概看不见；③ 输入是**全组合不是穷举**，覆盖靠输入集选得对 |
+| `oracle/`（逐输入对拍） | 1.56 亿次逐输入与真 Qt 比取值；**唯一**能抓住"单测全绿但取值分家"的地方（实测：`PkSizeF` 隐式提升丢精度，单测 33 用例全绿、对拍抓到 962 323 处） | ① 只覆盖**写了 `rec()` 的重载**，漏一条就是整个重载零覆盖（规则三的机器闸门补这一条；本目录 **12 个族**进了闸门 —— `API_GROUPS` 十二项，含 R-58 新增的 `PkPainterPath.h` —— 头文件类体里**每条声明都必须显式分类**，`PkPainterPath` 新增重载现在**当场 FAIL**，R-58 三次注入实测。**但这是一次可数、可见的放宽**：`PkPainterPath.h` 的 **68 条声明里只有 16 条有真 `rec()`**（对应 8 个 `PP::*` 标签），其余 **52 条写 `-`**、在摘要行里计数 —— 摘要行为 `… PkPainterPath.h 声明 68 条 / painterpath_api.map 68 行（其中 52 条无 rec()，棘轮上限 52）`。为什么放宽：那 56 条里绝大多数由 R-39 的 `painterpath_pathops_difftest.cpp` 对拍与单测守，而**那只对拍不产出 `APISEEN`**，它的 `rec()` 是 `rec(bool, const std::string&)`、只打 `DIFFTAG`/`FAMILY`，**闸门③消费不了它**；把它们逐条搬进本对拍是**另一个任务**的量级。两条骨架边界：**嵌套类型（如 `class Element`）的成员不在这套闸门的覆盖面上**；`-` **不能**用来放行「名字与某个 `PP::` 标签相同的重载」—— 判定规则是 `rec()` 的**实参类型直接压到**那一个重载，「A 转发到 B、B 有 rec」不算（规格规则三））；② 编译行里**没有 `compat/`、没有 `pk/test` 的垫片**（硬闸门禁止），所以预处理期语义偷换与 include 顺序问题它一概看不见；③ 输入是**全组合不是穷举**，覆盖靠输入集选得对 |
 | `graft/`（真实调用点试接） | 真实 Krita 测试类**零改动**编译并跑绿；**唯一**能抓住"接口形状对但接不上"的地方 | ① 只有 **2 个**目标、**14 个**测试函数，覆盖的 API 面远小于前两条；② 它证明的是"能编能跑"，不证明取值对（取值对是前两条的事）；③ stub 顶住的那些依赖等于**没被验证** |
 
 **这一节的由来是一个真实的 Critical：`compat/` 漏复刻 Qt 的传递 include。**
