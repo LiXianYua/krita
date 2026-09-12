@@ -73,7 +73,6 @@ void KisMemoryWindowTest::testTopReports()
             memcpy(ptr, writeBuffer.data(), chunkLength);
 
             dbgKrita << "Writing chunk at" << chunkStart / chunkLength << "MiB" << "max" << maxChunk / chunkLength;
-            QTest::qWait(250);
         }
 
         {
@@ -86,7 +85,6 @@ void KisMemoryWindowTest::testTopReports()
             memcpy(readBuffer.data(), ptr, chunkLength);
 
             dbgKrita << "Reading chunk at" << chunkStart / chunkLength << "MiB" << "max" << maxChunk / chunkLength;
-            QTest::qWait(250);
         }
     }
 }

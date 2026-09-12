@@ -200,4 +200,11 @@
 #if PKC_HAS(<QtMath>)
 #include <QtMath>
 #endif
+// QTest::qSleep 过渡垫片（R-65 修复轮）：真 Qt 的 qSleep 是**纯阻塞 sleep**
+// （已探针实测，见 compat/PkTestSleepShim.h 头注与 evidence/qsleep-probe-output.txt），
+// 但 pk 测试栈原本没有它，tiles3 组两个真实测试类（kis_tile_data_pooler_test /
+// kis_low_memory_tests）因此编不过。垫片定义在 sdk/tests/compat/PkTestSleepShim.h，
+// 正家是 pk/test（S0），本行只是过渡。
+#include <PkTestSleepShim.h>
+
 #undef PKC_HAS
