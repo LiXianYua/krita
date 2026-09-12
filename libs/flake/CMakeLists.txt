@@ -504,40 +504,27 @@ list(REMOVE_ITEM kritaflake_text_SRCS ${kritaflake_painting_SRCS})
 list(REMOVE_ITEM kritaflake_resources_SRCS ${kritaflake_painting_SRCS})
 list(REMOVE_ITEM kritaflake_core_SRCS ${kritaflake_painting_SRCS})
 
-# ===== S-09-g 定向移桶（2026-09-10 裁定，线级 spec「宿主 GUI 面按三分法处置」）=====
-# `KoToolSelection` / `KoToolProxy` 携带**宿主 QObject 身份**（对象树 / QPointer /
-# 事件循环）——2026-09-05 裁定「不剥，交接 M5」，本轮的落地形态就是这一条。
-# 类头按桶分叉：Qt 桶是真 `QObject`，native 桶经 `pk/signal/compat/QObject` 把 `QObject`
-# 宏成 `PkObject`（`KoToolProxy.h` 的 `#if defined(QT_CORE_LIB)` 双基写法即为此）。
-# 于是**声明与定义必须同桶**：`KoToolProxy` 两套布局、全树只能有一份定义，定义留在哪一桶
-# 就要按哪一桶的构造/析构签名产出符号，否则另一桶的 TU 链接期去要一个不存在的拼法，
-# 报成一条看不出根因的未定义引用。
-# 口径：**定向**移桶，只动这两个文件名，不重划对象库，也不动上面那段全局互斥
-# `REMOVE_ITEM`（裁定原文点名不许动它）。下列各行必须写在那段之后、各 `*_objects`
-# target 创建之前——**位置是承重的**。写在那段**之前**不是「被撤销」，是**漏删**：
-# `kritaflake_core_SRCS` 在更早处由主表 `FILTER` 得出（含这个文件），而那段里的
-# `list(REMOVE_ITEM kritaflake_core_SRCS ${kritaflake_painting_SRCS})` 只能摘下**当时还在**
-# `kritaflake_painting_SRCS` 里的文件——先摘走就漏删，同一个 TU 被两个对象库各编一次
-# （重复定义）。写在各 target 创建之后则该 target 已经定型。
+# ===== R-57：定向移桶**撤销**（裁决 D-B，2026-09-12 人拍板）=====
+# S-09-g 的 2026-09-10「定向移桶」把 `KoToolProxy.cpp` / `KoToolSelection.cpp`
+# 从 native 桶移进 tools（Qt）桶，理由是「这两个类带宿主 QObject 身份，`QObject`
+# 身份不剥、交接 M5」——两个桶里它们的基类表不同，只能有一份定义，所以定义必须
+# 留在某一桶。
 #
-# 【本轮实测边界，别再往下扩】`KoToolManager.cpp` / `KoCanvasController.cpp` /
-# `KoToolFactoryBase.cpp` 曾被一并移进 Qt 桶试图让 oracle 跑起来，**已回退**。理由不是
-# 「超出列举」，是**它们与 native 桶构成一个必须同桶的簇**：
-# `KoCanvasController::actionCollection()` 的返回类型按桶分叉（Qt 桶真 `QObject*`、
-# native 桶 `PkObject*`），而**返回类型不进 mangled name**（符号恒为
-# `_ZNK18KoCanvasController16actionCollectionEv`），所以它**永远链得过**；
-# 一旦定义落在 Qt 桶，native 的 `KoToolBase.cpp:326` 就会把真 `QObject*` 当 `PkObject*`
-# 用（在真 QObject 内存上操作 `PkObject` 的 `std::mutex`）——实测 `SIGSEGV` /
-# `std::system_error: Invalid argument` / glibc assert。消费这个面的有 `KoToolBase.cpp:326`
-# **与** `KoToolManager.cpp:60/140`（native 与 Qt 两侧），故
-# `{KoToolBase, KoToolManager, KoCanvasController}` 必须同桶。
-# 注：`KoToolFactoryBase` **不**属这个簇——它的分叉在**参数**类型
-# `createActions(QObject*)` 上，参数进 mangled name，落错桶会当场链接失败（fail-closed）；
-# 但它唯一的消费方仍需要不可单独移的 `KoCanvasController` 的 `QObject*` 构造，
-# 所以单独移它换不来任何能跑的 oracle。**移动簇里任何一个 = 重划对象库，裁定不许。**
-list(REMOVE_ITEM kritaflake_painting_SRCS KoToolProxy.cpp)
-list(REMOVE_ITEM kritaflake_core_SRCS KoToolSelection.cpp)
-list(APPEND kritaflake_tools_SRCS KoToolProxy.cpp KoToolSelection.cpp)
+# **D-B 推翻了那条前提**：Qt 那一半身份被剥掉，两个类现在是单一 `public PkObject`
+# 定义、一个布局、一个 mangled 拼法，不再需要「定义留在哪个桶」这个选择。
+# 于是这三行一并撤销：`KoToolProxy.cpp` 回 `kritaflake_painting_SRCS`、
+# `KoToolSelection.cpp` 回 `kritaflake_core_SRCS`，两处都是 native 桶。
+#
+# **仍然成立的背景（别删，Task 2 要用）**：`KoToolManager.cpp` /
+# `KoCanvasController.cpp` / `KoToolFactoryBase.cpp` 曾试过一并移进 Qt 桶，**已回退**，
+# 理由是它们与 native 桶构成一个**必须同桶的簇**：`KoCanvasController::actionCollection()`
+# 的返回类型按桶分叉（Qt 桶真 `QObject*`、native 桶 `PkObject*`），而**返回类型不进
+# mangled name**（符号恒为 `_ZNK18KoCanvasController16actionCollectionEv`），所以它
+# **永远链得过**；定义一旦落在 Qt 桶，native 的 `KoToolBase.cpp` 就会把真 `QObject*`
+# 当 `PkObject*` 用——实测 `SIGSEGV` / `std::system_error: Invalid argument`。
+# R-57 的处理：该访问器的 **qt 支保持原样**，只在 `#else` 支补一条同形访问器
+# （`KoCanvasController.h`），两条支互斥可见，不构成跨桶符号。
+
 
 kritaflake_add_native_object_library(kritaflake_painting_objects ${kritaflake_painting_SRCS})
 set_target_properties(kritaflake_painting_objects PROPERTIES AUTOMOC OFF)

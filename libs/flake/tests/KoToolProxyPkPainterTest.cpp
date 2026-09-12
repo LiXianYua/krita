@@ -301,7 +301,9 @@ public:
     PkPointF lastDropPoint;
 };
 
-class DualCanvasObserver final : public QObject, public PkObject
+// D-B 后 `KoToolProxy` 只剩 Pk 身份，observer 也只需一条基类即可覆盖它经 Pk 投递
+// 的每一条线（原先并列 `QObject` 是为了同时接收 Qt-QObject 那一半的投递）。
+class DualCanvasObserver final : public PkObject
 {
 };
 
@@ -375,10 +377,13 @@ static_assert(!std::is_base_of_v<QObject, KoToolBase>);
 static_assert(!std::is_base_of_v<QObject, KoToolFactoryBase>);
 static_assert(!std::is_base_of_v<QObject, KoSelectedShapesProxy>);
 static_assert(std::is_base_of_v<PkObject, KoSelectedShapesProxy>);
-static_assert(std::is_same_v<decltype(&KoToolSelection::qt_metacall),
-                            decltype(&QObject::qt_metacall)>);
-static_assert(std::is_same_v<decltype(&KoToolProxy::qt_metacall),
-                            decltype(&QObject::qt_metacall)>);
+// D-B（2026-09-12）剥掉了这两个类的 Qt-QObject 身份，双投递设计随之拆除。
+// 原先这两条断言钉的是「它们真的带 QObject 元对象面」——那是被裁决移除的设计，
+// 所以换成与上面同族的形态：**不再**是 QObject，**是** PkObject。
+static_assert(!std::is_base_of_v<QObject, KoToolSelection>);
+static_assert(std::is_base_of_v<PkObject, KoToolSelection>);
+static_assert(!std::is_base_of_v<QObject, KoToolProxy>);
+static_assert(std::is_base_of_v<PkObject, KoToolProxy>);
 static_assert(std::is_same_v<decltype(&KoSvgTextPropertiesInterface::qt_metacall),
                             decltype(&QObject::qt_metacall)>);
 }
@@ -658,29 +663,31 @@ private Q_SLOTS:
         manager.removeCanvasController(&controller);
     }
 
-    void canvasObserverDisconnectCoversQObjectAndPkDelivery()
+    // D-B（2026-09-12 人拍板）拆掉了「Qt-QObject 与 Pk 双投递」设计：
+    // `KoToolProxy` 不再携带宿主 QObject 身份（对象树 / QPointer / 事件循环那一半），
+    // 只剩 Pk 身份。于是本用例原先钉住的 Qt-QObject 投递路径
+    // （`QObject::connect(proxy, &QObject::objectNameChanged, ...)` +
+    // `proxy->QObject::setObjectName(...)`）**没有可断言的对象了**——那不是
+    // 「断言太严所以删掉」，是被断言的设计本身被裁决移除。
+    //
+    // 本用例保留的部分（Pk 投递 + `disconnectCanvasObserver` 覆盖它）**一字未动**：
+    // 语义是「canvas 断开 observer 后，proxy 经 Pk 投递的信号不再到达 observer」。
+    void canvasObserverDisconnectCoversPkDelivery()
     {
         MinimalShapeController shapeController;
         MinimalCanvas canvas(&shapeController);
         auto *proxy = new TestToolProxy(&canvas);
         canvas.setToolProxy(proxy);
         DualCanvasObserver observer;
-        int qtDeliveries = 0;
         int pkDeliveries = 0;
-        QObject::connect(proxy, &QObject::objectNameChanged, &observer,
-                         [&](const QString &) { ++qtDeliveries; });
         PkObject::connect(proxy, &KoToolProxy::toolChanged, &observer,
                           [&](const PkString &) { ++pkDeliveries; });
 
-        proxy->QObject::setObjectName(QStringLiteral("before"));
         proxy->toolChanged("before");
-        QCOMPARE(qtDeliveries, 1);
         QCOMPARE(pkDeliveries, 1);
 
         canvas.disconnectCanvasObserver(&observer);
-        proxy->QObject::setObjectName(QStringLiteral("after"));
         proxy->toolChanged("after");
-        QCOMPARE(qtDeliveries, 1);
         QCOMPARE(pkDeliveries, 1);
 
         canvas.setToolProxy(nullptr);

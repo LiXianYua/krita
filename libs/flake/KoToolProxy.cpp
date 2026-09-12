@@ -135,8 +135,8 @@ bool KoToolProxyPrivate::isActiveLayerEditable()
     return true;
 }
 
-KoToolProxy::KoToolProxy(KoCanvasBase *canvas, QObject *parent)
-    : QObject(parent),
+KoToolProxy::KoToolProxy(KoCanvasBase *canvas, PkObject *parent)
+    : PkObject(parent),
       d(new KoToolProxyPrivate(this))
 {
     KoToolManager::instance()->priv()->registerToolProxy(static_cast<KoToolProxyHost *>(this), canvas);

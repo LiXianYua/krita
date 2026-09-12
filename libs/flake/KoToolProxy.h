@@ -11,7 +11,6 @@
 #include "kritaflake_export.h"
 #include "KoToolProxyHost.h"
 
-#include <QObject>
 #include <PkObject.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkString.h>
@@ -57,27 +56,22 @@ enum class KoPointerInputSource {
  * which will transparently be routed to the active tool.  Without the application
  * having to bother about which tool is active.
  */
-// The proxy carries two object identities at once: the host toolkit object
-// surface (QObject: object tree / QPointer / event loop, retained by the
-// 2026-09-05 ruling and handed to M5) and the native PkObject signal/lifetime
-// surface. Under the compat routing (pk/signal/compat/QObject) the token
-// `QObject` *is* `PkObject`, so naming both bases duplicates the base class;
-// the base list is therefore spelled per configuration.
+// D-B (2026-09-12)：裁决拆掉了「Qt-QObject 与 Pk 双投递」设计——本类不再携带
+// 宿主工具包的对象身份（对象树 / QPointer / 事件循环那一半），只剩 Pk 身份。
+// 此前基类表按 `QT_CORE_LIB` 分叉、定义只留在 Qt 翻译单元；现在是一条定义、
+// 一个布局、一个 mangled 拼法，native 翻译单元直接看得见本类。
 //
-// Because of that, the class is defined in the Qt translation unit only: the
-// layout differs between the two spellings, so a native translation unit must
-// never see it. Native code holds KoToolProxy* and reaches the proxy through
-// the bucket-agnostic KoToolProxyHost interface (see KoToolProxyHost.h).
-#if defined(QT_CORE_LIB)
-class KRITAFLAKE_EXPORT KoToolProxy : public QObject, public PkObject, public KoToolProxyHost
+// `KoToolProxyHost` 保留为宿主侧窄面：它的参数与返回值只有指针，
+// 不随配置分叉，原生消费者经它单向依赖本类。
+class KRITAFLAKE_EXPORT KoToolProxy : public PkObject, public KoToolProxyHost
 {
 public:
     /**
      * Constructor
      * @param canvas Each canvas has 1 toolProxy. Pass the parent here.
-     * @param parent a parent QObject for memory management purposes.
+     * @param parent a parent for memory management purposes.
      */
-    explicit KoToolProxy(KoCanvasBase *canvas, QObject *parent = 0);
+    explicit KoToolProxy(KoCanvasBase *canvas, PkObject *parent = nullptr);
     ~KoToolProxy() override;
 
     /// Canonical decoration dispatch. The host supplies a native PkPainter backend.
@@ -228,8 +222,5 @@ private:
     friend class KoToolProxyPrivate;
     KoToolProxyPrivate * const d;
 };
-#else
-class KoToolProxy;
-#endif
 
 #endif // _KO_TOOL_PROXY_H_

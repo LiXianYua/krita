@@ -26,8 +26,10 @@ class PkPainter;
 * This class handles the selection of points. It makes sure
 * the canvas is repainted when the selection changes.
 */
+// D-B（2026-09-12）：基类表里去掉了 `public PkObject`。它此前与 `KoToolSelection`
+// 并列，是因为那个类按 `QT_CORE_LIB` 分叉、本身**不是** `PkObject`；现在
+// `KoToolSelection` 就是 `public PkObject`，再列一遍会构成重复基类。
 class KRITAFLAKE_EXPORT KoPathToolSelection : public KoToolSelection,
-                                              public PkObject,
                                               public KoPathShape::PointSelectionChangeListener
 {
 public:

@@ -462,7 +462,11 @@ void KoToolBase::dropEvent(PkToolEvent *event, const PkPointF &point)
 
 bool KoToolBase::hasSelection()
 {
-    return selectionHasSelection();
+    // D-B（2026-09-12）：此前经 selectionHasSelection() 迂回到 Qt 翻译单元调用，
+    // 因为 `KoToolSelection` 的布局按桶分叉、native 侧只看得见前置声明。
+    // 该类的布局现在全树统一（`public PkObject`），迂回没有存在理由。
+    KoToolSelection *sel = selection();
+    return sel && sel->hasSelection();
 }
 
 KoToolSelection *KoToolBase::selection()

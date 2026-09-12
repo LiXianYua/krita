@@ -14,15 +14,14 @@ class KoPointerEvent;
 class PkObject;
 
 /**
- * Bucket-agnostic host surface of KoToolProxy.
+ * Host-side narrow surface of KoToolProxy.
  *
- * KoToolProxy's base list is spelled per configuration, so its definition lives
- * in the Qt translation unit only and a native translation unit must not see the
- * class layout at all. Everything native code needs from a tool proxy comes
- * through this interface: parameters and returns are pointers only, no
- * configuration-dependent type takes part, hence a single mangled name in both
- * buckets. Base-class upcasts then happen where the object is defined — on the
- * host side — and use the real (Qt) layout.
+ * D-B (2026-09-12) removed the per-configuration base list of KoToolProxy: it is
+ * now a single `PkObject` definition visible to every translation unit. This
+ * interface is kept because it is the narrow, pointer-only face through which
+ * the retained manager and the canvas reach a proxy without depending on the
+ * proxy's concrete type — parameters and returns are pointers only, no
+ * configuration-dependent type takes part.
  */
 class KRITAFLAKE_EXPORT KoToolProxyHost
 {
