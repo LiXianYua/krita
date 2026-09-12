@@ -581,10 +581,12 @@ prints `DRIVER-SUMMARY emitted=276 failures=0`, and the real-Qt probe over those
 call-site-shaped cases reports **`PROBE2 total=276 mismatch=0`**. With the default ctor over
 **all 288** cases the probe reports **`PROBE2 total=288 mismatch=2`** — only `svg-ellipse#19`
 and `#20` (the flat `{2,2,1,28}` rect), 4 px each: a no-`viewBox` document is **stretched by
-its content bbox** to the render target (~8× here), amplifying Pk's four-cubic-Bézier ellipse
-approximation into a 4-pixel edge difference. That stretch is why the driver set excludes
-those ellipse rects — the reasoning is written out in `.superpowers/sdd/R-54/task-3-report.md`
-§3.
+its content bbox** to the render target (~8× here), amplifying the SVG path digits' **6
+significant-digit serialisation** into a 4-pixel edge difference — **not** "Pk's
+four-cubic-Bézier ellipse approximation", which **R-64 falsified** (root cause:
+[§R-64](#r-64--the-4-px-at-the-call-site-document-shape-root-cause)). That stretch is why the
+driver set excludes those ellipse rects — the reasoning is written out in
+`.superpowers/sdd/R-54/task-3-report.md` §3.
 
 **Still owed — the main-tree test `PkSvgPainterBackendTest.cpp` was not given the three primitives
 (registered debt; lock boundary).** `libs/flake/flake/tests/PkSvgPainterBackendTest.cpp` is the
@@ -618,3 +620,105 @@ directory", not "can build the target". The driver-level evidence registered abo
 (`tests/test_shape_primitive.cpp`, `tests/graft/svg_backend_driver.cpp`) is **accepted as this
 batch's completion criterion**; the compile-level evidence can be added once the blocking modules
 have had their Qt stripped by later tasks. It is **not** required to be backfilled here.
+
+## R-64 — the 4 px at the call-site document shape: root cause
+
+R-64 re-opened the one claim R-54 left unexplained: the 4 px on `svg-ellipse#19`/`#20` under the
+**default** ctor (the real call-site document shape — no `width`/`height`/`viewBox`). R-54
+attributed it to *"amplifying Pk's four-cubic-Bézier ellipse approximation"*. **That attribution
+is falsified.** The *stretch* half of R-54's sentence stands; what produces the pixel error is
+the **6-significant-digit serialisation of the SVG path digits** — a precision Qt's own generator
+uses too. Every reading below is raw probe stdout, quoted verbatim; the probes are Qt **5.15.7 on
+this macOS host only** — no cross-platform claim. Full probe sources and expected readings live in
+[`oracle/probes/`](oracle/probes/README.md); run them with `bash pk/render/oracle/probes/run_probes.sh`.
+
+**1. Reproduced, and only on the call-site shape.** Over all **288** cases, the default-ctor Pk
+document vs Qt's default-generator documents gives `mism[default-vs-qtNoVB]=2`, and the two
+failures are **exactly** `svg-ellipse#19`/`#20` (the flat `{2,2,1,28}` rect, `pen2.5:nofill` /
+`pen2.5:fill`), 4 px each. From `probe.out`:
+
+```
+CASE svg-ellipse#19:pen2.5:nofill  qtvb=0,0,32,32  pkvb=0,0,32,32  qtnovb=0.75,0.75,3.5,30.5  pkvbD=0.75,0.75,3.5,30.5  diff[qt-vs-pkbounds]=0 diff[qtNoVB-vs-pkdefault]=4 diff[qtVB-vs-pkdefault]=924  sizes(qt=32,qtNo=32)
+CASE svg-ellipse#20:pen2.5:fill  qtvb=0,0,32,32  pkvb=0,0,32,32  qtnovb=0.75,0.75,3.5,30.5  pkvbD=0.75,0.75,3.5,30.5  diff[qt-vs-pkbounds]=0 diff[qtNoVB-vs-pkdefault]=4 diff[qtVB-vs-pkdefault]=924  sizes(qt=32,qtNo=32)
+SUMMARY total=288 mism[bounds-vs-qtVB]=0 mism[default-vs-qtNoVB]=2 mism[default-vs-qtVB]=161
+```
+
+`bounds-vs-qtVB=0` is the control: on the 32×32 oracle's own comparison surface the same 288
+cases are pixel-identical, so the 4 px exists **only** in the call-site document shape. The four
+differing pixels and the alpha delta, from `focus19.out` (`svg-ellipse#19:pen2.5:nofill`):
+
+```
+  px(3,1) qt=51000000 pk=4f000000 dA=-2
+  px(28,1) qt=51000000 pk=4f000000 dA=-2
+  px(3,30) qt=51000000 pk=4f000000 dA=-2
+  px(28,30) qt=51000000 pk=4f000000 dA=-2
+diff pixels = 4
+```
+
+**2. Falsified candidate — the two sides do not stretch differently.** Both sides produce the
+**same** `viewBoxF()` and the **same** stretch factors, bit for bit (`focus19.out`):
+
+```
+qt viewBox: x=0.75 y=0.75 w=3.5 h=30.5  aspectRatio=0
+pk viewBox: x=0.75 y=0.75 w=3.5 h=30.5  aspectRatio=0
+delta viewBox: dx=0 dy=0 dw=0 dh=0
+scale: qt=9.1428571428571423x1.0491803278688525  pk=9.1428571428571423x1.0491803278688525
+```
+
+So the divergence is **not** a different stretch factor: both the Qt and the Pk document are
+stretched by the **same** content-bbox fallback.
+
+**3. Root cause — 6-significant-digit path serialisation, amplified by the implicit bbox stretch.**
+Both sides round the Bézier control points to 6 significant digits. Qt does it in
+`QSvgPaintEngine::drawPath` (`qsvggenerator.cpp:1063-1074` — the `for` loop feeding `e.x`/`e.y`
+to a `QTextStream` whose `realNumberPrecision` defaults to **6**); Pk matches it in
+`PkSvgPainterBackend::number()` (`PkSvgPainterBackend.h:33-38`, `std::setprecision(6)`). With no
+`viewBox`, `QSvgRenderer` falls back to the content bbox — `QSvgTinyDocument::viewBox()`
+(`qsvgtinydocument_p.h:178-185`: `m_viewBox.isNull()` ⇒ `m_viewBox = transformedBounds()`),
+applied by `mapSourceToTarget` (`qsvgtinydocument.cpp:442-470`) — which magnifies the 1-user-unit
+ellipse in the `{2,2,1,28}` rect by ×9.14 horizontally, turning the 6th-significant-digit error
+into a ±2/255 alpha difference on those 4 pixels. (Line numbers are Qt 5.15.7 sources; §2 shows
+both sides take this same fallback, which is why their `viewBoxF()` are identical.)
+
+**4. Two discriminating controls.** *(a) Qt-vs-Qt.* Qt's **own** `QSvgGenerator` on the **same**
+ellipse through `drawEllipse` and through `drawPath`, both rendered by Qt's `QSvgRenderer` under
+the implicit stretch, differ by **4** px (`control.out`):
+
+```
+diff Qt(drawEllipse) vs Qt(drawPath) under implicit stretch = 4
+```
+
+and Qt's `drawPath` digits — `2.77614` / `23.732` / `8.26801` / `2.22386` — are **bit-identical
+to Pk's**, so the 6-digit precision is Qt's own serialisation precision, not a Pk deviation.
+*(b) Full-table mirror.* Qt's generator, run through a **Pk-shaped path-command stream**, vs Pk's
+default-ctor documents over all 288 cases (`mirror.out`):
+
+```
+MIRROR total=288 mismatch=0
+```
+
+**5. Adjudication.**
+
+- **Not `pk/geometry`.** R-58 ruled this out; R-64 re-checks it with stronger evidence — an
+  all-precision path vs `<ellipse>` renders identical, and only the 6-digit variant differs
+  (`isolate.out`):
+
+  ```
+diff ellipse-vs-path6  = 4
+diff ellipse-vs-path17 = 0
+diff path6-vs-path17   = 4
+  ```
+
+- **Not `pk/render`'s implementation.** The mirror control is `288/0`: Pk's path emission is
+  pixel-identical to Qt's own path emission over the whole table.
+- **The one registrable Pk-side deviation.** On the `drawEllipse` command, Qt's generator emits
+  `<ellipse …>` (full precision) while `PkSvgPainterBackend` emits a 6-digit `<path>`; the only
+  observable consequence is the 2 cases / 4 px above. Registered as an **acceptable deviation**
+  under 〈对齐口径〉, **with its reproducible benefit** — the `MIRROR 288/0` result, i.e. Pk has a
+  single uniform path emitter that is digit-for-digit aligned with Qt's `drawPath`. It is **not**
+  changed to `<ellipse>`: doing so would *create* a new deviation from Qt's `drawPath`, and would
+  split `PkPainter::drawEllipse` (identical in shape to the raster backend) into a second form in
+  the SVG backend.
+
+**6. Scope.** R-64 changed **no production code** — `pk/render/**` and `libs/flake/svg/**` `.h`/`.cpp`
+are byte-for-byte R-54's delivery, and `pk/render` / `libs/flake/svg` behave exactly as at R-54.
