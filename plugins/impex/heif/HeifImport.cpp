@@ -362,12 +362,12 @@ KisImportExportErrorCode HeifImport::convert(KisDocument *document, PkStream *io
                 }
 
                 heif_nclx_color_profile_free(nclx);
-                // R-72：profileFor() 在本分支直接转发 p709SRGBProfile()（KoColorSpaceRegistry.cpp:741），
-                // 未配 EXTRA_RESOURCE_DIRS（色彩引擎已注册）时它返 nullptr——原来这一行
-                // `profile->name()` 会当场解引用空指针。profile 为空是**降级环境下的正常结果**：
-                // 下面 :388 的 `if (!profile)` 本来就会去取默认剖面，所以这里只是让日志如实记录，
-                // 不改导入行为、不替宿主兜底（R-59 裁决 C）。
-                // **「未注册色彩引擎」不在本判据喂过的输入集合内**，这里不对它作任何保证。
+                // R-72：profileFor() 只在 primaries==PRIMARIES_ITU_R_BT_709_5 且 transfer==TRC_IEC_61966_2_1
+                // 这一组合才转发 p709SRGBProfile()（KoColorSpaceRegistry.cpp:741，该组合恒等已实测）；其余组合
+                // 转发同族其他 elle 访问器或 profilesFor()/engine->getProfile()（读码所得 KoColorSpaceRegistry.cpp:737-766，
+                // 未经探针实测）——它们同样在无 EXTRA_RESOURCE_DIRS 时返空，故原来这行 `profile->name()` 会当场
+                // 解引用空指针。profile 为空是**降级环境下的正常结果**：下面 :395 的 `if (!profile)` 本就会去取
+                // 默认剖面，这里只是让日志如实记录、不改导入行为、不替宿主兜底（R-59 裁决 C）；**「未注册色彩引擎」不在本判据喂过的输入集合内**，不对它作任何保证。
                 dbgFile << "nclx profile found"
                         << (profile ? profile->name() : PkString("(unavailable: no resource dirs)"));
             }
