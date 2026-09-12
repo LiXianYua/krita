@@ -19,13 +19,6 @@
 
 #include <flake/kis_node_shape.h>
 
-#include <PkNamespace.h>
-
-namespace PkNs = Pk;
-using PkToolCursorShape = PkNs::CursorShape;
-constexpr PkToolCursorShape PkToolArrowCursor = PkNs::ArrowCursor;
-constexpr PkToolCursorShape PkToolPointingHandCursor = PkNs::PointingHandCursor;
-
 class KoCanvasBase;
 
 class KisToolLazyBrush : public KisToolFreehand
