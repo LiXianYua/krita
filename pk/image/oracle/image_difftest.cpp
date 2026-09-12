@@ -87,6 +87,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>   // R-75 Group F：文件 I/O 对拍要建临时目录
 #include <map>
 #include <memory>
 #include <set>
@@ -108,6 +109,20 @@ namespace pkoracle {
 #include "PkRect.cpp"
 #include "PkTransform.h"
 #include "PkTransform.cpp"
+// ⚠ **R-75 补：PkPainterPath / PkPolygon 也要进来**（原文漏了，本文件因此一直
+// 链不过）。`PkTransform::map(PkPolygonF)` / `mapRect(PkRect)` /
+// `map(PkPainterPath)` 三条 out-of-line 方法会调到 PkPainterPath 的
+// moveTo/lineTo/addRect/translate/boundingRect/detachForMutation… 与
+// PkPolygonF::translated —— 这些在 `libpkgeometry.a` 里定义的是
+// `::PkPainterPath::x`，本 TU 要的是 `pkoracle::PkPainterPath::x`，链不上
+// （同一族在 geometry 先例里是 S-09-g 补的，那份注释写得更细）。
+// 系统头纪律同上：PkPainterPath.cpp 只 include
+// `<cmath> <cfloat> <algorithm> <math.h> <cassert> <type_traits>`、
+// PkPolygon.cpp 只 include `<type_traits>`，都已被上面的系统头区覆盖。
+#include "PkPolygon.h"
+#include "PkPolygon.cpp"
+#include "PkPainterPath.h"
+#include "PkPainterPath.cpp"
 #include "PkImageData.h"
 #include "PkImage.h"
 #include "PkImage.cpp"
@@ -138,21 +153,43 @@ static_assert((int)QImage::Format_Invalid == (int)PkImage::Format_Invalid
               && (int)QImage::Format_Grayscale16 == (int)PkImage::Format_Grayscale16
               && (int)QImage::Format_BGR888 == (int)PkImage::Format_BGR888,
               "QImage::Format 与 PkImage::Format 的枚举取值两侧不一致");
-static_assert(!std::is_same<Pk::GlobalColor, pkoracle::Pk::GlobalColor>::value,
-              "Pk::GlobalColor 两侧解析成了同一个类型");
-static_assert((int)Pk::white == (int)pkoracle::Pk::white
-              && (int)Pk::black == (int)pkoracle::Pk::black
-              && (int)Pk::red == (int)pkoracle::Pk::red
-              && (int)Pk::gray == (int)pkoracle::Pk::gray
-              && (int)Pk::transparent == (int)pkoracle::Pk::transparent,
-              "Pk::GlobalColor 的枚举取值两侧不一致");
-static_assert(!std::is_same<Pk::TransformationMode, pkoracle::Pk::TransformationMode>::value,
-              "Pk::TransformationMode 两侧解析成了同一个类型");
-static_assert((int)Pk::FastTransformation == (int)pkoracle::Pk::FastTransformation
-              && (int)Pk::SmoothTransformation == (int)pkoracle::Pk::SmoothTransformation,
-              "Pk::TransformationMode 的枚举取值两侧不一致");
-static_assert(!std::is_same<Pk::AspectRatioMode, pkoracle::Pk::AspectRatioMode>::value,
-              "Pk::AspectRatioMode 两侧解析成了同一个类型");
+// ⚠ **R-75 修复（原文三组 static_assert 引用的是全局 `Pk::`，本 TU 里它不存在）**
+//
+// 原文写的是 `!std::is_same<Pk::GlobalColor, pkoracle::Pk::GlobalColor>` 之类，
+// 语义是「全局的 Pk 枚举族与塞进 namespace 的那份必须是两个不同的类型，但取值
+// 必须相同」。问题：**本 TU 里根本没有全局 `Pk`**——`namespace Pk` 的六个枚举
+// （GlobalColor/TransformationMode/AspectRatioMode/…）定义在
+// `pk/global/PkGlobal.h`，而本文件只在 `namespace pkoracle { ... }` **内部**
+// include 它（经 `PkImage.h` → `PkTransform.h` 拉到），于是它只以
+// `pkoracle::Pk` 存在；`PkGlobal.h` 又带 `PK_GLOBAL_PKGLOBAL_H` 常规 include
+// guard，**没法在全局作用域再引一次**（先引全局就会把 namespace 里那份挡掉，
+// 反过来一样）。
+//
+// 也就是说：**这三组断言在 R-75 之前就编不过**，本文件自带的 Linux 期对拍数字
+// 对应的是一份更早、引用 compat 垫片的修订（`run_oracle.sh` 的 `-I` 检查禁止
+// compat，垫片版不可能出自本文件）。R-75 要跑绿就必须修掉。
+//
+// 修法取**更强**的一侧：直接与**真 Qt 的枚举**比。原文要证明的是「Pk 的枚举
+// 与 Qt 对得上、且不是同一个类型」——与 `Qt::` 逐值比较正是这句话，而且比跟
+// 「同一个头在另一个 namespace 里的拷贝」自比更有判别力（后者哪怕 PkGlobal.h
+// 的取值整体改错，两边仍然一致、照样通过）。
+//   类型不同：Qt::X 与 pkoracle::Pk::X 天然是两个 enum 类型。
+//   取值相同：逐值 static_assert（对本头声称的「逐位照抄 qnamespace.h」是真判据）。
+static_assert(!std::is_same<Qt::GlobalColor, pkoracle::Pk::GlobalColor>::value,
+              "GlobalColor 两侧解析成了同一个类型");
+static_assert((int)Qt::white == (int)pkoracle::Pk::white
+              && (int)Qt::black == (int)pkoracle::Pk::black
+              && (int)Qt::red == (int)pkoracle::Pk::red
+              && (int)Qt::gray == (int)pkoracle::Pk::gray
+              && (int)Qt::transparent == (int)pkoracle::Pk::transparent,
+              "GlobalColor 的枚举取值 Pk 与真 Qt 不一致");
+static_assert(!std::is_same<Qt::TransformationMode, pkoracle::Pk::TransformationMode>::value,
+              "TransformationMode 两侧解析成了同一个类型");
+static_assert((int)Qt::FastTransformation == (int)pkoracle::Pk::FastTransformation
+              && (int)Qt::SmoothTransformation == (int)pkoracle::Pk::SmoothTransformation,
+              "TransformationMode 的枚举取值 Pk 与真 Qt 不一致");
+static_assert(!std::is_same<Qt::AspectRatioMode, pkoracle::Pk::AspectRatioMode>::value,
+              "AspectRatioMode 两侧解析成了同一个类型");
 
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
@@ -543,7 +580,7 @@ static void runHandPicked()
             for (const GC &gc : kColors) {
                 QImage q(3, 3, static_cast<QImage::Format>(f));
                 PkImage p(3, 3, static_cast<PkImage::Format>(f));
-                q.fill(static_cast<Pk::GlobalColor>(gc.code));
+                q.fill(static_cast<Qt::GlobalColor>(gc.code));
                 p.fill(static_cast<pkoracle::Pk::GlobalColor>(gc.code));
                 std::string tag = std::string("fmt=") + fmtName(f) + "_color=" + gc.name;
                 rec("fill_globalColor", q.pixel(0, 0) == p.pixel(0, 0), tag, tag,
@@ -801,12 +838,12 @@ static void runCombinatorial()
 
             // ── scaled() / transformed()：Fast 模式硬判据，Smooth 已声明偏离 ──
             for (int mode = 0; mode <= 1; ++mode) {
-                Pk::TransformationMode qm = static_cast<Pk::TransformationMode>(mode);
+                Qt::TransformationMode qm = static_cast<Qt::TransformationMode>(mode);
                 pkoracle::Pk::TransformationMode pm = static_cast<pkoracle::Pk::TransformationMode>(mode);
                 const char *modeName = mode == 0 ? "fast" : "smooth";
 
                 QSize target(std::max(1, w / 2 + 1), std::max(1, h / 2 + 1));
-                QImage qs = q.scaled(target, Pk::IgnoreAspectRatio, qm);
+                QImage qs = q.scaled(target, Qt::IgnoreAspectRatio, qm);
                 PkImage ps = p.scaled(PkSize(target.width(), target.height()),
                                        pkoracle::Pk::IgnoreAspectRatio, pm);
                 std::string tagBase = shapeTag(f, w, h) + "_mode=" + modeName;
@@ -1008,6 +1045,292 @@ static void runConvertMatrix()
     }
 }
 
+// ═══ Group F：文件 I/O 与 invertPixels（R-75 新增）═════════════════════════
+//
+// 本组与 A–E 三点不同，先写清楚（否则会被当成"跟别的组一样"误读）：
+//
+//   ① **测的东西不在本 TU 内联展开的那份源码里。** `PkImage(PkString)` /
+//      `load` / `save` 的定义在 `pk/image/PkImageFileIo.cpp`、编进 `pkimageio`
+//      ——`libpkimage.a` 里这三个是**未定义符号**，由 `pkimageio` 补齐
+//      （`pk/image/README.md` 有专节）。`invertPixels` 反过来住在 `pkimage`。
+//      两条路径都不在本 TU 的 `namespace pkoracle` 展开里，所以本组走
+//      `pk/image/oracle/pk_fileio_bridge.cpp` 那座桥，链**真编出来的**
+//      `libpkimage.a` + `libpkimageio.dylib`。对本组而言这比内联展开更强：
+//      它同时验了「这三个符号在 `pkimageio` 里真的落地了」。
+//
+//   ② **输入是文件，不是纯函数式生成的内存图。** 语料由**真 Qt** 写出
+//      （`QImage::save(..., "PNG")`），两侧再各自读回比对。落盘目录
+//      `pk/image/build/oracle-fileio/`，每次运行重建。
+//
+//   ③ **验收面只到「像素」与「成败」**，不比对解码出来的 `format()`：同为一张
+//      调色板 PNG，Qt 与 libpng 给出 `Indexed8` 还是 `ARGB32` 属于实现自由度，
+//      不在本任务的判据里（brief 的措辞是"feed the same PNG … compare pixels"）。
+//      `load` 侧统一折成 ARGB32 再逐像素比，正是这个口径。
+//
+// 判据与其它组一字不差：同输入下 `QImage` 与 `PkImage` 必须给同样的结果，
+// 不一样就产生一条 tag、必须在 `image.deviation` 里声明过。
+
+extern "C" {
+unsigned int *pkbridge_load(const char *path, int *outW, int *outH, int *outFormat);
+int pkbridge_load_format(const char *path);
+int pkbridge_save(const char *path, const unsigned int *pixels, int w, int h,
+                  const char *format, int quality);
+unsigned int *pkbridge_invert(const unsigned int *pixels, int w, int h,
+                              int formatCode, int mode);
+void pkbridge_free(void *buffer);
+}
+
+// 语料目录。run_oracle.sh 从 fork 根跑，所以是相对仓库根的路径。
+static const char *kFileIoDir = "pk/image/build/oracle-fileio";
+
+// 造第 i 个语料像素（ARGB32 直通 alpha）。x/y 参与构造，保证逐像素有区分度
+// ——否则"逐像素相等"可能只是两边都写了个常数。
+static uint32_t corpusPixel(int x, int y)
+{
+    return 0xFF000000u
+        | (static_cast<uint32_t>((x * 17 + y * 31) & 0xff) << 16)
+        | (static_cast<uint32_t>((x * 5 + y * 3) & 0xff) << 8)
+        | static_cast<uint32_t>((x * 11 + y * 7) & 0xff);
+}
+
+// 真 Qt 侧造一张语料图。Indexed8 与 Grayscale8 的 `setPixel(idx)` 收的是**索引**
+// 而不是 QRgb（Qt 的语义），这里按各自语义喂，免得喂进去的值被截断成低字节之后
+// "两边恰好都截断成一样"而看不出问题。
+static QImage makeQtCorpus(int fmtCode, int w, int h)
+{
+    QImage q(w, h, static_cast<QImage::Format>(fmtCode));
+    if (fmtCode == QImage::Format_Indexed8) {
+        QVector<QRgb> table;
+        table.reserve(256);
+        for (int i = 0; i < 256; ++i) {
+            table.append(qRgb(i, 255 - i, (i * 7) & 0xff));
+        }
+        q.setColorTable(table);
+    }
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            q.setPixel(x, y, corpusPixel(x, y));
+        }
+    }
+    return q;
+}
+
+// ── F1：invertPixels 逐格式 × 逐模式 ──────────────────────────────────────
+static void runInvertPixels()
+{
+    // 覆盖全不透明 / 部分 alpha / 全透明 / alpha=0x7f / alpha=0x01。
+    static const uint32_t kPixels[6] = {
+        0x80402010u, 0xFF010203u, 0x00000000u, 0x7FFFFFFFu, 0x01020304u, 0xFFFFFFFFu,
+    };
+    // 预乘与非预乘走**不同**路径（探针实测），两边都必须测到。
+    static const int kFmts[] = {
+        QImage::Format_ARGB32,
+        QImage::Format_RGB32,
+        QImage::Format_ARGB32_Premultiplied,
+        QImage::Format_RGBA8888,
+    };
+    const int w = 3, h = 2;
+
+    for (int f : kFmts) {
+        for (int mode = 0; mode <= 1; ++mode) {
+            QImage q(w, h, static_cast<QImage::Format>(f));
+            for (int i = 0; i < w * h; ++i) {
+                q.setPixel(i % w, i / w, kPixels[i]);
+            }
+            q.invertPixels(mode == 0 ? QImage::InvertRgb : QImage::InvertRgba);
+
+            const std::string tag = std::string("fmt=") + fmtName(f)
+                + "_mode=" + (mode == 0 ? "rgb" : "rgba");
+
+            unsigned int *p = pkbridge_invert(kPixels, w, h, f, mode);
+            if (!p) {
+                rec("invertPixels", false, tag + "_bridge-failed", tag,
+                    "image", "null");
+                continue;
+            }
+            int firstBad = -1;
+            for (int i = 0; i < w * h && firstBad < 0; ++i) {
+                if (q.pixel(i % w, i / w) != p[i]) {
+                    firstBad = i;
+                }
+            }
+            rec("invertPixels", firstBad < 0, tag, tag,
+                firstBad < 0 ? std::string("all-equal")
+                             : hstr(q.pixel(firstBad % w, firstBad / w)),
+                firstBad < 0 ? std::string("all-equal") : hstr(p[firstBad]));
+            pkbridge_free(p);
+        }
+    }
+}
+
+// ── F2：文件 I/O ──────────────────────────────────────────────────────────
+static void runFileIo()
+{
+    std::error_code ec;
+    std::filesystem::create_directories(kFileIoDir, ec);
+
+    static const int kFmts[] = {
+        QImage::Format_ARGB32, QImage::Format_RGB32,
+        QImage::Format_Indexed8, QImage::Format_Grayscale8,
+    };
+    static const int kSizes[][2] = { {7, 5}, {16, 16} };
+
+    // ── F2a：真 Qt 写 PNG → 两侧各自读回 → 逐像素比 ────────────────────
+    // 这条覆盖 `PkImage(PkString)` / `load` 的解码侧。
+    for (int f : kFmts) {
+        for (const auto &sz : kSizes) {
+            const int w = sz[0], h = sz[1];
+            const std::string path = std::string(kFileIoDir)
+                + "/qt-" + fmtName(f) + "-" + istr(w) + "x" + istr(h) + ".png";
+            QImage corpus = makeQtCorpus(f, w, h);
+            if (!corpus.save(QString::fromStdString(path), "PNG")) {
+                rec("fileIo_load", false, "fixture-write-failed", path,
+                    "saved", "not-saved");
+                continue;
+            }
+
+            const QImage qRead(path.c_str());
+            const QImage qArgb = qRead.isNull() ? qRead
+                : qRead.convertToFormat(QImage::Format_ARGB32);
+            int bw = 0, bh = 0, bfmt = -1;
+            unsigned int *p = pkbridge_load(path.c_str(), &bw, &bh, &bfmt);
+
+            const std::string tag = std::string("fmt=") + fmtName(f)
+                + "_w=" + istr(w) + "_h=" + istr(h);
+
+            if (qArgb.isNull() || !p) {
+                // 两侧"读不读得出来"必须一致；不一致就是真差异。
+                rec("fileIo_load", qArgb.isNull() == (p == nullptr),
+                    tag + "_nullness", tag,
+                    qArgb.isNull() ? "qt-null" : "qt-ok",
+                    p ? "pk-ok" : "pk-null");
+                if (p) pkbridge_free(p);
+                continue;
+            }
+            if (qArgb.width() != bw || qArgb.height() != bh) {
+                rec("fileIo_load", false, tag + "_size", tag,
+                    istr(qArgb.width()) + "x" + istr(qArgb.height()),
+                    istr(bw) + "x" + istr(bh));
+                pkbridge_free(p);
+                continue;
+            }
+            int firstBad = -1;
+            for (int y = 0; y < h && firstBad < 0; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    if (qArgb.pixel(x, y) != p[static_cast<size_t>(y) * w + x]) {
+                        firstBad = 1;
+                        break;
+                    }
+                }
+            }
+            rec("fileIo_load", firstBad < 0, tag + "_pixels", tag,
+                "qimage-decoded", "pkimage-decoded");
+
+            // canary：同一条比较链上故意制造一处不等（把读回的第 0 个像素翻一位）
+            // ——它必须被记成 mismatch，否则说明这条链是死的（比较没真的发生）。
+            if (p) {
+                const unsigned int saved0 = p[0];
+                p[0] = saved0 ^ 0x00000001u;
+                const bool sameOnCanary =
+                    (qArgb.pixel(0, 0) == p[0]);
+                rec("canary", sameOnCanary, "fileio-load-pixel-mismatch",
+                    "deliberate", hstr(qArgb.pixel(0, 0)), hstr(p[0]));
+                p[0] = saved0;
+            }
+            if (p) pkbridge_free(p);
+        }
+    }
+
+    // ── F2b：PkImage::save 写出 → 真 Qt 读回 → 与写入像素逐像素比 ────────
+    // 覆盖 `save` 的编码侧，三种调用形态各来一遍（默认 / 显式 "PNG" / 带 quality）。
+    static const struct { const char *label; const char *format; int quality; } kSaveForms[] = {
+        { "default", nullptr, -1 },
+        { "explicit-format", "PNG", -1 },
+        { "quality-50", nullptr, 50 },
+    };
+    for (const auto &sf : kSaveForms) {
+        for (const auto &sz : kSizes) {
+            const int w = sz[0], h = sz[1];
+            std::vector<unsigned int> pixels(static_cast<size_t>(w) * h);
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    pixels[static_cast<size_t>(y) * w + x] = corpusPixel(x, y);
+                }
+            }
+            const std::string path = std::string(kFileIoDir) + "/pk-"
+                + sf.label + "-" + istr(w) + "x" + istr(h) + ".png";
+
+            const int saved = pkbridge_save(path.c_str(), pixels.data(), w, h,
+                                            sf.format, sf.quality);
+            const std::string tag = std::string("form=") + sf.label
+                + "_w=" + istr(w) + "_h=" + istr(h);
+
+            if (!saved) {
+                rec("fileIo_save", false, tag + "_save-returned-false", tag,
+                    "expected-saved", "not-saved");
+                continue;
+            }
+            const QImage qBack(path.c_str());
+            if (qBack.isNull()) {
+                rec("fileIo_save", false, tag + "_qt-cannot-read-back", tag,
+                    "readable", "unreadable");
+                continue;
+            }
+            const QImage qArgb = qBack.convertToFormat(QImage::Format_ARGB32);
+            if (qArgb.width() != w || qArgb.height() != h) {
+                rec("fileIo_save", false, tag + "_size", tag,
+                    istr(w) + "x" + istr(h),
+                    istr(qArgb.width()) + "x" + istr(qArgb.height()));
+                continue;
+            }
+            int firstBad = -1;
+            for (int y = 0; y < h && firstBad < 0; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    if (qArgb.pixel(x, y) != pixels[static_cast<size_t>(y) * w + x]) {
+                        firstBad = 1;
+                        break;
+                    }
+                }
+            }
+            rec("fileIo_save", firstBad < 0, tag + "_pixels", tag,
+                "written", "qt-read-back");
+
+            // canary：把"写入前"的数组改一位再比，必须被记成 mismatch。
+            std::vector<unsigned int> tampered = pixels;
+            tampered[0] ^= 0x00000001u;
+            rec("canary", qArgb.pixel(0, 0) == tampered[0],
+                "fileio-save-pixel-mismatch", "deliberate",
+                hstr(qArgb.pixel(0, 0)), hstr(tampered[0]));
+        }
+    }
+
+    // ── F2c：打不开的路径 / 写不出去的路径 —— 两侧必须同判失败 ───────────
+    // 探针 P2/P5/P3（真 Qt 实测）：打不开 -> null，不抛不崩；坏目录 save -> false。
+    {
+        const char *kBadPath = "/definitely/not/here-r75.png";
+        const QImage qBad(kBadPath);
+        const int pkBad = pkbridge_load_format(kBadPath);
+        rec("fileIo_load", qBad.isNull() == (pkBad < 0), "unopenable-path", kBadPath,
+            qBad.isNull() ? "qt-null" : "qt-ok", pkBad < 0 ? "pk-null" : "pk-ok");
+
+        std::vector<unsigned int> px(static_cast<size_t>(4) * 4, 0xFF102030u);
+        rec("fileIo_save",
+            pkbridge_save("/no/such/dir/r75.png", px.data(), 4, 4, nullptr, -1) == 0,
+            "unwritable-dir", "/no/such/dir/r75.png", "qt-false", "pk-false");
+
+        // 未知格式令牌 / 未知后缀 / 无后缀：本仓只有 PNG 编码器，两侧都判失败
+        // （探针 P7；P3 的反面另有"显式令牌优先于后缀"一条）。
+        rec("fileIo_save",
+            pkbridge_save((std::string(kFileIoDir) + "/bad-format.bin").c_str(),
+                          px.data(), 4, 4, "XYZ", -1) == 0,
+            "unknown-format-token", "format=XYZ", "qt-false", "pk-false");
+        rec("fileIo_save",
+            pkbridge_save((std::string(kFileIoDir) + "/bad-suffix.xyz").c_str(),
+                          px.data(), 4, 4, nullptr, -1) == 0,
+            "unknown-suffix", "suffix=.xyz", "qt-false", "pk-false");
+    }
+}
+
 int main()
 {
     // 吞掉 Qt 的运行期警告（越界坐标、索引格式 setPixelColor 之类会往 stderr
@@ -1019,6 +1342,8 @@ int main()
     runHandPicked();
     runCombinatorial();
     runConvertMatrix();
+    runInvertPixels();   // R-75 Group F
+    runFileIo();         // R-75 Group F
 
     for (const auto &kv : g_tags)
         std::printf("DIFFTAG %s %ld\n", kv.first.c_str(), kv.second);

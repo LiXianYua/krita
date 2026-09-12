@@ -171,11 +171,13 @@ target_include_directories(pkimage PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/image
     ${CMAKE_CURRENT_SOURCE_DIR}/container
 )
-target_link_libraries(pkimage PUBLIC pkgeometry)
+target_link_libraries(pkimage PUBLIC pkgeometry pkstring)
 
 add_library(pkimageio SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImageFileDecoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image/PkPngReader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/PkPngWriter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImageFileIo.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkNativeImageCodecs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkBmpHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkPnmHandler.cpp
@@ -309,6 +311,11 @@ target_include_directories(pkconfig_objects PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry
 )
 target_compile_options(pkconfig_objects PRIVATE -fvisibility=default)
+# 缺口二：pk/config/CMakeLists.txt 有这条定义、pk/CMakeLists.txt 没有 ⇒
+# PkConfigStore.cpp 里 setConfigFilePathForTesting() 那段被 #ifdef 掉。pkconfig
+# (SHARED) 与 pkconfig_frozen_archive (STATIC) 都取 $<TARGET_OBJECTS:pkconfig_objects>
+# ⇒ 补这一条即两个 target 同时获得该符号，无第二处联动。
+target_compile_definitions(pkconfig_objects PRIVATE PKCONFIG_ENABLE_TEST_HOOKS)
 
 # Configuration is process-global state. Production consumers link only this
 # shared target, so the host, shared libraries and plugins observe one store.

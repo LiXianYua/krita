@@ -29,6 +29,8 @@ target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(pkimageio SHARED
     PkImageFileDecoder.cpp
     PkPngReader.cpp
+    PkPngWriter.cpp
+    PkImageFileIo.cpp
     codecs/PkNativeImageCodecs.cpp
     codecs/PkBmpHandler.cpp
     codecs/PkPnmHandler.cpp
@@ -50,6 +52,15 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../geometry
                   EXCLUDE_FROM_ALL)
 
 # ---------------------------------------------------------------------------
+# 依赖：pk/string —— R-75：PkImage.h 起用 PkString 做文件路径
+# （PkImage(PkString)/load/save），pkimage 的**公共** API 面因此暴露 PkString，
+# 故 PUBLIC 链接 pkstring（R-65 教训：主树与薄壳两份依赖声明必须一致）。
+# 不需要在这里 add_subdirectory：pk/geometry → pk/test 已经带进 pkstring
+# （pk/test/CMakeLists.txt:24 用 CMAKE_BINARY_DIR/pkstring 注册），重复 add
+# 会撞「binary directory already used」。
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # 依赖：pk/container —— 只用 include 路径引入（PkArrayData.h 是纯头文件模板），
 # 不 add_subdirectory，否则 pktest/selftest_pktest 目标名会与 pk/geometry
 # 带出的那份重复定义。
@@ -57,7 +68,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../geometry
 target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 
 target_link_libraries(pkimage
-    PUBLIC pkgeometry)
+    PUBLIC pkgeometry pkstring)
 target_link_libraries(pkimageio
     PUBLIC pkimage
     PRIVATE Threads::Threads PNG::PNG JPEG::JPEG TIFF::TIFF GIF::GIF WebP::webp)
@@ -71,7 +82,14 @@ pk_test_generate(PKIMAGE_GENERATED_SOURCES
 add_executable(test_pkimage
     tests/test_image.cpp
 )
-target_link_libraries(test_pkimage PRIVATE pkimage pktest)
+# R-75：文件 I/O 用例（PkImage(PkString)/load/save）测的是 pkimageio 里定义的那些
+# 符号，所以 test_pkimage 额外链 pkimageio（pkimage 单向依赖 pkimageio 的反向补充，
+# 见 pk/image/README.md「落地位置」一节）。`pkimage` 由 pkimageio 的 PUBLIC 链接
+# 传递而来，这里不再显式列一次——列了会撞 macOS ld 的
+# "ignoring duplicate libraries: 'libpkimage.a'"。
+target_link_libraries(test_pkimage PRIVATE pkimageio pktest)
+target_compile_definitions(test_pkimage PRIVATE
+    PKIMAGE_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
 target_include_directories(test_pkimage PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../test/compat)

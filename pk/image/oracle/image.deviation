@@ -17,6 +17,8 @@
 canary	size-mismatch	1	比较管道自证：故意让 QSize(3,4) 与 PkSize(3,5) 判等，尺寸比较与计数链路活着才会出现这一条
 canary	pixel-bit-mismatch	1	比较管道自证：故意判 0xFF010203 与 0xFF010204 相等，逐像素 uint32 位比较活着才会出现这一条
 canary	depth-mismatch	1	比较管道自证：故意判 RGB16 的 depth() 与 RGB32 的 depth() 相等，跨格式属性比较活着才会出现这一条
+canary	fileio-load-pixel-mismatch	8	比较管道自证（R-75）：解码完的像素数组故意翻掉第 0 位再与真 Qt 读回的像素比，判成"不等"才会命中；每次成功的 load 对拍命中一次，共 4 格式 × 2 尺寸 = 8 次，全部命中说明这条比较链没被写死或优化掉
+canary	fileio-save-pixel-mismatch	6	比较管道自证（R-75）：写出后真 Qt 读回的像素故意与"写入前数组翻掉第 0 位"的那份比，判成"不等"才会命中；三种 save 调用形态 × 2 尺寸 = 6 次，全部命中说明编码侧的读回比较没被写死
 
 # ══════════════════════════════════════════════════════════════════════════
 # fill(uint32_t) 字节序/灰度换算不一致（Task 4 新发现，探针实测）
@@ -184,3 +186,50 @@ convertToFormat_1arg	src=RGBA64_dst=Indexed8_target-is-indexed_pixels	1	Task3 �
 # 8. fill() 只测 PkImage 已实现的两个重载（fill(uint32_t)/fill(GlobalColor)）。
 #    真 Qt 还有第三个 fill(const QColor&)，PkImage 没有对应参数类型（Task 2 既有
 #    简化决策：没有 PkColor），无法构造对拍点，不算漏测。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# R-75 新增：Group F（文件 I/O 与 invertPixels）
+#
+# **本组没有新增任何"已声明偏离"**——除两条 canary（见顶部，
+# fileio-load-pixel-mismatch=8 / fileio-save-pixel-mismatch=6，都是比较管道自证、
+# 不是真差异）外，**逐条比对全部为零差异**。新增的 40 次比对：
+#
+#   · invertPixels：4 格式（ARGB32 / RGB32 / ARGB32_Premultiplied / RGBA8888）
+#     × 2 模式（InvertRgb / InvertRgba）= 8 次。**预乘格式走"反预乘 → 按位取反
+#     → 再预乘"，与非预乘不是同一条路径**（探针 P4 实测），所以格式必须参数化。
+#   · PkImage::load（真 Qt 写出的 PNG 再被两侧读回）：4 格式（ARGB32 / RGB32 /
+#     Indexed8 / Grayscale8）× 2 尺寸（7×5 / 16×16）= 8 次，逐像素比。
+#   · PkImage::save（PkImage 写出、真 Qt 读回）：3 种调用形态（默认 / 显式
+#     "PNG" / quality=50）× 2 尺寸 = 6 次，逐像素比。
+#   · 失败路径一致性 4 次：打不开的路径两侧同判 null、写不出去的目录 / 未知格式
+#     令牌 / 未知后缀两侧同判 false。
+#
+# 口径（与本文件其余部分不同、必须写清，否则会被误读）：
+#
+# 9. **load 侧只比像素与成败，不比解码出来的 format()。** 同一张调色板 PNG，Qt
+#    与 libpng 给出 Indexed8 还是 ARGB32 属于实现自由度，不在 brief 的判据
+#    （"feed the same PNG to QImage(path) and PkImage(path), compare pixels"）内。
+#    两侧都先折成 ARGB32 再逐像素比，正是这个口径。
+#
+# 10. **本组是跨库对拍，不是 TU 内联展开。** `PkImage(PkString)`/`load`/`save`
+#     的定义编在 `pkimageio`（`libpkimage.a` 里是未定义符号），没法像别的组那样
+#     塞进 `namespace pkoracle` 展开；走 `pk/image/oracle/pk_fileio_bridge.cpp`
+#     这座 `extern "C"` 桥，链真产物。`invertPixels` 虽在 `pkimage` 里，为保持
+#     本组形态统一也走同一座桥。
+#
+# 11. **R-75 顺带修掉了本文件三处编译不过的地方**（都在 R-75 之前就存在，与
+#     Group F 无关，但不修就跑不了对拍）：
+#     a) 三组 static_assert 引用全局 `Pk::`（GlobalColor/TransformationMode/
+#        AspectRatioMode），而本 TU 里不存在全局 `Pk`——`PkGlobal.h` 只被
+#        `namespace pkoracle` **内部** include，又带常规 include guard，无法在
+#        全局再引一次。改为与**真 Qt** 的枚举逐值比较（更强：原文是同一个头在
+#        两个 namespace 里的自比）。
+#     b) `q.fill(static_cast<Pk::GlobalColor>(…))` / `q.scaled(target,
+#        Pk::IgnoreAspectRatio, qm)` / `Pk::TransformationMode qm = …` 三处把
+#        **Qt 侧**的枚举写成了 `Pk::`（一次机械改名 `Qt::`→`Pk::` 的残留：
+#        真实 Qt 的 `QImage::scaled` 第二参要的是 `Qt::AspectRatioMode`，传
+#        `pkoracle::Pk::AspectRatioMode` 编不过）。统一改回 `Qt::`。
+#     c) 缺 `PkPainterPath.{h,cpp}` / `PkPolygon.{h,cpp}`：`PkTransform::mapRect`
+#        / `map(PkPolygonF)` / `map(PkPainterPath)` 的 out-of-line 方法要调它们的
+#        out-of-line 成员，不 include 进 TU 就链不上（geometry 先例是 S-09-g 补
+#        的同一课）。

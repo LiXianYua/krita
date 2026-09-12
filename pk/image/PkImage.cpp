@@ -1,5 +1,7 @@
 #include "PkImage.h"
 
+#include "PkImagePremultiply.h"   // R-75：invertPixels 的预乘/反预乘（与 PkPngWriter 共享）
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -516,6 +518,67 @@ void PkImage::fill(uint32_t value)
 void PkImage::fill(Pk::GlobalColor color)
 {
     fill(globalColorToArgb(color));
+}
+
+// ---------------------------------------------------------------------------
+// R-75：invertPixels。语义由真 Qt 5.15.7 探针逐像素钉住（探针源与原始输出见
+// .superpowers/sdd/R-75/task-1-report.md「探针」一节，命令可复跑）：
+//
+//   · ARGB32 / RGBA8888（非预乘、有 alpha）：整字按位取反。InvertRgb 掩码
+//     0x00ffffff（保留 alpha），InvertRgba 掩码 0xffffffff。
+//     实测 ARGB32 0x80402010 --InvertRgb--> 0x80bfdfef、--InvertRgba--> 0x7fbfdfef。
+//   · RGB32 / RGBX8888（无 alpha 通道）：两模式结果实测相同，同样按 0x00ffffff
+//     反色（alpha 字节对读出不可见，由 pixel() 强制不透明）。
+//   · ARGB32_Premultiplied / RGBA8888_Premultiplied：Qt 先转非预乘格式、取反、
+//     再转回预乘。这里逐像素复刻同一条链：qUnpremultiply -> XOR -> qPremultiply
+//     （公式见上方 anon namespace，逐字照抄 Qt qrgb.h）。实测
+//     0x80402010 --InvertRgb--> 0x80406070、--InvertRgba--> 0x7f3f5f6f。
+//
+// 其余格式本 Task 不覆盖，保持原样不动（判据①「一项不多」）：唯一真实调用点
+// kis_mask_similarity_test.cpp:57,65 的图像来自 KoColorSpace::convertToQImage，
+// 实测产出 Format_ARGB32；其余深度（索引/灰度/16bit/24bit/64bit/打包位）在本仓
+// 没有任何 invertPixels 调用点，未做探针实测的格式不猜语义。
+// ---------------------------------------------------------------------------
+void PkImage::invertPixels(InvertMode mode)
+{
+    const Format f = format();
+    const bool premultiplied =
+        f == Format_ARGB32_Premultiplied || f == Format_RGBA8888_Premultiplied;
+    const bool hasAlphaChannel =
+        f == Format_ARGB32 || f == Format_RGBA8888 || premultiplied;
+    const bool supported =
+        premultiplied || f == Format_RGB32 || f == Format_ARGB32 ||
+        f == Format_RGBX8888 || f == Format_RGBA8888;
+    if (!supported) {
+        return;
+    }
+
+    // 无 alpha 通道的格式两模式等价（探针实测），故只在有 alpha 时才用全位掩码。
+    const uint32_t mask = (hasAlphaChannel && mode == InvertRgba) ? 0xffffffffu : 0x00ffffffu;
+    const bool rgbaByteOrder = f == Format_RGBA8888 || f == Format_RGBA8888_Premultiplied;
+
+    PkImageData &d = m_d.PkMut();
+    for (int y = 0; y < d.height; ++y) {
+        uint8_t *row = rowPtrMut(d, y);
+        for (int x = 0; x < d.width; ++x) {
+            uint8_t *p = row + static_cast<size_t>(x) * 4;
+            uint32_t word;
+            std::memcpy(&word, p, 4);
+            // 统一折算成 ARGB32 打包值参与运算，再按原字节序写回。
+            const uint32_t argb = rgbaByteOrder ? packArgb(p[3], p[0], p[1], p[2]) : word;
+            const uint32_t inverted = premultiplied
+                ? pkimage_detail::premultiply(pkimage_detail::unpremultiply(argb) ^ mask)
+                : (argb ^ mask);
+            if (rgbaByteOrder) {
+                p[0] = argbRed(inverted);
+                p[1] = argbGreen(inverted);
+                p[2] = argbBlue(inverted);
+                p[3] = argbAlpha(inverted);
+            } else {
+                std::memcpy(p, &inverted, 4);
+            }
+        }
+    }
 }
 
 std::vector<uint32_t> PkImage::colorTable() const

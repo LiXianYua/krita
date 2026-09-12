@@ -9,6 +9,7 @@
 #include "../geometry/PkRect.h"
 #include "../geometry/PkGlobal.h"   // Pk::GlobalColor（fill(Pk::GlobalColor) 用）
 #include "../geometry/PkTransform.h"   // Task 3：scaled()/transformed() 用
+#include "../string/PkString.h"   // R-75：文件 I/O 的按路径构造/load/save 用 PkString 路径
 
 class PkImage
 {
@@ -55,6 +56,22 @@ public:
     PkImage &operator=(const PkImage &other) = default;
     PkImage &operator=(PkImage &&other) noexcept = default;
     ~PkImage() = default;
+
+    // ---- R-75：文件 I/O 与原地像素操作 ----
+    // 按真 Qt 5.15 的 QImage **显式**（`explicit QImage(const QString &fileName,
+    // const char *format = nullptr);`，qimage.h:152）。真实调用点全部写**直接初始化**
+    // `QImage image(QString(FILES_DATA_DIR) + '/' + "x.png")` / `QImage ref(fullPath)`，
+    // explicit 不影响它们，且与 Qt 的 API 形状逐字一致。
+    // 声明在本头（pkimage）；PkImage(PkString…)/load/save 的**定义**在
+    // pk/image/PkImageFileIo.cpp、编进 pkimageio ⇒ libpkimage.a 里这三个符号未定义，
+    // 由 pkimageio 补齐（已知事实，见 pk/image/README.md）。
+    // invertPixels 是纯内存值操作，定义在 PkImage.cpp（pkimage 内）。
+    enum InvertMode { InvertRgb, InvertRgba };
+
+    explicit PkImage(const PkString &fileName, const char *format = nullptr);
+    bool load(const PkString &fileName, const char *format = nullptr);
+    bool save(const PkString &fileName, const char *format = nullptr, int quality = -1) const;
+    void invertPixels(InvertMode mode = InvertRgb);
 
     Format format() const;
 

@@ -66,4 +66,20 @@ private Q_SLOTS:
     void transformedShearOutOfBoundsIsTransparent();
     void transformedSmoothBilinearBlendsNeighbors();
     void transformedSmoothIndexedFallsBackToNearest();
+
+    // ---- R-75：文件 I/O 与原地像素操作 ----
+    // 文件 I/O 的定义在 pkimageio（pk/image/PkImageFileIo.cpp），所以 test_pkimage
+    // 额外链了 pkimageio（见 pk/image/CMakeLists.txt）；本文件仍只测 PkImage 的
+    // 公开行为，不碰编解码内部。
+    void invertPixelsArgb32BothModes();
+    void invertPixelsPremultipliedBothModes();
+    void invertPixelsDefaultModeIsInvertRgb();
+    void invertPixelsRgb32HasNoAlphaChannel();
+    void invertPixelsDetaches();
+
+    void fileIoRoundTripLoadSaveLoadIsPixelExact();
+    void fileIoConstructFromPathMatchesLoad();
+    void fileIoUnopenablePathIsNullAndDoesNotThrow();
+    void fileIoNonPngFixtureLoads();
+    void fileIoSaveFailureModesReturnFalse();
 };

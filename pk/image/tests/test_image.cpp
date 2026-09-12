@@ -4,6 +4,15 @@
 
 #include "pk_binder_image_case.inc"
 
+// R-75：文件 I/O 用例要落临时文件、要按 PKIMAGE_TEST_DATA_DIR 找 fixture。
+#include <cstdint>
+#include <filesystem>
+#include <string>
+
+#ifndef PKIMAGE_TEST_DATA_DIR
+#error "test_pkimage 需要 PKIMAGE_TEST_DATA_DIR（见 pk/image/CMakeLists.txt）"
+#endif
+
 void ImageCase::defaultConstruction()
 {
     PkImage img;
@@ -861,6 +870,203 @@ void ImageCase::transformedSmoothIndexedFallsBackToNearest()
     for (int x = 0; x < 4; ++x) {
         PK_COMPARE(dst.pixelIndex(x, 0), expectedIdx[x]);
     }
+}
+
+// ---------------------------------------------------------------------------
+// R-75：文件 I/O 与 invertPixels
+//
+// 下面每个期望值都来自真 Qt 5.15.7 的探针实测，不是推断出来的——探针源码与
+// 原始输出贴在本任务报告 `.superpowers/sdd/R-75/task-1-report.md`「探针」一节，
+// 命令可复跑。
+// ---------------------------------------------------------------------------
+
+namespace
+{
+
+std::string r75FixturePath(const char *name)
+{
+    return std::string(PKIMAGE_TEST_DATA_DIR) + "/" + name;
+}
+
+} // namespace
+
+void ImageCase::invertPixelsArgb32BothModes()
+{
+    // 探针 P4：ARGB32 0x80402010 --InvertRgb--> 0x80bfdfef（alpha 保留）、
+    //                         --InvertRgba--> 0x7fbfdfef（alpha 一起取反）。
+    PkImage rgbMode(2, 1, PkImage::Format_ARGB32);
+    rgbMode.setPixel(0, 0, 0x80402010u);
+    rgbMode.setPixel(1, 0, 0xFF010203u);
+    rgbMode.invertPixels(PkImage::InvertRgb);
+    PK_COMPARE(rgbMode.pixel(0, 0), 0x80bfdfefu);
+    PK_COMPARE(rgbMode.pixel(1, 0), 0xFFFEFDFCu);
+
+    PkImage rgbaMode(2, 1, PkImage::Format_ARGB32);
+    rgbaMode.setPixel(0, 0, 0x80402010u);
+    rgbaMode.setPixel(1, 0, 0xFF010203u);
+    rgbaMode.invertPixels(PkImage::InvertRgba);
+    PK_COMPARE(rgbaMode.pixel(0, 0), 0x7fbfdfefu);
+    PK_COMPARE(rgbaMode.pixel(1, 0), 0x00FEFDFCu);
+}
+
+void ImageCase::invertPixelsPremultipliedBothModes()
+{
+    // 探针 P4：预乘格式 Qt 走「反预乘 -> 按位取反 -> 再预乘」，
+    // 所以结果与同输入的 ARGB32 **不同**（这是本用例存在的理由）。
+    PkImage rgbMode(2, 1, PkImage::Format_ARGB32_Premultiplied);
+    rgbMode.setPixel(0, 0, 0x80402010u);
+    rgbMode.setPixel(1, 0, 0xFF010203u);
+    rgbMode.invertPixels(PkImage::InvertRgb);
+    PK_COMPARE(rgbMode.pixel(0, 0), 0x80406070u);
+    PK_COMPARE(rgbMode.pixel(1, 0), 0xFFFEFDFCu);
+
+    PkImage rgbaMode(2, 1, PkImage::Format_ARGB32_Premultiplied);
+    rgbaMode.setPixel(0, 0, 0x80402010u);
+    rgbaMode.setPixel(1, 0, 0xFF010203u);
+    rgbaMode.invertPixels(PkImage::InvertRgba);
+    PK_COMPARE(rgbaMode.pixel(0, 0), 0x7f3f5f6fu);
+    PK_COMPARE(rgbaMode.pixel(1, 0), 0x00000000u);
+}
+
+void ImageCase::invertPixelsDefaultModeIsInvertRgb()
+{
+    // 探针 P4b：默认实参等价于 InvertRgb。
+    PkImage byDefault(1, 1, PkImage::Format_ARGB32);
+    byDefault.setPixel(0, 0, 0x80402010u);
+    byDefault.invertPixels();
+
+    PkImage explicitRgb(1, 1, PkImage::Format_ARGB32);
+    explicitRgb.setPixel(0, 0, 0x80402010u);
+    explicitRgb.invertPixels(PkImage::InvertRgb);
+
+    PK_COMPARE(byDefault.pixel(0, 0), explicitRgb.pixel(0, 0));
+    PK_COMPARE(byDefault.pixel(0, 0), 0x80bfdfefu);
+}
+
+void ImageCase::invertPixelsRgb32HasNoAlphaChannel()
+{
+    // 探针 P4：RGB32 无 alpha 通道，两个模式结果相同（pixel() 读回的 alpha 恒 0xff）。
+    PkImage rgb(2, 1, PkImage::Format_RGB32);
+    rgb.setPixel(0, 0, 0x80402010u);
+    rgb.setPixel(1, 0, 0xFF010203u);
+    rgb.invertPixels(PkImage::InvertRgba);
+    PK_COMPARE(rgb.pixel(0, 0), 0xFFBFDFEFu);
+    PK_COMPARE(rgb.pixel(1, 0), 0xFFFEFDFCu);
+
+    // RGBA8888（内存 R,G,B,A 字节序）与 ARGB32 结果逐像素一致——探针实测，
+    // 也是本实现字节序处理的自证。
+    PkImage rgba(1, 1, PkImage::Format_RGBA8888);
+    rgba.setPixel(0, 0, 0x80402010u);
+    rgba.invertPixels(PkImage::InvertRgba);
+    PK_COMPARE(rgba.pixel(0, 0), 0x7fbfdfefu);
+}
+
+void ImageCase::invertPixelsDetaches()
+{
+    // invertPixels 是写操作：与 fill() 一样必须经 PkMut() detach。
+    PkImage a(1, 1, PkImage::Format_ARGB32);
+    a.setPixel(0, 0, 0x80402010u);
+    PkImage b(a);
+    PK_VERIFY(a.PkIsSharedWith(b));
+
+    a.invertPixels(PkImage::InvertRgb);
+    PK_VERIFY(!a.PkIsSharedWith(b));
+    PK_COMPARE(b.pixel(0, 0), 0x80402010u); // b 不受影响
+    PK_COMPARE(a.pixel(0, 0), 0x80bfdfefu);
+}
+
+void ImageCase::fileIoRoundTripLoadSaveLoadIsPixelExact()
+{
+    // 往返：load -> save -> load，逐像素相等。
+    PkImage loaded(PkString(r75FixturePath("valid.png").c_str()));
+    PK_VERIFY(!loaded.isNull());
+    PK_COMPARE(static_cast<int>(loaded.format()), static_cast<int>(PkImage::Format_ARGB32));
+
+    const std::filesystem::path outPath =
+        std::filesystem::temp_directory_path() / "pkimage-r75-roundtrip.png";
+    std::error_code ignored;
+    std::filesystem::remove(outPath, ignored);
+
+    PK_VERIFY(loaded.save(PkString(outPath.string().c_str())));
+    PK_VERIFY(std::filesystem::exists(outPath));
+
+    PkImage reloaded(PkString(outPath.string().c_str()));
+    PK_VERIFY(!reloaded.isNull());
+    PK_COMPARE(reloaded.width(), loaded.width());
+    PK_COMPARE(reloaded.height(), loaded.height());
+    for (int y = 0; y < loaded.height(); ++y) {
+        for (int x = 0; x < loaded.width(); ++x) {
+            PK_COMPARE(reloaded.pixel(x, y), loaded.pixel(x, y));
+        }
+    }
+
+    std::filesystem::remove(outPath, ignored);
+}
+
+void ImageCase::fileIoConstructFromPathMatchesLoad()
+{
+    // 按路径构造 == load()：对齐真 Qt 的 QImage(path)。
+    PkImage byCtor(PkString(r75FixturePath("valid.png").c_str()));
+    PK_VERIFY(!byCtor.isNull());
+
+    PkImage byLoad;
+    PK_VERIFY(byLoad.load(PkString(r75FixturePath("valid.png").c_str())));
+    PK_VERIFY(byCtor == byLoad);
+}
+
+void ImageCase::fileIoUnopenablePathIsNullAndDoesNotThrow()
+{
+    // 探针 P2/P5：打不开的路径得到 null image、不抛不崩；load 失败返回 false
+    // 并把 *this 置成 null image。
+    PkImage fromCtor("/definitely/not/here.png");
+    PK_VERIFY(fromCtor.isNull());
+
+    PkImage target(2, 2, PkImage::Format_ARGB32);
+    target.setPixel(0, 0, 0xFF102030u);
+    PK_VERIFY(!target.load(PkString("/definitely/not/here.png")));
+    PK_VERIFY(target.isNull());
+
+    PkImage emptyPath(PkString(""));
+    PK_VERIFY(emptyPath.isNull());
+}
+
+void ImageCase::fileIoNonPngFixtureLoads()
+{
+    // 解码复用 PkImageFileDecoder::load，按**内容**识别格式，不限定 PNG。
+    const char *fixtures[] = {"valid.jpg", "valid.bmp", "valid.gif", "valid.tiff"};
+    for (const char *name : fixtures) {
+        PkImage image(PkString(r75FixturePath(name).c_str()));
+        PK_VERIFY(!image.isNull());
+        PK_VERIFY(image.width() > 0);
+        PK_VERIFY(image.height() > 0);
+    }
+}
+
+void ImageCase::fileIoSaveFailureModesReturnFalse()
+{
+    PkImage image(4, 4, PkImage::Format_ARGB32);
+    image.fill(0xFF102030u);
+
+    std::error_code ignored;
+
+    // 探针 P7：未知格式令牌 / 未知后缀 / 无后缀 -> false（本仓只有 PNG 编码器）。
+    PK_VERIFY(!image.save(PkString("/tmp/pkimage-r75-should-fail.png"), "XYZ"));
+    PK_VERIFY(!image.save(PkString("/tmp/pkimage-r75-should-fail.xyz")));
+    PK_VERIFY(!image.save(PkString("/tmp/pkimage-r75-no-suffix")));
+    // 探针 P3：坏目录 -> false；空路径 -> false。
+    PK_VERIFY(!image.save(PkString("/no/such/dir/x.png")));
+    PK_VERIFY(!image.save(PkString("")));
+    // null image -> false。
+    PkImage nullImage;
+    PK_VERIFY(!nullImage.save(PkString("/tmp/pkimage-r75-null.png")));
+
+    // 探针 P3 的反面：显式 format 令牌优先于路径后缀（".bin" 也真的写成 PNG）。
+    const std::filesystem::path explicitPath =
+        std::filesystem::temp_directory_path() / "pkimage-r75-explicit-format.bin";
+    std::filesystem::remove(explicitPath, ignored);
+    PK_VERIFY(image.save(PkString(explicitPath.string().c_str()), "PNG"));
+    PK_VERIFY(std::filesystem::exists(explicitPath));
+    std::filesystem::remove(explicitPath, ignored);
 }
 
 PK_TEST_MAIN(ImageCase)

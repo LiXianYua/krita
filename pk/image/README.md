@@ -127,6 +127,70 @@ PkSizeF/PkRect/PkRectF），对应真 Qt 的 `<QImage>` 传递 include 关系。
 
 ---
 
+## 3.1 R-75：文件 I/O 的落地位置（`pkimage` / `pkimageio` 的分工）
+
+R-75 给 `PkImage` 加了按路径构造 / `load` / `save`，以及内存操作 `invertPixels`。
+**它们刻意落在两个库里**，这是本节要记的已知事实：
+
+| 符号 | 声明在 | **定义在** | 编进 |
+|---|---|---|---|
+| `explicit PkImage(const PkString &, const char *)`（`explicit` 逐字对齐真 Qt `qimage.h:152`） | `PkImage.h` | `PkImageFileIo.cpp` | **`pkimageio`** |
+| `bool load(const PkString &, const char *)` | `PkImage.h` | `PkImageFileIo.cpp` | **`pkimageio`** |
+| `bool save(const PkString &, const char *, int) const` | `PkImage.h` | `PkImageFileIo.cpp` | **`pkimageio`** |
+| `void invertPixels(InvertMode)` | `PkImage.h` | `PkImage.cpp` | `pkimage` |
+| `PkPngWriter`（PNG 编码，libpng 写侧） | `PkPngWriter.h` | `PkPngWriter.cpp` | `pkimageio` |
+
+**为什么不在 `pkimage` 里**：`pkimage` 是**零 Qt、零编解码**的静态库（§0 的口径：
+范围只做内存像素 buffer），PNG/JPEG/TIFF/GIF/WebP 的编解码住在 `pkimageio`。
+R-15 把编解码从 `pkimage` 剥出去是已 VERIFIED 的边界，R-75 不回退。
+
+**由此产生的一个已知事实（不是缺陷，是设计）**：
+
+> `libpkimage.a` 里**根本没有** `PkImage(PkString,…)` / `load` / `save` 这三个
+> 符号——它们既不是定义、也不是「被引用但没定义」，而是**整个不在那个归档里**
+> （R-75 实测：`nm -g -C pk/image/build/libpkimage.a | grep -E 'PkImage::(load|save)\('`
+> → 0 命中）。定义只存在于 `libpkimageio`，且是**导出**符号（`nm -gU -C … | grep`
+> 三条都是 `T`）。**任何调用它们的消费方必须在链接行上带 `pkimageio`**，只链
+> `pkimage.a` 会拿到 `Undefined symbols: PkImage::load(...)`。
+> 不碰文件 I/O 的消费方完全不受影响。
+
+单测 `test_pkimage` 正是这么链的（`pkimageio` + `pktest`，`pkimage` 由 `pkimageio`
+的 `PUBLIC` 链接传递而来，见 `pk/image/CMakeLists.txt`）——它同时也是「这一层
+链接真的成立」的回归闸门：符号在归档里不存在，链不到就是链不到。
+
+**导出标记落在定义处**：`PkImage` 类本身住在 `pkimage`（静态库，编译期用默认
+visibility），类上带不了导出宏——它不知道上层有没有 dylib。所以
+`PkImageFileIo.cpp` 里这三个定义各自带 `PKIMAGEIO_EXPORT`（`pkimageio` 设了
+`CXX_VISIBILITY_PRESET hidden`，不带就链不上）。**加/删这三个定义时要一起改**。
+
+### 3.1.1 `pkimage` 现在也依赖 `pkstring`
+
+`PkImage.h` 起用 `PkString` 做文件路径（`PkImage(PkString)`/`load`/`save`），
+`PkString` 因此进入 `pkimage` 的**公共** API 面，所以：
+
+* `pk/image/CMakeLists.txt`：`target_link_libraries(pkimage PUBLIC pkgeometry pkstring)`
+* `pk/CMakeLists.txt`（主树聚合）：同样加 `pkstring`（R-65 教训：主树与薄壳两份
+  依赖声明必须一致，否则薄壳绿、主树红或反过来）。
+* **不需要**在 `pk/image/CMakeLists.txt` 里 `add_subdirectory(../string …)`：
+  `pk/geometry` → `pk/test` 已经用它注册过 `pkstring`（`pk/test/CMakeLists.txt:24`
+  用 `CMAKE_BINARY_DIR/pkstring`），重复 add 会撞
+  「binary directory already used to build a source directory」。
+
+### 3.1.2 `save` 的格式支持面（不假装成功）
+
+`PkImage::save` **只**支持 PNG（`PkPngWriter` 是本次唯一落地的编码器）。
+其余格式令牌、路径后缀不认识、没有后缀——一律返回 `false`，**不做「假装成功」
+的桩**。语义对齐真 Qt 的探针实测：未知格式令牌 / 无后缀 / 坏目录都返回 false
+（`oracle/image.deviation` 第 9-11 条与 `probe_*.cpp` 证据在 task-1-report.md）。
+
+`PkPngWriter` 支持的**源格式**是 `rawPixelArgb` 能读的那一组：`ARGB32` / `RGB32`
+/ `ARGB32_Premultiplied` / `RGBA8888` / `Grayscale8` / `Indexed8` / `Mono` /
+`MonoLSB`。其余（`RGBX8888` / `RGBA8888_Premultiplied` / `RGBA64`）会返回空
+字节 → `save` 返回 `false`，**写明而不静默写错**。输出恒为 8 位直通 alpha 的
+PNG：全不透明时写 color type 2（RGB），否则 6（RGBA）。
+
+---
+
 ## 4. 试接说明
 
 **两个候选都走 driver 降级**（真实文件物理编不过，spec「试接怎么做」的降级路径，
@@ -166,18 +230,26 @@ R线-spec.md:173-196 四条逐条满足）：
 # 从 fork 仓库根执行。
 
 # ① 构建（库 + 单测可执行文件）
-cmake -S pk/image -B pk/image/build -G Ninja
+# macOS 要带 -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3（与主树构建一致）。
+cmake -S pk/image -B pk/image/build -G Ninja -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
 cmake --build pk/image/build
 
 # ② 单测：test_pkimage（1 个套件；测试方法清单见 tests/image_case.h，数字会漂移不写死）
+#    注意：R-75 起 test_pkimage 同时链 pkimageio —— 文件 I/O 用例测的是定义在
+#    pkimageio 里的 PkImage(PkString)/load/save（见 §3.1），只链 pkimage 会
+#    "Undefined symbols: PkImage::load(...)"。
 ctest --test-dir pk/image/build --output-on-failure
 
 # ③ 判据③：库里不得有 Qt 未定义符号。**除已知假阳性外必须无输出。**
 #    已知假阳性：PkSize::scaled(..., Qt::AspectRatioMode) 里的 `Qt::` 是本仓库
 #    pk/geometry 自己的 namespace，不是真 Qt 符号（真 Qt 类符号 0 处，见 report）。
+#    R-75 实测两个库都是 0 命中，假阳性那条没有触发。
 nm -u -C pk/image/build/libpkimage.a | grep -i qt
+nm -u -C pk/image/build/libpkimageio.dylib | grep -i qt
 
-# ④ 对拍（需要真 Qt 5.15，默认找 PK_QT_PREFIX，见脚本头注释）
+# ④ 对拍（需要真 Qt 5.15；依赖前缀 PK_QT_PREFIX，没设就按脚本头注释那套解析）
+#    R-75 补了 macOS 支（framework / otool -L / 无 timeout），判据一字未动；
+#    缺薄壳产物时脚本会先自己跑一次 cmake 建起来。
 pk/image/oracle/run_oracle.sh
 
 # ⑤ 试接（两个 driver，跑绿 + 零 Qt 自证）
@@ -192,8 +264,10 @@ pk/image/tests/graft/run_graft.sh
 
 完整清单与理由见 `task-5-report.md`，这里只列条目：
 
-1. **图像文件编解码**（`QImage(fileName)`/`.load()`/`.save()`/`fromData` 等，岔路 A
-   排除）——归 impex 插件 / libs/resources 各自 S 批次用外部编解码库。
+1. **图像文件编解码**——`QImage(fileName)` / `.load()` / `.save()` 已由 **R-75 落地**
+   （定义在 `pkimageio`，见 §3.1；`save` 目前只有 PNG 编码器）。**仍未落地的**：
+   `fromData`/`loadFromData`/`QImageReader`/`QImageWriter` 这几个数据流形态——
+   归 impex 插件 / libs/resources 各自 S 批次用外部编解码库。
 2. **`QAbstractItemModel::data()` 返回 QVariant 持有 QImage**（Model/View，3 处）——
    需 Model/View 端口先落地。
 3. **R-06 `PkVariant::toImage()` 闭包**（S-06 完成时 QImage 替代品落地）。
