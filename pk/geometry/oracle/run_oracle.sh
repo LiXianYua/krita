@@ -79,6 +79,21 @@ API_GROUPS=(
     "pk/geometry/PkRegion.h|PkRegion|pk/geometry/oracle/region_api.map"
 )
 
+# ── F7（终审 N-4）：逐族 `-` 数棘轮 ────────────────────────────────────────
+# `-` 是「本对拍不含该重载的 rec()」的**显式分类**：闸门③ 跳过它、摘要里只计数。
+# 问题在它对**任何族**都可用 —— 别的族新加一条声明、随手写个 `-`，闸门照样
+# exit 0，等于把一个覆盖缺口**静默**登记进来（N-4 就是这么说的）。
+# 棘轮把「现状」钉死：每族一个**上限**（= 现场实测的当前 `-` 行数），
+# **某族的 `-` 数超过上限即 FAIL**（指名族与两个数）。它只在「有新声明被登记成
+# `-`」时才会触发 —— 新声明必然让该族的 `-` 计数 +1。
+#
+# ⚠ **这是棘轮、不是配额**：它不会自己变小，也不阻止你**关掉**一个覆盖缺口 ——
+# 每补一条 rec() 把某条 `-` 换成真标签，就该**手工把这里的数调小一格**（这正是
+# 棘轮的意义：现状只能往「覆盖更多」的方向动）。**不许因为「数对不上了」把它
+# 调大** —— 调大 = 承认一个新缺口，得在 README 里说明理由。
+# 顺序与 API_GROUPS **逐行对齐**（同一个索引指同一族）；解析器会校验两表等长。
+DASH_MAX=(0 0 0 0 0 0 0 0 0 0 56 0)
+
 if [ "$UNAME_S" = "Darwin" ]; then
     QT_HDRS=("$QT/lib/QtCore.framework/Headers" "$QT/lib/QtGui.framework/Headers")
     QT_ARTIFACTS=("$QT/lib/QtCore.framework/QtCore" "$QT/lib/QtGui.framework/QtGui")
@@ -260,11 +275,18 @@ grep -E '^(DIFFTAG|DIFFDEN|DIFF) ' "$LOG" || true
 # 在那之前 Point/Size 只有 api_seen.expected 这一份清单，而它的内容来自对拍
 # 程序自己打出的 APISEEN —— 用 rec() 去证明 rec() 没漏，是自证循环。
 # 接进同一个解析器之后三族同一条判据：头文件声明是**独立来源**。
-python3 - "$LOG" "$APIEXP" "${API_GROUPS[@]}" <<'PY'
+python3 - "$LOG" "$APIEXP" "$(IFS=,; printf '%s' "${DASH_MAX[*]}")" "${API_GROUPS[@]}" <<'PY'
 import re, sys
 
-log, exp_path = sys.argv[1], sys.argv[2]
-groups = [g.split('|') for g in sys.argv[3:]]
+log, exp_path, dash_max_s = sys.argv[1], sys.argv[2], sys.argv[3]
+groups = [g.split('|') for g in sys.argv[4:]]
+# 棘轮表（F7）：逗号分隔，顺序与 API_GROUPS 逐行对齐。两表等长是硬前提 ——
+# 加族忘了加棘轮值时，这里当场 FAIL，不会静默按 0 处理。
+dash_max = [int(x) for x in dash_max_s.split(',')]
+if len(dash_max) != len(groups):
+    print('FAIL: 棘轮表 DASH_MAX 有 %d 项、API_GROUPS 有 %d 组 —— 两表必须逐行对齐'
+          % (len(dash_max), len(groups)), file=sys.stderr)
+    sys.exit(1)
 
 seen = {l[len('APISEEN '):].strip()
         for l in open(log, encoding='utf-8', errors='replace')
@@ -418,7 +440,7 @@ def parse_decls(hdr_path, cls):
 
 
 summary = []
-for hdr_path, classes, map_path in groups:
+for gi, (hdr_path, classes, map_path) in enumerate(groups):
     decls, miss = [], []
     for cls in classes.split(','):
         d, ms = parse_decls(hdr_path, cls)
@@ -490,9 +512,18 @@ for hdr_path, classes, map_path in groups:
                 print('FAIL: %s 映射到标签 %s，但对拍里根本没有这条 rec()（闸门 ③）'
                       % (d, lab), file=sys.stderr)
     n_uncov = sum(1 for d in decls if mapping.get(d) == ['-'])
-    summary.append('%s 声明 %d 条 / %s %d 行（其中 %d 条无 rec()，登记为覆盖边界）'
+    # ── 棘轮（F7）：本族的 `-` 数不许超过 DASH_MAX[gi] ────────────────────
+    # 只在「有新声明被登记成 `-`」时触发（新声明必然让计数 +1）。
+    bound = dash_max[gi]
+    if n_uncov > bound:
+        ok = False
+        print('FAIL: %s（%s）的 `-` 数超过棘轮上限 —— %d > %d（实测 > 上限）。'
+              % (hdr_path.rsplit('/', 1)[-1], classes, n_uncov, bound), file=sys.stderr)
+        print('      新加的声明被登记成 `-` 了：要么给它自己的 rec() + 真标签，'
+              '要么在本脚本 DASH_MAX 里显式上调并在 README 说明理由。', file=sys.stderr)
+    summary.append('%s 声明 %d 条 / %s %d 行（其中 %d 条无 rec()，棘轮上限 %d）'
                    % (hdr_path.rsplit('/', 1)[-1], len(decls),
-                      map_path.rsplit('/', 1)[-1], len(mapping), n_uncov))
+                      map_path.rsplit('/', 1)[-1], len(mapping), n_uncov, bound))
 
 print('\n规则三机器对账：' + '；'.join(summary))
 print('                APISEEN %d 个（期望 %d）' % (len(seen), len(expected)))

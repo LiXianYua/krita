@@ -30,6 +30,16 @@ grep -i qt` 必须无输出（判据③）→ 自证改动全部落在**本任�
 > 这一点，本文件再说一次：**不要把试接那条 `nm -u` 当成"我们查过了"**。
 > 它留着只是因为判据要求这种形式的证据。`oracle/` 更不在此列——对拍**按设计就要
 > 链真 Qt**，那边 `ldd` 看得见 `libQt5Core` 才是对的。
+>
+> **分母（R-58 修复轮 3 现场数，口径 = `nm -u -C` 的全部未定义行数）**：强判据报
+> 「零命中」时**必须连分母一起报**（spec 判据③ —— 分母为 0 的「零命中」不是证据）。
+> 本机实测：
+> ```
+> $ nm -u -C pk/geometry/build/libpkgeometry.a | wc -l                              # 246
+> $ nm -u -C pk/geometry/build/libpkgeometry.a | grep -cE '\bQ[A-Z][A-Za-z0-9_]*\b'  # 0
+> ```
+> ⇒ **246 / 0**。（`run_tests.sh` 收尾那条常驻检查仍是**弱形态** `nm -u … | grep -i qt`，
+> 这是全仓惯例、也是 R 线早已登记的已知缺口；强形态的判别力边界见本节。
 
 最后那条用 `git status --porcelain -- . ':(exclude)<locks 前缀>…'` **非空即失败**，
 不解析 porcelain 的输出文本。按列切文本的写法在两种真实情形下会失灵，两种都实测
@@ -212,6 +222,37 @@ libstdc++ 的 `operator==` 本就带 `strcmp` 回退）。⇒ 跨镜像用例在
 | `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF / Transform / Line / Margins / Polygon / VectorND / Matrix4x4 / Region **12 个族**）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` / `line_api.map` / `margins_api.map` / `polygon_api.map` / `vectornd_api.map` / `matrix4x4_api.map` / `painterpath_api.map` / `region_api.map`（规则三的机器闸门，12 个族各一份，见下）**；**R-56 增 `PP::*` 一族** —— 七个坐标守卫入口（`moveTo`/`lineTo`/`cubicTo`/`quadTo`/`arcTo`/`addRect`/`addEllipse`），每个入口两种起点（`/empty-subpath` 与 `/open-subpath`）各跑一遍，见「坐标守卫」一节 |
 | `oracle/painterpath_pathops_difftest.cpp` / `run_pathops_oracle.sh`（**R-39 T1**） | 同一 TU 内保持真 `QPainterPath` 与 `pkoracle::PkPainterPath` 为不同类型，不使用 `compat/`。除矩形、椭圆、折线、嵌套环、离散复合和自交形状外，也覆盖零元素/仅 move/连续 move/零长度 line、close 后同点/异点 line 与 fuzzy-close append/snap 归一、末元素编辑（unique/COW 后接同点/异点 line/cubic）、未闭合 polygon 后接 line/cubic、大小坐标近重合对与大尺度抵消三次曲线；在 OddEven/Winding 下逐输入比较具名运算、四个运算符别名、路径关系、成员关系、bounds/fill/empty 与拓扑保持的规范化元素签名。签名按子路径解析，绑定 cubic 的两个控制点与端点，只归一化闭合路径循环起点并排序整条子路径；内建同点集重连/重排 mutation 与 de Casteljau 数值自测。stdout 只包含 `DIFF` / `DIFFTAG`，`FAMILY` 覆盖记录写到独立 stderr coverage log 并由 runner 验证；`pathops.deviation` 默认必须为空；脚本**两栖**（R-56 起）：macOS 用 `otool -L` 确认真实链接 `QtCore.framework`/`QtGui.framework`（运行时 `DYLD_FRAMEWORK_PATH`/`DYLD_LIBRARY_PATH`），Linux 仍用 `ldd` + `LD_LIBRARY_PATH`，**两侧判据逐字相同**。 |
 | `graft/` | 真实调用点试接（判据②）：`graft_run.sh` 拿 **两个真实 Krita 测试类零改动**编译并跑绿——`KisRectsGridTest`（`libs/global/tests`）与 `KisFourPointInterpolatorTest`（`libs/image/tests`），分属两个不同 target。`stubs/` 是把不属于 R-03 的上游依赖顶住的最小垫片（清单与归属见下面「`graft/` 的 stub 清单」），`rename.sed` 做 `QTest`→`PK_*` 的机械改写，`git diff --quiet` 自证源树零改动 |
+
+### 判据② 的工具 `graft/graft_run.sh` 在当前树上不可执行（R-58 登记，**R-58 未修**）
+
+**R-58 没有修它** —— 这属于另一个碰 `pk/geometry` 的后续任务，本轮只按实测登记。
+现场复跑 `./pk/geometry/graft/graft_run.sh`（只写 `pk/geometry/graft/build/`，被
+`.gitignore` 的 `build` 盖住，跑完 `git status --porcelain` 为空），**`exit=1`**，
+三层原因**逐层实测**：
+
+1. **缺 `-mmacosx-version-min=13.3`**（`CXXFLAGS` 硬编码，无该旗标）：
+   `pk/string/PkString_format.cpp:408` 与 `:743` 报 `'to_chars' is unavailable:
+   introduced in macOS 13.3` → 2 errors。（与计划 Global Constraints 里「薄壳要自己补
+   `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3`」是同一件事。）
+2. **GNU `sed -i -f` 撞 BSD sed**：`graft_run.sh:144/146` 的 `sed -i -f "$SED" …` 在
+   macOS 报 `sed: 1: "…rename.sed …": extra characters at the end of p command`。
+3. **`INCS` 缺 `-I pk/container`（**与平台无关的真漂移**）**：`graft_run.sh:51` 的 `INCS`
+   只有 `stubs/test/test-compat/geometry/geometry-compat/string/string-compat`，而**今天**
+   的 `libs/global/KisRectsGrid.h:11` 已经 `#include <PkVector.h>`、
+   `libs/global/kis_pointer_utils.h:10` 已经 `#include <PkSharedPointer.h>`
+   → `fatal error: 'PkVector.h' file not found` / `'PkSharedPointer.h' file not found`。
+
+前两层用 `/tmp` 里的编译包装（补 `-mmacosx-version-min=13.3`）与 sed 垫片
+（把 `-i -f` 转成 BSD 形态；**都不进仓库**）绕过后，**第三层仍然挡住** ⇒
+**这条不只是 macOS 问题，Linux 上同样编不过**（第 3 层是缺失 `-I` 路径，与平台无关）。
+
+**结论**：R 线对 `pk/geometry` 的**判据② 当前不可执行**，此前没有任何地方登记。
+计划把判据② 换成「既有调用点不受影响」时写的理由是「真实消费方 target 不在 locks 内、
+编不动」——**替换本身成立**（本任务接口面 `PkPainterPath.h` 一字未动），但**替换理由与
+实际阻塞原因不符**：graft 的被测对象 `libs/global/tests` 与 `libs/image/tests`
+**落在本任务 locks 内**，本可跑/可修。若要恢复判据②，补 `-I pk/container`（及
+`pk/pointer`）+ POSIX sed + min-version 三处即可 —— **归一个碰 `pk/geometry` 的后续
+任务，R-58 不做**。
 
 ### 规则三的机器闸门
 
@@ -1391,8 +1432,10 @@ UB 站点。R-58 实测这条路径上有 **6 个可达站点**，把它们全�
   - `kArcSafeAngleTok`（**27** 个安全档代表值）—— 把上面那次核对**常驻化**；
   - `kArcBandTok`（**14** 个 `|angle| >= 2147483700` 的档）—— 这一档 Qt 侧是 UB、**不能直接
     比**，语料改用**折角等价形式**：`Pk@a` 对 `Qt@fmod(a, 360)`；
-  - `shapeOfArcBand` 把档内按量级分三格（tag 规则一）：`band/int-mul`（`2e11` 起，只有站点
-    3/4 那一类）/ `band/int-conv`（`2e11` 起加上站点 1/2）/ `band/theta-loss`（`1e19` 起加上站点 6）。
+  - `shapeOfArcBand` 把档内按量级分三格（tag 规则一，**逐字对齐 `geometry_difftest.cpp` 的
+    `shapeOfArcBand`**：`m < 2e11 → int-mul`、`m < 1e19 → int-conv`、否则 `theta-loss`）：
+    `band/int-mul`（`|v| < 2e11`，只有站点 3/4 那一类）/ `band/int-conv`（`2e11 ≤ |v| < 1e19`，
+    加上站点 1/2）/ `band/theta-loss`（`|v| ≥ 1e19`，加上站点 6）。
 - **UBSan 闸门**（`tests/arc_band_ubsan.cpp`，`tests/run_tests.sh` 里接线）：用
   `-fsanitize=undefined -fno-sanitize-recover=all`、**不带 `-fwrapv`** 编，扫 **25 个大角度值**
   （**含修复轮 3 补的 `±INFINITY` / `NAN` 三格** —— 它们常驻守站点 6 的非有限那条路；
