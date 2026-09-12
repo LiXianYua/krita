@@ -38,6 +38,16 @@ rc=0
 #          试接才真正证明 D-23 的机械改名可行，而不是靠别名把漏改悄悄编过。
 CXXFLAGS="-std=c++17 -fwrapv -DPK_TEST_NO_QT_MACRO_ALIASES"
 
+# ⚠ **macOS 部署目标**（R-63）：`source <env>` 会把 MACOSX_DEPLOYMENT_TARGET 设成
+# 10.15，clang 拿它当默认的 -mmacosx-version-min ⇒ pk/string/PkString_format.cpp
+# 的 std::to_chars 浮点重载（:408/:743）被判 "introduced in macOS 13.3"、编不过。
+# 主树靠 add_definitions(-mmacosx-version-min=…) 顶掉它，薄壳没有那一段，只能自己补
+# （同 MACOS-SHELL-NOTES §2 的 -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3，同一件事）。
+# **只在 Darwin 上加** —— 它是 Apple 工具链专属旗标，Linux 上加了直接是 unknown argument。
+if [ "$(uname -s)" = "Darwin" ]; then
+    CXXFLAGS="$CXXFLAGS -mmacosx-version-min=13.3"
+fi
+
 # -I 顺序有讲究，别调：
 #   $STUBS 必须最靠前 —— kis_debug.h / kis_algebra_2d.h 在 libs/global 里也有
 #   同名真品，我们要的是垫片那份；而 kis_assert.h / kis_global.h /
@@ -48,8 +58,12 @@ CXXFLAGS="-std=c++17 -fwrapv -DPK_TEST_NO_QT_MACRO_ALIASES"
 #   `#include "kis_assert.h"` 与 `#include "kis_pointer_utils.h"` 一定落到
 #   libs/global 的真品上，-I 顺序管不着。被测源因此也要复制进构建目录
 #   （见 run_one 第 ① 步），否则它的引号 include 全部落回 libs/global。
+# ⚠ **R-63 追加的两条**：`libs/global/KisRectsGrid.h:11` 现在 `#include <PkVector.h>`
+# （在 `pk/container/`）、`libs/global/kis_pointer_utils.h:10` 现在
+# `#include <PkSharedPointer.h>`（在 `pk/pointer/`）—— 两条都是 R-03 之后新增的依赖，
+# 脚本没跟。**这两条与平台无关**：Linux 上同样是 `fatal error: 'PkVector.h' file not found`。
 INCS="-I $STUBS -I pk/test -I pk/test/compat -I pk/geometry -I pk/geometry/compat \
-      -I pk/string -I pk/string/compat"
+      -I pk/string -I pk/string/compat -I pk/container -I pk/pointer"
 
 # ---------------------------------------------------------------------------
 # 0. 规则表零分叉自证。
@@ -71,6 +85,56 @@ fi
 #    别的脚本"，也不该往别人的构建目录里写东西。
 # ---------------------------------------------------------------------------
 mkdir -p "$BUILD"
+
+# ---------------------------------------------------------------------------
+# 1.7 冻结表用的是 GNU sed 的 `\b` 词边界。**BSD sed 不认 `\b`、而且不报错** ——
+#     它把 `\b` 当普通字符，于是 18 条规则一条都不匹配、改名一个都不生效，
+#     后果是试接编译期整屏 `use of undeclared identifier 'QCOMPARE'`（R-63 实测）。
+#     本机没有 GNU sed（`ls /opt/homebrew/bin/gsed` → No such file）。
+#
+#     打法：**先探本机 sed 认不认 `\b`**。认 → 冻结表原样用（Linux 侧行为一字节不变）；
+#     不认 → 在**构建目录里**派生一份 BSD 形态。表仍然只有一份真源
+#     （`pk/test/graft/rename.sed`），派生方向是单向的。
+#     本表 18 条模式的 `\b` **全部在模式首**（`grep -n '^s' rename.sed` 逐条核过），
+#     模式首的词边界等价物是 `[[:<:]]`（BSD 认，GNU 也认）。
+# ---------------------------------------------------------------------------
+BSD_SED=$BUILD/rename.bsd.sed
+if printf 'QVERIFY(\n' | sed -e 's/\bQVERIFY(/PK_VERIFY(/' | grep -q 'PK_VERIFY('; then
+    SED_TABLE=$SED                       # 本机 sed 认 GNU \b，冻结表原样用
+else
+    sed -e 's/\\b/[[:<:]]/g' "$SED" > "$BSD_SED"
+    # 自证：派生表把 `[[:<:]]` 换回 `\b` 之后必须与冻结表**逐字节相同**。
+    # 派生器坏掉（比如把别的反斜杠也吃掉）会在这里当场 FAIL，而不是静默少改几条规则 ——
+    # 「静默少改」正是这个脚本已经吃过一次的亏。
+    # 用 python3 做反向替换：本脚本已经依赖 python3（pk_test_moc.py），不引入新依赖，
+    # 也绕开"用 sed 验证 sed"的循环。
+    if ! python3 - "$SED" "$BSD_SED" <<'PY'
+import sys
+a = open(sys.argv[1], 'rb').read()
+b = open(sys.argv[2], 'rb').read()
+sys.exit(0 if b.replace(b'[[:<:]]', b'\\b') == a else 1)
+PY
+    then
+        printf 'R-63: rename.sed 的 BSD 派生表与冻结表不一致 —— 派生器坏了，拒绝继续\n' >&2
+        exit 1
+    fi
+    printf '  sed 不认 GNU \\b ⇒ 已派生 BSD 形态改名表：%s\n' "$BSD_SED"
+    SED_TABLE=$BSD_SED                   # 用派生出来的 BSD 形态表
+fi
+
+# ---------------------------------------------------------------------------
+# 1.6 D-23 机械改名的**就地应用**。
+#
+# `sed -i -f SCRIPT FILE` 是 GNU 形态：BSD sed（macOS 的 /usr/bin/sed）把 `-f` 当成
+# `-i` 的后缀、报 `sed: 1: "…": extra characters at the end of p command`，
+# 而脚本是 `set -eu`，当场 exit 1（R-63 实测的层 b1）。
+# 这里**不用 `-i` 家族的写法**，改走"写临时文件再 mv" —— 两种 sed 都认，没有平台分支。
+sed_apply() {
+    local f
+    for f in "$@"; do
+        sed -f "$SED_TABLE" "$f" > "$f.sedtmp" && mv "$f.sedtmp" "$f"
+    done
+}
 
 build_lib() {
     local out="$1"; shift
@@ -109,6 +173,37 @@ build_lib "$BUILD/libpkstring.a" \
     pk/string/PkStringCodec.cpp pk/string/PkString_core.cpp \
     pk/string/PkString_query.cpp pk/string/PkString_format.cpp
 
+# pk/string 的 PkString_format.cpp（PkString::toLatin1/toUtf8）要
+# pk/container/PkByteArray.cpp 里的构造 —— 只建 pkstring 会在**链接期**报
+# `Undefined symbols: PkByteArray::PkByteArray(char const*, int)`（R-63 实测的层 d，
+# 与平台无关）。源表 = pk/container/CMakeLists.txt 的 add_library(pkcontainer STATIC …)。
+PKCONTAINER_SRCS="PkByteArray.cpp PkArrayData.cpp PkVector.cpp PkList.cpp PkMap.cpp \
+PkHash.cpp PkSet.cpp PkStack.cpp PkQueue.cpp"
+
+# 对账闸门：那份 CMakeLists 加一项而这里没跟 → 当场 FAIL，而不是编出半个库、
+# 在链接期报一个看不出所以然的未定义符号。（形态同上面 rename.sed 的 diff 闸门。）
+if ! python3 - pk/container/CMakeLists.txt "$PKCONTAINER_SRCS" <<'PY'
+import re, sys
+txt = open(sys.argv[1], encoding='utf-8').read()
+m = re.search(r'add_library\(\s*pkcontainer\s+STATIC\s*\n(.*?)\n\s*\)', txt, re.S)
+if not m:
+    print('R-63: 解析不出 pk/container/CMakeLists.txt 的 add_library(pkcontainer STATIC …)'
+          ' —— 闸门失效，请人工核对', file=sys.stderr)
+    sys.exit(1)
+declared = re.findall(r'[A-Za-z0-9_]+\.cpp', m.group(1))
+if declared != sys.argv[2].split():
+    print('R-63: graft 的 libpkcontainer.a 源表与 pk/container/CMakeLists.txt 不一致',
+          file=sys.stderr)
+    print('  CMakeLists.txt:', declared, file=sys.stderr)
+    print('  graft_run.sh  :', sys.argv[2].split(), file=sys.stderr)
+    sys.exit(1)
+PY
+then
+    exit 1
+fi
+
+build_lib "$BUILD/libpkcontainer.a" $(for s in $PKCONTAINER_SRCS; do printf 'pk/container/%s ' "$s"; done)
+
 # ---------------------------------------------------------------------------
 # 2. run_one —— 一次写好吃两个目标。
 #
@@ -141,9 +236,9 @@ run_one() {
     # ② D-23 机械改名，**唯一**允许的改动，且只作用于副本。
     #    被测源也跑：KisRectsGrid.cpp:22 的 qFuzzyCompare( 会被改成 pkFuzzyCompare(，
     #    与 compat/QtGlobal 里那个 #define 殊途同归，不是行为差异。
-    sed -i -f "$SED" "$work/$hdr" "$work/$src"
+    sed_apply "$work/$hdr" "$work/$src"
     for f in $graftsrcs; do
-        sed -i -f "$SED" "$work/$(basename "$f")"
+        sed_apply "$work/$(basename "$f")"
     done
 
     # ③ 生成 binder（替代 moc 的测试发现）。.inc 而非 .cpp：产物全是类内定义
@@ -168,6 +263,7 @@ run_one() {
     "$CXX" $CXXFLAGS $INCS $extraincs -I "$work" \
         "$work/driver.cpp" $extraobjsrc "$STUBS/graft_stubs.cpp" \
         "$BUILD/libpkgeometry.a" "$BUILD/libpktest.a" "$BUILD/libpkstring.a" \
+        "$BUILD/libpkcontainer.a" \
         -o "$work/$name" 2>"$work/compile.log" || {
             printf '  试接编译失败: %s\n' "$name"
             sed 's/^/    /' "$work/compile.log" | head -80
@@ -210,10 +306,19 @@ run_one KisRectsGridTest \
         "libs/global/KisRectsGrid.h libs/global/KisRectsGrid.cpp" \
         "-I libs/global"
 
+# ⚠ **目标② 多两个 `-include`**（R-63）：这个测试类**还没迁移**，它照旧写
+# `QPolygonF` / `QPointF`，而被测头已经迁移（`kis_four_point_interpolator_backward.h:14`
+# 从 `#include <QPolygonF>` 变成了 `#include <PkPolygon.h>`）⇒ 那两个 Qt 名字不再随包含链
+# 进来。判据② 不许改测试源，所以按 compat 层的既有机制把它补回去：那些垫片本来就是
+# 按**文件名**被 `#include` 找到的 `#define` 垫片，而这里调用点压根不 include 它 ——
+# `-include` 是同一机制的 TU 级形式，属于**构建行**，不是对源码的改动（同 `-I` / `-D`
+# 和构建期胶水 driver.cpp）。**不新写类型别名** —— 别名只有 compat/ 那一份真源。
+#
+# 目标① 不需要：`libs/global/tests/KisRectsGridTest.cpp` 已经迁到 Pk 类型名了。
 run_one KisFourPointInterpolatorTest \
         libs/image/tests KisFourPointInterpolatorTest.h KisFourPointInterpolatorTest.cpp \
         "" \
-        "-I libs/image -I libs/global"
+        "-I libs/image -I libs/global -include pk/geometry/compat/QPolygonF -include pk/geometry/compat/QPointF"
 
 # ---------------------------------------------------------------------------
 # 4. 源树零改动自证。
