@@ -107,3 +107,19 @@ target_include_directories(PkP709SRgbProfileNoResourceDirsDriver PRIVATE
     ${CMAKE_SOURCE_DIR}/plugins/color/lcms2engine
 )
 
+
+# R-72 第三处落点降级 driver（R线-spec「依赖墙挡住真实测试类时：允许降级成复刻调用点
+# 形状的 driver」）：逐行复刻 TestKoColor::testExistingSerializations
+# （libs/pigment/tests/TestKoColor.cpp:68–87）里 p2020G10Profile()->name() 的调用点形状，
+# 并把 :81 的 PK_VERIFY2 可达性前提打印出来（`:85` 是否可达由实测决定）。
+# 真实测试类本树编不过（AUTOMOC 元对象 + QDebug/PkString + Qt::GlobalColor + KoColor 构造 +
+# qExec 五类源码层阻塞，见该 .cpp 头注释），故用 plain main() driver 落常驻证据。
+# 零 Qt：只链 kritapigment + kritalcmsengine，include 目录只要 lcms 引擎头（registerLcmsEngine）。
+kis_add_test(
+    PkKoColorP2020ProfileNoResourceDirsDriver.cpp
+    LINK_LIBRARIES kritapigment kritalcmsengine
+)
+target_include_directories(PkKoColorP2020ProfileNoResourceDirsDriver PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugins/color/lcms2engine
+)
+

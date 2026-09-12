@@ -82,7 +82,16 @@ void TestKoColor::testExistingSerializations()
              .arg(c.name()).arg(blue).PkToUtf8());
 
     // Test wide gamut RGB -- We can only check that the values deserialize properly, which is fine in this case.
-    PkString Rec2020profile = KoColorSpaceRegistry::instance()->p2020G10Profile()->name();
+    // R-72：p2020G10Profile() 可返空（R-59 裁决 A 定下的契约：它就是 profileByName("…elle…icc")，
+    // 剖面是数据文件，取不到就返 nullptr）。本用例的前提是「资源齐备、Rec2020-elle-V4-g10.icc 已载入」；
+    // 未配 EXTRA_RESOURCE_DIRS（色彩引擎已注册）时前提不成立。**「未注册色彩引擎」不在本判据喂过的
+    // 输入集合内**，这里不对它作任何断言。取受检局部量：不崩、也不静默跳过——明确报失败
+    // （R-59 裁决 C：本线不免除宿主配资源目录的义务，本用例也不替宿主兜底）。
+    const KoColorProfile *elleRec2020G10 = KoColorSpaceRegistry::instance()->p2020G10Profile();
+    if (!elleRec2020G10) {
+        PK_VERIFY2(false, PkString("p2020G10Profile() == nullptr: the Rec2020-elle-V4-g10.icc profile is unavailable, so testExistingSerializations' wide-gamut-RGB step cannot resolve the profile name (no resource dirs / color engine not registered)").PkToUtf8());
+    }
+    PkString Rec2020profile = elleRec2020G10->name();
     main = PkString("<RGB r='3.0' g='0' b='1' space='%1'/>").arg(Rec2020profile);
     doc.setContent(main);
     KoColor rec2020color = KoColor::fromXML(doc.documentElement(), Float32BitsColorDepthID.id());
