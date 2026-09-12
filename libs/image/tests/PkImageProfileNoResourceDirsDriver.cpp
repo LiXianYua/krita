@@ -29,10 +29,22 @@
 //   - `new KisImage(0, 1000, 1000, rgb8, "stest")`
 //   - `*image->colorSpace()->profile()` 与
 //     `*KoColorSpaceRegistry::instance()->p709SRGBProfile()` 做 `QCOMPARE` 的
-//     **同一对操作数**（QCOMPARE 展开为 `KoColorProfile::operator==`）。
+//     **同一对操作数**（QCOMPARE 展开为 `KoColorProfile::operator==`；对应 `:237`）；
+//   - `*image->colorSpace()->profile()` 与
+//     `*KoColorSpaceRegistry::instance()->p2020G10Profile()` 做 `QCOMPARE` 的
+//     **同一对操作数**（对应 `:252`）。
 //   复刻范围内只含这条最小链（`rgb8()`→`KisImage`→剖面比较），不含 `:218` 之后的
 //   `KisPaintLayer`/`KisAdjustmentLayer` 部分——本任务要证的是「返空访问器被解引用
-//   会崩」，那条链已足够命中，且不引入与 p709 无关的构造前置。
+//   会崩」，那条链已足够命中，且不引入与 p709/p2020 无关的构造前置。
+//
+// **已声明的收窄（措辞不超出探针喂过的输入集合）**：真实测试里 6 处 `QCOMPARE` 的
+//   **接收者**分两组——`image->colorSpace()->profile()`（`:237`/`:252`）与
+//   `paint1->…`/`blur1->…`（`:240`/`:245`/`:255`/`:260`）。本 driver **只复刻
+//   `image->colorSpace()->profile()` 这一组接收者**（两个访问器各一条：p709 与 p2020
+//   并列），`paint1`/`blur1` 那两个变体是**同一表达式形状的同形实例**（仅接收者指针
+//   不同，对返空访问器返回值的解引用机理逐字相同），未另立分支——在此如实收窄。
+//   `:248` 的 `assignImageProfile(…->p2020G10Profile())` 是**非**解引用点
+//   （`KisImage::assignImageProfile` 首行 `if (!profile) return false;`），不在范围。
 // 校验值全部来自本进程对真实内核的实测打印，不猜。
 //
 // 命令行开关：
@@ -145,6 +157,25 @@ int main(int argc, char **argv)
                     "(读到这行 = 解引用没崩)\n",
                     equal ? 1 : 0);
         std::fflush(stdout);
+
+        // ——— p2020 那一对（`kis_image_test.cpp:252` 的修前形态，与上面 p709 并列）：
+        //     `QCOMPARE(*image->colorSpace()->profile(),
+        //               *KoColorSpaceRegistry::instance()->p2020G10Profile());`
+        //     同一接收者表达式，右侧同样**直接解引用**。无 EXTRA_RESOURCE_DIRS 时
+        //     p2020G10Profile() 亦为 nullptr ⇒ 同样当场 SIGSEGV（与 p709 那处**机理同形**：
+        //     对返空访问器返回值做 `*`）。⚠ 上面 p709 那处先崩，故本行在**无资源的
+        //     `--unguarded-shape`** 用例里读不到——本 driver 以同形并列表达「6 处调用点
+        //     形状」；本行可在 `--unguarded-shape --keep-resource-dirs` 下被走到（那时
+        //     两访问器非空、不崩）。
+        std::printf("UNGUARDED-SHAPE about to dereference "
+                    "KoColorSpaceRegistry::instance()->p2020G10Profile()\n");
+        std::fflush(stdout);
+        volatile bool equal2020 = (*image->colorSpace()->profile() ==
+                                   *KoColorSpaceRegistry::instance()->p2020G10Profile());
+        std::printf("UNGUARDED-SHAPE reached the comparison, equal=%d "
+                    "(读到这行 = 解引用没崩)\n",
+                    equal2020 ? 1 : 0);
+        std::fflush(stdout);
         return 0;
     }
 
@@ -182,6 +213,20 @@ int main(int argc, char **argv)
                     "resource dirs\n");
         ++failures;
     }
+
+    // 复刻 `:252` 的**同一对操作数**比较（p2020 那一对，与上面 p709 并列）：接收者同为
+    // `image->colorSpace()->profile()`，另一侧是受检局部量 `elleRec2020G10`
+    // （对应 `:252` 的 `*KoColorSpaceRegistry::instance()->p2020G10Profile()`）。
+    // ⚠ 本 driver 不做 `:248` 的 `assignImageProfile(elle Rec2020 g10)` 往返（文件头已
+    //   声明这一收窄），故 receiver 仍是 rgb8 派生的剖面，与 elleRec2020G10 **不同**——
+    //   如实记录该比较结果，**不置失败**（要让它相等就得走被排除的往返段）。
+    std::printf("COMPARE deviceProfile name=%s elleRec2020G10 name=%s\n",
+                deviceProfile->name().PkToUtf8().c_str(),
+                elleRec2020G10->name().PkToUtf8().c_str());
+    const bool equal2020 = (*deviceProfile == *elleRec2020G10);
+    std::printf("COMPARE *deviceProfile == *p2020G10Profile(): %s "
+                "(receiver 未做 assignImageProfile 往返 ⇒ 预期 false，仅记录、不判失败)\n",
+                equal2020 ? "true" : "false");
 
     // 5. 走到这里 = 进程没崩（修前形态在无资源环境下会当场解引用 nullptr）。
     //    崩溃时 stdout 缓冲会丢，所以上面每一步都刻意打印、事后取证用。
