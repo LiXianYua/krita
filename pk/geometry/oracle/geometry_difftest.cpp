@@ -4884,8 +4884,10 @@ static void cmp_pp_entries()
         cmp_pp_entry("PP::addRect", "fwd-qreal4", "rect(1,2,3,4)",
             [](QPainterPath &q) { q.addRect(1.0, 2.0, 3.0, 4.0); },
             [](PkPainterPath &p) { p.addRect(1.0, 2.0, 3.0, 4.0); });
-        // addEllipse(1,2,3,4)：同上；**全仓零真实调用点**（仅 pk 自己的单测用），
-        // 按 spec 判据①「零用量留着并登记」不删，所以它照样要有自己的 rec()。
+        // addEllipse(1,2,3,4)：同上；全仓 **4 处**真实调用点（括号配平扫描，含跨行调用）：
+        // plugins/tools/basictools/kis_tool_multihand.cpp:212/275/299、
+        // plugins/tools/tool_transform2/kis_liquify_paintop.cpp:47。
+        // 按规则三「每个已实现的重载都要有自己的 rec()」，所以它照样要有自己的 rec()。
         cmp_pp_entry("PP::addEllipse", "fwd-qreal4", "rect(1,2,3,4)",
             [](QPainterPath &q) { q.addEllipse(1.0, 2.0, 3.0, 4.0); },
             [](PkPainterPath &p) { p.addEllipse(1.0, 2.0, 3.0, 4.0); });

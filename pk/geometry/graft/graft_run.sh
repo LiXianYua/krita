@@ -61,7 +61,7 @@ fi
 # ⚠ **R-63 追加的两条**：`libs/global/KisRectsGrid.h:11` 现在 `#include <PkVector.h>`
 # （在 `pk/container/`）、`libs/global/kis_pointer_utils.h:10` 现在
 # `#include <PkSharedPointer.h>`（在 `pk/pointer/`）—— 两条都是 R-03 之后新增的依赖，
-# 脚本没跟。**这两条与平台无关**：Linux 上同样是 `fatal error: 'PkVector.h' file not found`。
+# 脚本没跟。**推断这两条与平台无关**：Linux 上同样是 `fatal error: 'PkVector.h' file not found`（**推断**：本机无 Linux，未在 Linux 实测）。
 INCS="-I $STUBS -I pk/test -I pk/test/compat -I pk/geometry -I pk/geometry/compat \
       -I pk/string -I pk/string/compat -I pk/container -I pk/pointer"
 
@@ -175,8 +175,8 @@ build_lib "$BUILD/libpkstring.a" \
 
 # pk/string 的 PkString_format.cpp（PkString::toLatin1/toUtf8）要
 # pk/container/PkByteArray.cpp 里的构造 —— 只建 pkstring 会在**链接期**报
-# `Undefined symbols: PkByteArray::PkByteArray(char const*, int)`（R-63 实测的层 d，
-# 与平台无关）。源表 = pk/container/CMakeLists.txt 的 add_library(pkcontainer STATIC …)。
+# `Undefined symbols: PkByteArray::PkByteArray(char const*, int)`（R-63 实测的层 d；
+# **推断**与平台无关——本机无 Linux，未在 Linux 实测）。源表 = pk/container/CMakeLists.txt 的 add_library(pkcontainer STATIC …)。
 PKCONTAINER_SRCS="PkByteArray.cpp PkArrayData.cpp PkVector.cpp PkList.cpp PkMap.cpp \
 PkHash.cpp PkSet.cpp PkStack.cpp PkQueue.cpp"
 

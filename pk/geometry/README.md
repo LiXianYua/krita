@@ -108,7 +108,7 @@ grep -i qt` 必须无输出（判据③）→ 自证改动全部落在**本任�
 | `static_assert` | 151 | `PkPoint.cpp` 26 + `PkSize.cpp` 42 + `PkRect.cpp` 49 + `PkTransform.cpp` 14 + `oracle/geometry_difftest.cpp` 20（布局 / 枚举取值 / constexpr 能力 / **noexcept 面**，只有在一个 TU 里才落得了地） |
 | 运行输出 `Totals` 行 | 15 / 26 / 33 / 40 / 48 / 58 | harness 的口径：每个测试类的 slot 数 + `initTestCase` + `cleanupTestCase`，**不是**测试函数数，也不是断言数。六个类合计 220 |
 | 翻译单元 | 13 | `test_main` `test_global` `test_point` `test_size` `test_rect` `test_rectf` `test_transform` + 三个 `coexist_*` + 三个 `*_macro_proof` |
-| 对拍比对次数 | 155 626 078 | **R-56 现场重测。** `run_oracle.sh` 输出的 `DIFF total=`，`mismatch=3`（**全部是那三条 canary**）。R-56 相对上一版 **+300**：来源是新增的 `PP::*` 一族（七个坐标守卫入口各两种起点，见「坐标守卫」一节），150 次 `cmp_pp_entry` 调用 × 2 种起点 = 300 次 `rec()`（其中 Task 2 的 `cubicTo`/`quadTo`/`arcTo`/`addRect`/`addEllipse` +294、Task 3 的退化/空矩形专属档 +6）。**「新增覆盖」（7 个入口）与「新增比对次数」（300）是两个数，别混用。** |
+| 对拍比对次数 | 155 626 078 | **R-56 现场值（保留作历史快照，勿覆盖）；R-63 现场为 155 626 254**（R-58 +168、R-63 +8；三段 155 626 078 / 155 626 246 / 155 626 254 都是现场 `DIFF total=`）。**R-56 现场重测。** `run_oracle.sh` 输出的 `DIFF total=`，`mismatch=3`（**全部是那三条 canary**）。R-56 相对上一版 **+300**：来源是新增的 `PP::*` 一族（七个坐标守卫入口各两种起点，见「坐标守卫」一节），150 次 `cmp_pp_entry` 调用 × 2 种起点 = 300 次 `rec()`（其中 Task 2 的 `cubicTo`/`quadTo`/`arcTo`/`addRect`/`addEllipse` +294、Task 3 的退化/空矩形专属档 +6）。**「新增覆盖」（7 个入口）与「新增比对次数」（300）是两个数，别混用。** |
 | 规则三 map 的声明数 | `point` 56 / `size` 56 / `rect` 66 / `rectf` 68 / `transform` 48 / `line` 43 / `margins` 40 / `polygon` 16 / `vectornd` 137 / `matrix4x4` 27 / `painterpath` 68 / `region` 41 | **12 份 map** 的非注释行数（顺序同上），与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` **604 行（同口径：非注释非空行；裸 `wc -l` 是 **614**，差的是 **9 行注释 + 1 行空行**）**。⚠ 但**闸门① 打印的是「APISEEN 598 个（期望 598）」**—— 两个数口径不同、**都是真的**：闸门①按**集合**比（`seen != expected`，`run_oracle.sh:275`；`expected` 在 `:270` 是集合推导、自动去重），而 `api_seen.expected` 里有 **6 行既有重复**（`R::intersected` / `R::intersects` / `R::isEmpty` / `R::isNull` / `R::operator&=` / `R::united`），去重后正是 **598**。**那 6 行非本轮引入，本轮一字节不动**（`api_seen.expected` 是冻结文件）。**沿革**：最早那版写的 5 份 map / 303 行是 R-03–R-21 时代的快照，已随 R-21 的六族与 R-22 的 `PkPainterPath` 过期。 **R-63 现场重测（2026-09-12）**：`wc -l pk/geometry/oracle/api_seen.expected` = **614**、空行 **1**、`#` 开头 **9** ⇒ 非注释非空 **604**；闸门①按集合比得 **598**；两者之差仍是那 **6 行既有重复**。**R-58 加 `painterpath_api.map` 时漏跟本行**，上一版的 11 份 / 603 / 613 / 597 是 R-56 现场的。 |
 
 **优化档矩阵**（`-fwrapv` 由 `CMakeLists.txt` 的 `target_compile_options(... PUBLIC)`
@@ -247,7 +247,7 @@ libstdc++ 的 `operator==` 本就带 `strcmp` 回退）。⇒ 跨镜像用例在
    不是并列的三个毛病。
 2. **GNU `sed -i -f` 撞 BSD sed**：`graft_run.sh:144/146` 的 `sed -i -f "$SED" …` 在
    macOS 报 `sed: 1: "…rename.sed …": extra characters at the end of p command`。
-3. **`INCS` 缺 `-I pk/container`（**与平台无关的真漂移**）**：`graft_run.sh:51` 的 `INCS`
+3. **`INCS` 缺 `-I pk/container`（**推断与平台无关的真漂移**；本机无 Linux，未在 Linux 实测）**：`graft_run.sh:51` 的 `INCS`
    只有 `stubs/test/test-compat/geometry/geometry-compat/string/string-compat`，而**今天**
    的 `libs/global/KisRectsGrid.h:11` 已经 `#include <PkVector.h>`、
    `libs/global/kis_pointer_utils.h:10` 已经 `#include <PkSharedPointer.h>`
@@ -255,7 +255,7 @@ libstdc++ 的 `operator==` 本就带 `strcmp` 回退）。⇒ 跨镜像用例在
 
 前两层用 `/tmp` 里的编译包装（补 `-mmacosx-version-min=13.3`）与 sed 垫片
 （把 `-i -f` 转成 BSD 形态；**都不进仓库**）绕过后，**第三层仍然挡住** ⇒
-**这条不只是 macOS 问题，Linux 上同样编不过**（第 3 层是缺失 `-I` 路径，与平台无关）。
+**这条不只是 macOS 问题，**推断** Linux 上同样编不过**（第 3 层是缺失 `-I` 路径，与平台无关；本机无 Linux，未在 Linux 实测）。
 
 **结论**：R 线对 `pk/geometry` 的**判据② 当前不可执行**，此前没有任何地方登记。
 计划把判据② 换成「既有调用点不受影响」时写的理由是「真实消费方 target 不在 locks 内、
@@ -277,12 +277,12 @@ R-63 逐层单独复现过（每层单独跑，上一层用 `/tmp` 里的**树�
 | a | `source <env>` 设的 `MACOSX_DEPLOYMENT_TARGET=10.15` 让 clang 默认带 `-mmacosx-version-min=10.15`，`pk/string/PkString_format.cpp:408/:743` 的 `std::to_chars` 浮点重载判 `'to_chars' is unavailable: introduced in macOS 13.3` | macOS（**且只在 `source env` 之后**；不 source 则跟宿主系统） | 2 errors, exit 1 | `CXXFLAGS` 加 `-mmacosx-version-min=13.3`，**仅 Darwin** |
 | b1 | GNU `sed -i -f SCRIPT FILE` 撞 BSD sed（`/usr/bin/sed` 把 `-f` 当 `-i` 的后缀）：`sed: 1: "…": extra characters at the end of p command` | macOS | exit 1（`set -e` 当场退出） | 不用 `-i` 家族：`sed -f SCRIPT FILE > tmp && mv` |
 | b2 | **R-58 未登记的第二半**：冻结表 `rename.sed` 的 18 条模式全用 GNU 的 `\b` 词边界，**BSD sed 不认 `\b` 且不报错**（当普通字符），于是**改名一条都不生效** → 试接编译期整屏 `use of undeclared identifier 'QCOMPARE'` | macOS | 编译失败 | 探本机 sed 认不认 `\b`；不认才在**构建目录**派生 `\b`→`[[:<:]]`（18 条全在模式首，等价），派生表反向替换后与冻结表逐字节比对的闸门守着 |
-| c | `INCS` 缺 `-I pk/container` + `-I pk/pointer`：`libs/global/KisRectsGrid.h:11` 已 `#include <PkVector.h>`、`libs/global/kis_pointer_utils.h:10` 已 `#include <PkSharedPointer.h>`（都是 R-03 之后新增的依赖） | **与平台无关（Linux 同样编不过）** | `fatal error: 'PkVector.h' file not found` / `'PkSharedPointer.h' file not found` | 两条 `-I` 补进 `INCS` |
-| d | 只建 `libpkstring.a` 不够：`PkString_format.cpp` 的 `PkString::toLatin1/toUtf8` 要 `pk/container/PkByteArray.cpp` 的构造 | **与平台无关** | `Undefined symbols: PkByteArray::PkByteArray(char const*, int)` | 增建 `libpkcontainer.a`（源表 = `pk/container/CMakeLists.txt` 的 `add_library(pkcontainer STATIC …)` 9 项，加一条对账闸门盯着它）并加进链接行 |
-| e | 目标② 的调用点**还没迁移**：`KisFourPointInterpolatorTest.cpp` 写的是 `QPolygonF`/`QPointF`，而**被测头已经迁移**（`kis_four_point_interpolator_backward.h:14` 从 `#include <QPolygonF>` 变成 `#include <PkPolygon.h>`）⇒ Qt 类型名不再随包含链进来 | **与平台无关** | `error: unknown type name 'QPolygonF'` | 编译行加 `-include pk/geometry/compat/QPolygonF -include pk/geometry/compat/QPointF`（复用 compat 垫片，不新写别名） |
+| c | `INCS` 缺 `-I pk/container` + `-I pk/pointer`：`libs/global/KisRectsGrid.h:11` 已 `#include <PkVector.h>`、`libs/global/kis_pointer_utils.h:10` 已 `#include <PkSharedPointer.h>`（都是 R-03 之后新增的依赖） | **推断与平台无关**（Linux 同样编不过；本机无 Linux，未在 Linux 实测） | `fatal error: 'PkVector.h' file not found` / `'PkSharedPointer.h' file not found` | 两条 `-I` 补进 `INCS` |
+| d | 只建 `libpkstring.a` 不够：`PkString_format.cpp` 的 `PkString::toLatin1/toUtf8` 要 `pk/container/PkByteArray.cpp` 的构造 | **推断与平台无关**（本机无 Linux，未在 Linux 实测） | `Undefined symbols: PkByteArray::PkByteArray(char const*, int)` | 增建 `libpkcontainer.a`（源表 = `pk/container/CMakeLists.txt` 的 `add_library(pkcontainer STATIC …)` 9 项，加一条对账闸门盯着它）并加进链接行 |
+| e | 目标② 的调用点**还没迁移**：`KisFourPointInterpolatorTest.cpp` 写的是 `QPolygonF`/`QPointF`，而**被测头已经迁移**（`kis_four_point_interpolator_backward.h:14` 从 `#include <QPolygonF>` 变成 `#include <PkPolygon.h>`）⇒ Qt 类型名不再随包含链进来 | **推断与平台无关**（本机无 Linux，未在 Linux 实测） | `error: unknown type name 'QPolygonF'` | 编译行加 `-include pk/geometry/compat/QPolygonF -include pk/geometry/compat/QPointF`（复用 compat 垫片，不新写别名） |
 
 **R-58 只登记了层 b 的**前一半**（b1，`-i` 形态），漏了 b2（`\b` 词边界）；层 c / d / e
-三处与平台无关**（Linux 上同样编不过）。层 e 的根因不是脚本写错，是**被测头在 R-03
+三处**推断与平台无关**（Linux 上同样编不过；本机无 Linux，未在 Linux 实测）。层 e 的根因不是脚本写错，是**被测头在 R-03
 之后被迁移过**。
 
 **R-63 修完后的现场输出**（`source <env>` 之后跑 `./pk/geometry/graft/graft_run.sh`）：
@@ -395,11 +395,17 @@ FAIL「两表必须逐行对齐」。）
 **已被本对拍覆盖**的那个重载，各自唯一独有行为只有一次实参搬运。R-63 给它们各补一条
 `cmp_pp_entry`（4 个入口 × 2 种起点 = 8 条 `rec()`；复用既有 `PP::addRect` / `PP::addEllipse` /
 `PP::arcTo` 标签 ⇒ 无新标签、`api_seen.expected` 一字节不动、`APISEEN` 仍 598），
-`-` 计数 56 → 52，`DASH_MAX` 手工下调到 52。四条重载的**真实消费方**（codegraph + grep
-复核，全仓口径）：`addRect(qreal×4)` 3 处（`libs/flake/text/KisTofuGlyph.cpp`）、
-`addEllipse(center,rx,ry)` ≥10 处（散在 `libs/image`、`libs/canvas`、`plugins/tools`）、
-`arcTo(qreal×6)` 2 处（`plugins/tools/basictools/kis_basic_tools_geometry_utils.h`）、
-`addEllipse(qreal×4)` **全仓 0 处**（仅 pk 自己的单测）—— 按规格判据①「零用量留着并登记」，不删。
+`-` 计数 56 → 52，`DASH_MAX` 手工下调到 52。四条重载的**真实消费方**（括号配平扫描
+复核，全仓口径：4715 个 `.cpp/.h/.cc/.cxx`，排除 `.git/` 与 `pk/geometry/{oracle,tests,graft}/`，
+只列顶层实参个数等于该重载形参个数的调用）：`addRect(qreal×4)` 3 处
+（`libs/flake/text/KisTofuGlyph.cpp:46/57/186`）、`addEllipse(center,rx,ry)` ≥10 处
+（散在 `libs/image`、`libs/canvas`、`plugins/tools`）、`arcTo(qreal×6)` 4 处（全在
+`plugins/tools/basictools/kis_basic_tools_geometry_utils.h:71/72/73/75`，后两条跨行）、
+`addEllipse(qreal×4)` 4 处（`plugins/tools/basictools/kis_tool_multihand.cpp:212/275/299`、
+`plugins/tools/tool_transform2/kis_liquify_paintop.cpp:47`）—— 不删的理由是**规则三本身**
+（每个已实现的重载都要有自己的 `rec()`）。**R-63 修复轮 2 实测**：原登记按**行式 grep**
+得出「`addEllipse(qreal×4)` 全仓 0 处 / `arcTo(qreal×6)` 2 处」，**行式 grep 漏掉跨行调用**
+（如 `addEllipse(x-,\n y-,\n w,\n h)`）；正确口径是**括号配平扫描**（顶层逗号切参、跨行续读）。
 收口后 `run_oracle.sh` **exit 0**，摘要行逐字为
 `… PkPainterPath.h 声明 68 条 / painterpath_api.map 68 行（其中 52 条无 rec()，棘轮上限 52）`，
 `DIFF total=155626254 mismatch=3`（三条 canary），`APISEEN 598 个（期望 598）`。
@@ -1277,7 +1283,7 @@ stubs 里自己写一个同名类）。
 | 证据链 | 证明了什么 | **看不见什么** |
 |---|---|---|
 | `tests/`（PK_* 单测） | 期望值来自真 Qt 探针，逐条钉住反直觉语义；**唯一**能钉住"预处理期宏改写"与"共存 include 顺序"的地方 | ① 期望值是**我们挑的**输入，不是输入空间；② include 顺序是**我们写的**，不是真实调用点的；③ `PK_COMPARE` 对 `double` 走模糊比较（相对 1e-12），主张"逐位一致"必须改用 `PK_VERIFY(sameBits(...))` |
-| `oracle/`（逐输入对拍） | 1.56 亿次逐输入与真 Qt 比取值；**唯一**能抓住"单测全绿但取值分家"的地方（实测：`PkSizeF` 隐式提升丢精度，单测 33 用例全绿、对拍抓到 962 323 处） | ① 只覆盖**写了 `rec()` 的重载**，漏一条就是整个重载零覆盖（规则三的机器闸门补这一条；本目录 **12 个族**进了闸门 —— `API_GROUPS` 十二项，含 R-58 新增的 `PkPainterPath.h` —— 头文件类体里**每条声明都必须显式分类**，`PkPainterPath` 新增重载现在**当场 FAIL**，R-58 三次注入实测。**但这是一次可数、可见的放宽**：`PkPainterPath.h` 的 **68 条声明里只有 16 条有真 `rec()`**（对应 8 个 `PP::*` 标签），其余 **52 条写 `-`**、在摘要行里计数 —— 摘要行为 `… PkPainterPath.h 声明 68 条 / painterpath_api.map 68 行（其中 52 条无 rec()，棘轮上限 52）`。为什么放宽：那 56 条里绝大多数由 R-39 的 `painterpath_pathops_difftest.cpp` 对拍与单测守，而**那只对拍不产出 `APISEEN`**，它的 `rec()` 是 `rec(bool, const std::string&)`、只打 `DIFFTAG`/`FAMILY`，**闸门③消费不了它**；把它们逐条搬进本对拍是**另一个任务**的量级。两条骨架边界：**嵌套类型（如 `class Element`）的成员不在这套闸门的覆盖面上**；`-` **不能**用来放行「名字与某个 `PP::` 标签相同的重载」—— 判定规则是 `rec()` 的**实参类型直接压到**那一个重载，「A 转发到 B、B 有 rec」不算（规格规则三））；② 编译行里**没有 `compat/`、没有 `pk/test` 的垫片**（硬闸门禁止），所以预处理期语义偷换与 include 顺序问题它一概看不见；③ 输入是**全组合不是穷举**，覆盖靠输入集选得对 |
+| `oracle/`（逐输入对拍） | 1.56 亿次逐输入与真 Qt 比取值；**唯一**能抓住"单测全绿但取值分家"的地方（实测：`PkSizeF` 隐式提升丢精度，单测 33 用例全绿、对拍抓到 962 323 处） | ① 只覆盖**写了 `rec()` 的重载**，漏一条就是整个重载零覆盖（规则三的机器闸门补这一条；本目录 **12 个族**进了闸门 —— `API_GROUPS` 十二项，含 R-58 新增的 `PkPainterPath.h` —— 头文件类体里**每条声明都必须显式分类**，`PkPainterPath` 新增重载现在**当场 FAIL**，R-58 三次注入实测。**但这是一次可数、可见的放宽**：`PkPainterPath.h` 的 **68 条声明里只有 16 条有真 `rec()`**（对应 8 个 `PP::*` 标签），其余 **52 条写 `-`**、在摘要行里计数 —— 摘要行为 `… PkPainterPath.h 声明 68 条 / painterpath_api.map 68 行（其中 52 条无 rec()，棘轮上限 52）`。为什么放宽：那 52 条里绝大多数由 R-39 的 `painterpath_pathops_difftest.cpp` 对拍与单测守，而**那只对拍不产出 `APISEEN`**，它的 `rec()` 是 `rec(bool, const std::string&)`、只打 `DIFFTAG`/`FAMILY`，**闸门③消费不了它**；把它们逐条搬进本对拍是**另一个任务**的量级。两条骨架边界：**嵌套类型（如 `class Element`）的成员不在这套闸门的覆盖面上**；`-` **不能**用来放行「名字与某个 `PP::` 标签相同的重载」—— 判定规则是 `rec()` 的**实参类型直接压到**那一个重载，「A 转发到 B、B 有 rec」不算（规格规则三））；② 编译行里**没有 `compat/`、没有 `pk/test` 的垫片**（硬闸门禁止），所以预处理期语义偷换与 include 顺序问题它一概看不见；③ 输入是**全组合不是穷举**，覆盖靠输入集选得对 |
 | `graft/`（真实调用点试接） | 真实 Krita 测试类**零改动**编译并跑绿；**唯一**能抓住"接口形状对但接不上"的地方 | ① 只有 **2 个**目标、**14 个**测试函数，覆盖的 API 面远小于前两条；② 它证明的是"能编能跑"，不证明取值对（取值对是前两条的事）；③ stub 顶住的那些依赖等于**没被验证** |
 
 **这一节的由来是一个真实的 Critical：`compat/` 漏复刻 Qt 的传递 include。**
