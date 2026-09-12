@@ -210,6 +210,17 @@ inline std::vector<Case> table()
     // 弧族（R-54 批 1b）：与椭圆/多边形**共用同一份 rect 表**（整数/非整数/负尺寸/
     // 退化矩形这些手挑对抗用例都在里面），另配一组起止角覆盖：整圆 / 半圆 / 0 跨度 /
     // 负跨度 / 跨 360 / 起止角落在象限边界。
+    //
+    // 本族**复刻的真实调用点形状**（R-54 Task 3 Step 1 复核）：`PkPainter::drawArc`
+    // 的活调用点全集 = 2 处 / 1 文件，都在
+    // `plugins/tools/tool_knife/CutThroughShapeStrategy.cpp:371-372`
+    // （`CutThroughShapeStrategy::paint`，`:336` 起）。两行的形参形状都是
+    //   painter.drawArc(<PkRectF>, int startAngle16, int spanAngle16)
+    // —— 同一个 `drawArc(const PkRectF &, int, int)`、同一个 `PkPainter &painter`
+    // 接收者。起止角由 `-qtAngleFactor*kisRadiansToDegrees(directionBetweenPoints(...))`
+    // 算出（qreal → int 截断），所以真实调用点**一般传非 16 倍数的角**（这正是
+    // Task 3 Step 1b 要在下表补非 16 倍数角度的原因）。`paint()` 在 `:341` 只 `setPen`
+    // （灰 2px）、从不 `setBrush` ⇒ 真实形态落在 hasBrush=false 一侧；本族两种都取。
     // 弧**只描边、忽略 brush**（Qt 与 Pk 一致，见 libs/flake/PkImageRasterBackend.cpp
     // 的弧分支）：所以 hasBrush 两种都取，带 brush 的弧必须与不带的一样（正反用例）；
     // 注意 rect 表里的负尺寸项对**弧**与对椭圆行为不同：Qt 的 drawArc 先把 rect 归一化
@@ -217,6 +228,7 @@ inline std::vector<Case> table()
     // 「归一化后等价」的对抗输入。
     // pen==0 而 brush==1 的弧两侧都不画（brush 被忽略），如实计入退化/空操作。
     struct ArcAngles { int start16; int span16; };
+    // 既有 8 组（R-54 批 1b）：起止角**全部是 16 的倍数**。
     const ArcAngles arcAngles[] = {
         {0, 180 * 16},        // 半圆
         {0, 360 * 16},        // 整圆（跨 360）
@@ -227,29 +239,48 @@ inline std::vector<Case> table()
         {-30 * 16, 400 * 16}, // 负起点、跨 360
         {270 * 16, 180 * 16}, // 起点在象限边界、跨 360
     };
-    for (const auto &r : rects) {
-        for (const auto &a : arcAngles) {
-            for (int pen = 0; pen < 2; ++pen) {
-                for (int brush = 0; brush < 2; ++brush) {
-                    if (!pen && !brush) continue;  // 弧两者皆无 = 空操作（brush 又被忽略）
-                    Case c;
-                    c.name = "arc#" + std::to_string(index++) +
-                             ":s" + std::to_string(a.start16) +
-                             ":w" + std::to_string(a.span16) +
-                             (pen ? ":pen2.5" : ":nopen") + (brush ? ":fill" : ":nofill");
-                    c.kind = Kind::Arc;
-                    c.shapeRect = CaseRect(r[0], r[1], r[2], r[3]);
-                    c.startAngle16 = a.start16;
-                    c.spanAngle16 = a.span16;
-                    c.hasPen = pen != 0;
-                    c.penWidth = 2.5;
-                    c.hasBrush = brush != 0;
-                    c.fillRule = 0;
-                    cases.push_back(c);
-                }
+    // R-54 Task 3 Step 1b：**非** 16 倍数的角（`x % 16 != 0`）。上面 8 组全是 16 的倍数
+    // ⇒ 后端那两行换算 `arc->startAngle16 / 16.0` 与 `arc->spanAngle16 / 16.0` 在旧用例表上
+    // **没有任何判别力**（改成整数除法 `/16` 是编译期可证的空操作——R线-spec〈注入「抓不到」
+    // 时，先怀疑注入〉点名的那一类）。真实调用点（CutThroughShapeStrategy.cpp:371-372）的角
+    // 由 `-16*kisRadiansToDegrees(...)`（qreal → int 截断）算出，**一般不是 16 的倍数**。
+    // 这 4 组覆盖：起点正小数 / 起点负小数 / 跨象限边界 / 只让 span 带小数。
+    // 非空论证：每组至少一个字段满足 `x % 16 != 0`，故 `x/16.0 != x/16` 必然成立
+    //   {1000, 2880}:  1000%16=8  ⇒ 起点 62.5°（正小数），span 整 16 倍
+    //   {-1003,-960}:  -1003%16=-11 ⇒ 起点 -62.6875°（负小数），span 整 16 倍
+    //   {719, 900}:    719%16=15, 900%16=4 ⇒ 起点 44.9375°、跨度 56.25° ⇒ 终点 101.1875° 跨 90° 象限边界
+    //   {0, 1001}:     1001%16=9  ⇒ 起点 0°（整），跨度 62.5625°（**只让 span 带小数**）
+    const ArcAngles arcAnglesFrac16[] = {
+        {1000, 180 * 16},
+        {-1003, -60 * 16},
+        {719, 900},
+        {0, 1001},
+    };
+    auto appendArc = [&](const double *r, const ArcAngles &a) {
+        for (int pen = 0; pen < 2; ++pen) {
+            for (int brush = 0; brush < 2; ++brush) {
+                if (!pen && !brush) continue;  // 弧两者皆无 = 空操作（brush 又被忽略）
+                Case c;
+                c.name = "arc#" + std::to_string(index++) +
+                         ":s" + std::to_string(a.start16) +
+                         ":w" + std::to_string(a.span16) +
+                         (pen ? ":pen2.5" : ":nopen") + (brush ? ":fill" : ":nofill");
+                c.kind = Kind::Arc;
+                c.shapeRect = CaseRect(r[0], r[1], r[2], r[3]);
+                c.startAngle16 = a.start16;
+                c.spanAngle16 = a.span16;
+                c.hasPen = pen != 0;
+                c.penWidth = 2.5;
+                c.hasBrush = brush != 0;
+                c.fillRule = 0;
+                cases.push_back(c);
             }
         }
-    }
+    };
+    // 既有 8 组先出（index 与用例名**逐字节不变**），非 16 倍数的 4 组**追加在末尾**——
+    // 若把它们插进既有循环，`index` 会整体后移、既有用例的名字会变，违反「只增不改」。
+    for (const auto &r : rects) for (const auto &a : arcAngles) appendArc(r, a);
+    for (const auto &r : rects) for (const auto &a : arcAnglesFrac16) appendArc(r, a);
 
     return cases;
 }
