@@ -230,10 +230,15 @@ libstdc++ 的 `operator==` 本就带 `strcmp` 回退）。⇒ 跨镜像用例在
 `.gitignore` 的 `build` 盖住，跑完 `git status --porcelain` 为空），**`exit=1`**，
 三层原因**逐层实测**：
 
-1. **缺 `-mmacosx-version-min=13.3`**（`CXXFLAGS` 硬编码，无该旗标）：
-   `pk/string/PkString_format.cpp:408` 与 `:743` 报 `'to_chars' is unavailable:
-   introduced in macOS 13.3` → 2 errors。（与计划 Global Constraints 里「薄壳要自己补
-   `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3`」是同一件事。）
+1. **`MACOSX_DEPLOYMENT_TARGET=10.15` 没被 `-mmacosx-version-min=13.3` 覆盖**
+   （`graft_run.sh:39` 的 `CXXFLAGS` 硬编码，无该旗标）：`pk/string/PkString_format.cpp:408`
+   与 `:743` 报 `'to_chars' is unavailable: introduced in macOS 13.3` → 2 errors。
+   （与计划 Global Constraints 里「薄壳要自己补 `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3`」
+   是同一件事。）⚠ **这一层的触发条件是环境**：`10.15` 是 `source krita-ci-env/env`
+   设进去的；**不 source 时 `MACOSX_DEPLOYMENT_TARGET` 未设、默认跟宿主系统**
+   （本机 macOS 26），`to_chars` 可用 —— 复跑会**直接落到第 2 层**、看不到这一层。
+   所以复跑这一层必须**先 source env**。三层是**依次**挡住的（库 → sed → 试接编译），
+   不是并列的三个毛病。
 2. **GNU `sed -i -f` 撞 BSD sed**：`graft_run.sh:144/146` 的 `sed -i -f "$SED" …` 在
    macOS 报 `sed: 1: "…rename.sed …": extra characters at the end of p command`。
 3. **`INCS` 缺 `-I pk/container`（**与平台无关的真漂移**）**：`graft_run.sh:51` 的 `INCS`
