@@ -53,11 +53,15 @@ static constexpr const char *kBackendName = "PkImageRasterBackend";
 
 namespace pkShapeCases {
 
+enum class Kind { Ellipse, Polygon, Arc };
+
 struct Case {
     std::string name;
-    bool polygon;                   // false = 椭圆，true = 多边形
-    CaseRect ellipseRect;           // polygon == false 时用
-    std::vector<CasePoint> points;  // polygon == true 时用
+    Kind kind;
+    CaseRect shapeRect;             // Ellipse / Arc 的边界矩形
+    std::vector<CasePoint> points;  // Polygon 时用
+    int startAngle16 = 0;           // Arc 起点角（1/16 度，与 PkDrawArcCommand 同）
+    int spanAngle16 = 0;            // Arc 跨度角（1/16 度）
     bool hasPen;
     double penWidth;
     bool hasBrush;
@@ -98,12 +102,19 @@ inline CaseImage renderCase(const Case &c)
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.setPen(c.hasPen ? QPen(Qt::black, c.penWidth) : QPen(Qt::NoPen));
     painter.setBrush(c.hasBrush ? QBrush(Qt::red) : QBrush(Qt::NoBrush));
-    if (c.polygon) {
+    switch (c.kind) {
+    case Kind::Polygon: {
         QPolygonF polygon;
         for (const auto &p : c.points) polygon << p;
         painter.drawPolygon(polygon, c.fillRule ? Qt::WindingFill : Qt::OddEvenFill);
-    } else {
-        painter.drawEllipse(c.ellipseRect);
+        break;
+    }
+    case Kind::Arc:
+        painter.drawArc(c.shapeRect, c.startAngle16, c.spanAngle16);
+        break;
+    case Kind::Ellipse:
+        painter.drawEllipse(c.shapeRect);
+        break;
     }
     painter.end();
 #else
@@ -112,12 +123,19 @@ inline CaseImage renderCase(const Case &c)
     painter.setRenderHint(PkPainter::RenderHint::Antialiasing, true);
     painter.setPen(c.hasPen ? PkPen(PkColor(Pk::black), c.penWidth) : PkPen(Pk::NoPen));
     painter.setBrush(c.hasBrush ? PkBrush(PkColor(Pk::red)) : PkBrush(Pk::NoBrush));
-    if (c.polygon) {
+    switch (c.kind) {
+    case Kind::Polygon: {
         PkPolygonF polygon;
         for (const auto &p : c.points) polygon.append(p);
         painter.drawPolygon(polygon);
-    } else {
-        painter.drawEllipse(c.ellipseRect);
+        break;
+    }
+    case Kind::Arc:
+        painter.drawArc(c.shapeRect, c.startAngle16, c.spanAngle16);
+        break;
+    case Kind::Ellipse:
+        painter.drawEllipse(c.shapeRect);
+        break;
     }
 #endif
     return image;
@@ -152,8 +170,8 @@ inline std::vector<Case> table()
                 Case c;
                 c.name = "ellipse#" + std::to_string(index++) +
                          (pen ? ":pen2.5" : ":nopen") + (brush ? ":fill" : ":nofill");
-                c.polygon = false;
-                c.ellipseRect = CaseRect(r[0], r[1], r[2], r[3]);
+                c.kind = Kind::Ellipse;
+                c.shapeRect = CaseRect(r[0], r[1], r[2], r[3]);
                 c.hasPen = pen != 0;
                 c.penWidth = 2.5;
                 c.hasBrush = brush != 0;
@@ -178,13 +196,57 @@ inline std::vector<Case> table()
                 Case c;
                 c.name = "polygon#" + std::to_string(index++) +
                          (pen ? ":pen2.5" : ":nopen") + (brush ? ":fill" : ":nofill");
-                c.polygon = true;
+                c.kind = Kind::Polygon;
                 c.points = pts;
                 c.hasPen = pen != 0;
                 c.penWidth = 2.5;
                 c.hasBrush = brush != 0;
                 c.fillRule = 0;
                 cases.push_back(c);
+            }
+        }
+    }
+
+    // 弧族（R-54 批 1b）：与椭圆/多边形**共用同一份 rect 表**（整数/非整数/负尺寸/
+    // 退化矩形这些手挑对抗用例都在里面），另配一组起止角覆盖：整圆 / 半圆 / 0 跨度 /
+    // 负跨度 / 跨 360 / 起止角落在象限边界。
+    // 弧**只描边、忽略 brush**（Qt 与 Pk 一致，见 libs/flake/PkImageRasterBackend.cpp
+    // 的弧分支）：所以 hasBrush 两种都取，带 brush 的弧必须与不带的一样（正反用例）；
+    // 注意 rect 表里的负尺寸项对**弧**与对椭圆行为不同：Qt 的 drawArc 先把 rect 归一化
+    // （实测见 R-54 Task 1 probe），Pk 弧分支照做；所以负尺寸 rect 同时也是一组
+    // 「归一化后等价」的对抗输入。
+    // pen==0 而 brush==1 的弧两侧都不画（brush 被忽略），如实计入退化/空操作。
+    struct ArcAngles { int start16; int span16; };
+    const ArcAngles arcAngles[] = {
+        {0, 180 * 16},        // 半圆
+        {0, 360 * 16},        // 整圆（跨 360）
+        {0, 0},               // 0 跨度（退化：只剩 moveTo）
+        {90 * 16, 90 * 16},   // 起点落在象限边界
+        {45 * 16, -60 * 16},  // 负跨度
+        {0, -360 * 16},       // 负整圆
+        {-30 * 16, 400 * 16}, // 负起点、跨 360
+        {270 * 16, 180 * 16}, // 起点在象限边界、跨 360
+    };
+    for (const auto &r : rects) {
+        for (const auto &a : arcAngles) {
+            for (int pen = 0; pen < 2; ++pen) {
+                for (int brush = 0; brush < 2; ++brush) {
+                    if (!pen && !brush) continue;  // 弧两者皆无 = 空操作（brush 又被忽略）
+                    Case c;
+                    c.name = "arc#" + std::to_string(index++) +
+                             ":s" + std::to_string(a.start16) +
+                             ":w" + std::to_string(a.span16) +
+                             (pen ? ":pen2.5" : ":nopen") + (brush ? ":fill" : ":nofill");
+                    c.kind = Kind::Arc;
+                    c.shapeRect = CaseRect(r[0], r[1], r[2], r[3]);
+                    c.startAngle16 = a.start16;
+                    c.spanAngle16 = a.span16;
+                    c.hasPen = pen != 0;
+                    c.penWidth = 2.5;
+                    c.hasBrush = brush != 0;
+                    c.fillRule = 0;
+                    cases.push_back(c);
+                }
             }
         }
     }

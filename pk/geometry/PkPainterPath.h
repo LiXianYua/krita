@@ -139,6 +139,11 @@ public:
                        qreal startAngle, qreal sweepLength)
     { arcTo(PkRectF(x, y, w, h), startAngle, sweepLength); }
 
+    // 对齐 QPainterPath::arcMoveTo 的公开 API（真 Qt 的 arcMoveTo 就是公开成员）。
+    // 曾长期放在 private:（与 Qt 的 API 形状偏离，R-54 对齐——见 README 偏离清单第 27 条）。
+    // addRoundedRect 是既有调用方；函数体与签名一字未动。
+    void arcMoveTo(const PkRectF &rect, qreal angle);
+
     void addRoundedRect(const PkRectF &rect, qreal xRadius, qreal yRadius,
                         Pk::SizeMode mode = Pk::AbsoluteSize);
     inline void addRoundedRect(qreal x, qreal y, qreal w, qreal h,
@@ -222,9 +227,6 @@ private:
     void detachForMutation();
     void maybeMoveTo();
     bool currentSubpathClosedExactly() const;
-
-    // arcMoveTo 内部辅助：仅供 addRoundedRect 使用（qpainterpath.cpp:1033-1041）
-    void arcMoveTo(const PkRectF &rect, qreal angle);
 
     // 存储：PkVector<Element> 自带 COW，拷贝 O(1)。
     PkVector<Element> m_elements;

@@ -496,6 +496,21 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
         strokePath(path, m_state.pen);
         return;
     }
+    if (const auto *arc = std::get_if<PkDrawArcCommand>(&command)) {
+        // QPainter::drawArc(rect, a, span) 等价于 arcMoveTo(rect, a/16.0) +
+        // arcTo(rect, a/16.0, span/16.0)，**但 Qt 先把 rect 归一化**（负尺寸宽/高先摊成正尺寸）。
+        // 实测真 Qt 5.15.7（R-54 Task 1 probe）：drawArc(r, a, s) == drawArc(r.normalized(), a, s)
+        // **恒等**，而 drawArc(r) 与 arcMoveTo/arcTo(r)（未归一）在负尺寸 rect 上像素不同
+        // —— arcTo/arcMoveTo 自己**不**归一化，归一化发生在 drawArc 。
+        // 弧**只描边、忽略 brush**（实测：带不带 brush 像素一致）。arcMoveTo 必需：
+        // 空路径从 (0,0) 起，arcTo 会多画一条到弧起点的线。出处见 R-51 §1.4 / R-54 §1.3。
+        const PkRectF rect = arc->rect.normalized();
+        PkPainterPath path;
+        path.arcMoveTo(rect, arc->startAngle16 / 16.0);
+        path.arcTo(rect, arc->startAngle16 / 16.0, arc->spanAngle16 / 16.0);
+        strokePath(path, m_state.pen);
+        return;
+    }
     if (const auto *line = std::get_if<PkDrawLineCommand>(&command)) {
         PkPainterPath path(line->line.p1());
         path.lineTo(line->line.p2());
