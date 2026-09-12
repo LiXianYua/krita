@@ -9,6 +9,7 @@
 
 #include <KoInteractionStrategy.h>
 #include <KoSvgTextShape.h>
+#include <PkScopedPointer.h>
 #include <pk/geometry/PkPoint.h>
 #include <pk/geometry/PkRect.h>
 
@@ -45,7 +46,7 @@ private:
     bool m_deltaCalc;
     Pk::KeyboardModifiers m_modifiers;
 
-    QScopedPointer<KUndo2Command> m_previousCmd;
+    PkScopedPointer<KUndo2Command> m_previousCmd;
     KoSvgTextShapeMementoSP m_textData;
 };
 
