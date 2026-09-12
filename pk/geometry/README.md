@@ -350,12 +350,18 @@ FAIL: pk/geometry/PkPainterPath.h 里有声明在 pk/geometry/oracle/painterpath
 一样）。跑完立刻还原：`git status --porcelain` 只剩 `pk/geometry/tests/run_tests.sh` 一处 M，
 注入是**瞬时**的。
 
-**代价（Step 1 实测墙钟，2026-09-12；本机 macOS 26 / Apple M4 / arm64）**：
-`oracle/run_oracle.sh` **冷**跑（含它自己的对拍编译）`real 159.89 / user 149.04`；
-`graft/graft_run.sh` 删掉 `graft/build` 后**冷**跑 `real 8.87 / user 6.50`。两条串进
-`run_tests.sh` 后，整脚本 `real 153.57 / user 147.26`（`run_oracle.sh` 的对拍编译走 ccache，
-所以整脚本不比它单独冷跑更慢）。**每次收尾多花的就是这两条的钱 —— 那是判据的正常价格；
-真嫌慢就把对拍做快，别把它从路径上摘掉。**
+**代价（R-63 修复轮 3 现场重测，2026-09-12；本机 macOS 26 / Apple M4 / arm64）**：
+接线**之前**的 `run_tests.sh`（`git show ab91ab3^:pk/geometry/tests/run_tests.sh` 写到同层级复现）
+`real 9.71 / user 6.73`、`DIFF total=` 只 **1** 次；接线**之后**整脚本 `real` 三次实测
+**150.27 / 153.57 / 165.84**（同机同 HEAD `ab91ab3` 的 run-to-run 波动）、`DIFF total=` **2** 次。
+**⇒ 每次收尾多花的就是这两条的钱，是接线前基线（~8–10 秒）的约 15–20 倍。**
+**钱花在哪（同一轮拆开实测）**：对拍的**编译** `real 5.73`（编译行逐字是
+`c++ -std=c++17 -O2 -fPIC -DQT_NO_DEBUG -I… -o … geometry_difftest.cpp`，**没有 launcher、
+没有 ccache**）、对拍的**运行**（用刚编好的二进制、不含编译）`real 128.46`、`graft` 删掉
+`graft/build` 后冷跑 `real 8.42 / user 6.50`。**瓶颈是那 155 626 254 次（≈1.56 亿）逐输入
+比对本身（~128 秒），不是构建（~6 秒）** —— 所以「真嫌慢就把对拍做快」的**着力点是比对
+本身**（输入集 / 循环开销），**不是**给它加 ccache（编译一共才 ~6 秒，比对占 ~128 秒）。
+**那是判据的正常价格，别把它从路径上摘掉。**
 
 **失败归因提示**：`graft_run.sh` 的被测源在 `libs/`（别线地盘）——`libs/global/tests` 的
 `KisRectsGridTest` 与 `libs/image/tests` 的 `KisFourPointInterpolatorTest`。**它红可能是
@@ -374,8 +380,9 @@ FAIL: pk/geometry/PkPainterPath.h 里有声明在 pk/geometry/oracle/painterpath
 **静默存在**（偏离 26）就是这条路径缺口的代价。R-63 把 `oracle/run_oracle.sh` 追加进
 `run_tests.sh` 末尾。**接线可证**：对 `PkPainterPath.h` 注入一条无 map 行的声明 →
 `run_tests.sh` 立刻 `exit=1`、输出出现闸门 ② 的 FAIL 并指名（原文见「判据②」一节末）。
-**代价**：`oracle/run_oracle.sh` 冷跑 `real 159.89s`（含对拍编译）—— 每次收尾多这
-~160 秒是判据的正常价格；真嫌慢就把对拍做快，别把它从路径上摘掉。
+**代价**：`oracle/run_oracle.sh` 冷跑 `real 133.06s`（含对拍编译 ~5.73 秒 + 那 155 626 254
+次比对 ~128.46 秒）—— 每次收尾多这 ~133 秒是判据的正常价格；真嫌慢就把对拍做快，别把它
+从路径上摘掉。
 
 现在它是机器对账的：对拍程序末尾多打一批 `APISEEN <name>` 行（不影响
 `DIFF`/`DIFFTAG` 的输出契约），`run_oracle.sh` 做三向核对 ——
