@@ -92,7 +92,10 @@ API_GROUPS=(
 # 棘轮的意义：现状只能往「覆盖更多」的方向动）。**不许因为「数对不上了」把它
 # 调大** —— 调大 = 承认一个新缺口，得在 README 里说明理由。
 # 顺序与 API_GROUPS **逐行对齐**（同一个索引指同一族）；解析器会校验两表等长。
-DASH_MAX=(0 0 0 0 0 0 0 0 0 0 56 0)
+# R-63 把 PkPainterPath.h 的 4 条平凡转发重载（addRect(qreal×4) / addEllipse(qreal×4) /
+# addEllipse(const PkPointF&,qreal,qreal) / arcTo(qreal×6)）补了 rec()，`-` 计数 56 → 52，
+# 上限按棘轮规则**手工下调**到 52（棘轮只能往"覆盖更多"的方向动）。
+DASH_MAX=(0 0 0 0 0 0 0 0 0 0 52 0)
 
 if [ "$UNAME_S" = "Darwin" ]; then
     QT_HDRS=("$QT/lib/QtCore.framework/Headers" "$QT/lib/QtGui.framework/Headers")

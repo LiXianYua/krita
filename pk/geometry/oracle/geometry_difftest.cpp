@@ -4862,6 +4862,45 @@ static void cmp_pp_entries()
                 [c](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), c.sa, c.sl); });
         }
     }
+
+    // ── R-63：四条**平凡转发重载**（规则三的覆盖面收口，不是新缺陷猎捕） ────────
+    // 这四个重载在 qpainterpath.h 与 PkPainterPath.h 里都是 inline 一行转发到
+    // **已被本对拍覆盖**的那个重载（真 Qt 原文：qpainterpath.h:311/333/338/343，
+    // R-63 现场从 $QT/lib/QtGui.framework/Headers/qpainterpath.h 读的）：
+    //   arcTo(qreal×6)                   → arcTo(QRectF(x,y,w,h), startAngle, sweepLength)
+    //   addRect(qreal×4)                 → addRect(QRectF(x,y,w,h))
+    //   addEllipse(qreal×4)              → addEllipse(QRectF(x,y,w,h))
+    //   addEllipse(const QPointF&,rx,ry) → addEllipse(QRectF(cx-rx, cy-ry, 2*rx, 2*ry))
+    // 所以它们各自的**唯一独有行为**就是那一次实参搬运 —— 被代理的重载本身
+    // 已有 7×4×2 的扫在守，这里不必再扫一遍。
+    //
+    // **输入刻意取"全分量互不相同 + center 非零 + rx≠ry"**：单一常量就能压出
+    // 顺序搬错（addRect(1,2,3,4) ↔ addRect(3,4,1,2)）、少乘 2、符号搬错
+    // （cx-rx ↔ cx+rx）这几类；全 0 或全相同的输入对这几类**没有判别力**。
+    // tag 用**输入形态**（tag 规则一）：`fwd-*` 说的是"这条 rec 压的是哪一条入口形态"，
+    // 与 `null-rect` / `degenerate-w` 同一类语义标签，不是兜底档。
+    {
+        // addRect(1,2,3,4)：四分量互不相同。
+        cmp_pp_entry("PP::addRect", "fwd-qreal4", "rect(1,2,3,4)",
+            [](QPainterPath &q) { q.addRect(1.0, 2.0, 3.0, 4.0); },
+            [](PkPainterPath &p) { p.addRect(1.0, 2.0, 3.0, 4.0); });
+        // addEllipse(1,2,3,4)：同上；**全仓零真实调用点**（仅 pk 自己的单测用），
+        // 按 spec 判据①「零用量留着并登记」不删，所以它照样要有自己的 rec()。
+        cmp_pp_entry("PP::addEllipse", "fwd-qreal4", "rect(1,2,3,4)",
+            [](QPainterPath &q) { q.addEllipse(1.0, 2.0, 3.0, 4.0); },
+            [](PkPainterPath &p) { p.addEllipse(1.0, 2.0, 3.0, 4.0); });
+        // addEllipse(center=(1,2), rx=3, ry=4)：center 非零 + rx≠ry ⇒ Qt 侧矩形是
+        // (-2,-2,6,8) —— 把 `2*rx` 的因子与 `center ± r` 的符号都钉住。
+        cmp_pp_entry("PP::addEllipse", "fwd-center-rx-ry", "center(1,2) rx(3) ry(4)",
+            [](QPainterPath &q) { q.addEllipse(QPointF(1.0, 2.0), 3.0, 4.0); },
+            [](PkPainterPath &p) { p.addEllipse(PkPointF(1.0, 2.0), 3.0, 4.0); });
+        // arcTo(1,2,3,4, 30, -90)：rect 四分量与两个角度都互不相同（startAngle 取
+        // 定义域内的 30，不是 0 —— 0 与 360 同余，会掩盖"把 startAngle 当 0 写死"
+        // 这类错误）。
+        cmp_pp_entry("PP::arcTo", "fwd-qreal6", "rect(1,2,3,4) startAngle(30) sweepLength(-90)",
+            [](QPainterPath &q) { q.arcTo(1.0, 2.0, 3.0, 4.0, 30.0, -90.0); },
+            [](PkPainterPath &p) { p.arcTo(1.0, 2.0, 3.0, 4.0, 30.0, -90.0); });
+    }
 }
 
 int main()

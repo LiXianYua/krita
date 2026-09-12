@@ -6,19 +6,19 @@
 # 判定规则：读 `geometry_difftest.cpp` 的 `PP::*` 段，看 rec() 的**实参类型**
 # 是否直接压到这一个重载。「A 转发到 B、B 有 rec」**不算**（规格规则三）。
 PkPainterPath::~PkPainterPath()	-
-PkPainterPath::addEllipse(const PkPointF&,qreal,qreal)	-
+PkPainterPath::addEllipse(const PkPointF&,qreal,qreal)	PP::addEllipse
 PkPainterPath::addEllipse(const PkRectF&)	PP::addEllipse
-PkPainterPath::addEllipse(qreal,qreal,qreal,qreal)	-
+PkPainterPath::addEllipse(qreal,qreal,qreal,qreal)	PP::addEllipse
 PkPainterPath::addPath(const PkPainterPath&)	-
 PkPainterPath::addPolygon(const PkPolygonF&)	-
 PkPainterPath::addRect(const PkRectF&)	PP::addRect
-PkPainterPath::addRect(qreal,qreal,qreal,qreal)	-
+PkPainterPath::addRect(qreal,qreal,qreal,qreal)	PP::addRect
 PkPainterPath::addRoundedRect(const PkRectF&,qreal,qreal,Pk::SizeMode)	-
 PkPainterPath::addRoundedRect(qreal,qreal,qreal,qreal,qreal,qreal,Pk::SizeMode)	-
 PkPainterPath::angleAtPercent(qreal)	-
 PkPainterPath::arcMoveTo(const PkRectF&,qreal)	PP::arcMoveTo
 PkPainterPath::arcTo(const PkRectF&,qreal,qreal)	PP::arcTo
-PkPainterPath::arcTo(qreal,qreal,qreal,qreal,qreal,qreal)	-
+PkPainterPath::arcTo(qreal,qreal,qreal,qreal,qreal,qreal)	PP::arcTo
 PkPainterPath::boundingRect()	-
 PkPainterPath::clear()	-
 PkPainterPath::closeSubpath()	-
