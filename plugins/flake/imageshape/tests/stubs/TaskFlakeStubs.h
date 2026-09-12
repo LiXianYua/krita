@@ -19,7 +19,11 @@
 #include <PkTransform.h>
 #include <PkVariant.h>
 #include <PkXmlElement.h>
-#include <PkPainter.h>
+// R-74：**只前置声明**，不 include <PkPainter.h>——本 stub 目录被两个 target 共用
+// （`plugins/flake/imageshape/tests` 与 `plugins/flake/pathshapes/tests`），后者的
+// include 面里没有 `pk/render`。paint() 只把 PkPainter 当引用用（体内 `(void)painter;`），
+// 声明足够；ImageShape.h/cpp 自己要完整类型，由它们自己 include。
+class PkPainter;
 
 #include <algorithm>
 #include <cmath>
