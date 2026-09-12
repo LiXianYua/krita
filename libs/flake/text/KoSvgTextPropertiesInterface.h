@@ -6,7 +6,6 @@
 #ifndef KOSVGTEXTPROPERTIESINTERFACE_H
 #define KOSVGTEXTPROPERTIESINTERFACE_H
 
-#include <QObject>
 #include <PkObject.h>
 #include <KoSvgTextProperties.h>
 #include <kritaflake_export.h>
@@ -16,11 +15,18 @@
  *
  * This is an interface that can be used by tools to communicate
  * with the KisTextPropertiesManager.
+ *
+ * D-B（2026-09-12）：本类是裁决 D-B 的**第四个实例**（前三个：KoToolSelection /
+ * KoToolProxy / KoPathToolSelection，R-57 已剥）。此前它是**无条件双身份**
+ * `public QObject, public PkObject`——QObject 那一半（宿主对象树 / QPointer /
+ * 事件循环 / 元对象）本次被移除，投递只剩 Pk 一条
+ * （`activateSignal<PkMemberFnKey>`，与 QObject 无关），于是这里只剩
+ * `public PkObject`，布局与 mangled 拼法全树统一。
  */
-class KRITAFLAKE_EXPORT KoSvgTextPropertiesInterface : public QObject, public PkObject
+class KRITAFLAKE_EXPORT KoSvgTextPropertiesInterface : public PkObject
 {
 public:
-    explicit KoSvgTextPropertiesInterface(QObject *parent = nullptr): QObject(parent){}
+    explicit KoSvgTextPropertiesInterface(PkObject *parent = nullptr): PkObject(parent){}
 
     /**
      * @brief getSelectedProperties

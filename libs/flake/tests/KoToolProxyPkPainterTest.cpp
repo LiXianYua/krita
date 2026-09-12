@@ -384,8 +384,10 @@ static_assert(!std::is_base_of_v<QObject, KoToolSelection>);
 static_assert(std::is_base_of_v<PkObject, KoToolSelection>);
 static_assert(!std::is_base_of_v<QObject, KoToolProxy>);
 static_assert(std::is_base_of_v<PkObject, KoToolProxy>);
-static_assert(std::is_same_v<decltype(&KoSvgTextPropertiesInterface::qt_metacall),
-                            decltype(&QObject::qt_metacall)>);
+// D-B 的第四个实例（R-66，2026-09-12）：KoSvgTextPropertiesInterface 的 Qt-QObject
+// 身份也按同一条裁决剥掉了——与上面四个类同形。
+static_assert(!std::is_base_of_v<QObject, KoSvgTextPropertiesInterface>);
+static_assert(std::is_base_of_v<PkObject, KoSvgTextPropertiesInterface>);
 }
 
 class KoToolProxyPkPainterTest : public QObject
