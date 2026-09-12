@@ -134,7 +134,9 @@ int main(int argc, char **argv)
         ::unsetenv("EXTRA_RESOURCE_DIRS");
     }
 
-    // 2. 注册 lcms 引擎——不注册则 p709SRGBProfile() 恒 nullptr，区分不出条件。
+    // 2. 注册 lcms 引擎——elle 剖面（p709SRGBProfile() 的来源）由它从资源目录载入；
+    //    不注册则 p709SRGBProfile() 取不到（**读码所得、未经探针实测**：本 driver 与所有
+    //    探针都先注册引擎，从未喂过「未注册引擎」这一条件），区分不出本 driver 要区分的条件。
     registerLcmsEngine();
 
     // 3. 打印前提（实测值，不猜）。
@@ -250,12 +252,14 @@ int main(int argc, char **argv)
         }
     }
 
-    // 4b. 补充证据：路径查询 API 的**实际返回**。本环境的 elle 剖面（p709SRGBProfile()
-    //     的来源）根本不存在——CI 前缀下实测一个 .icc 都没有——所以 p709 形状的三元组
-    //     永远查不到节点，上面那条分支拿不到非空路径查询结果。为仍把 existsPath /
-    //     existsGoodPath 的**实际返回**落进证据（而非「不猜」），这里用本环境实际存在的
-    //     默认剖面名喂**同样的调用形状**。明确标注：这不是 p709 调用点，只是同一 API 的
-    //     真实返回记录。
+    // 4b. 补充证据：路径查询 API 的**实际返回**。**默认条件**（`unsetenv("EXTRA_RESOURCE_DIRS")`
+    //     后）下，elle 剖面（p709SRGBProfile() 的来源）取不到（`p709SRGBProfile()==nullptr`），
+    //     故 p709 形状的三元组在**该条件**下查不到节点，上面那条分支拿不到非空路径查询结果。
+    //     （本 driver 的 `--keep-resource-dirs` 对照组下 elle 剖面存在、该三元组会真的被查，
+    //     见上方 `CHECKED-BRANCH premise holds` 那一段。）
+    //     为在**默认条件**下也能把 existsPath / existsGoodPath 的**实际返回**落进证据
+    //     （而非「不猜」），这里用该条件下实际存在的默认剖面名喂**同样的调用形状**。
+    //     明确标注：这不是 p709 调用点，只是同一 API 在默认条件下的真实返回记录。
     const KoColorSpace *graya8 = KoColorSpaceRegistry::instance()->graya8();
     if (rgb8 && graya8 && rgb8->profile() && graya8->profile()) {
         const PkString srcModel = RGBAColorModelID.id();

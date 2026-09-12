@@ -251,7 +251,9 @@ int main(int argc, char **argv)
         ::unsetenv("EXTRA_RESOURCE_DIRS");
     }
 
-    // 2. 注册 lcms 引擎——不注册则 p709SRGBProfile() 恒为 nullptr，区分不出条件。
+    // 2. 注册 lcms 引擎——elle 剖面（p709SRGBProfile() 的来源）由它从资源目录载入；
+    //    不注册则 p709SRGBProfile() 取不到（**读码所得、未经探针实测**：本用例与所有探针
+    //    都先注册引擎，从未喂过「未注册引擎」这一条件），区分不出本用例要区分的条件。
     registerLcmsEngine();
 
     // 3. 打印前提值：判据要的是「可观测的前提」，不是「假定的前提」。

@@ -575,9 +575,16 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
 
     // According to the standard, the ICC profile must be written first.
     if (cfg->getBool("save_profile", true)) {
-        // R-61 裁决 A：p709SRGBProfile() 可返空（宿主未配 EXTRA_RESOURCE_DIRS /
-        // 未注册色彩引擎；R-59 裁决 A 的契约不变），此处原本是裸解引用 —— 无资源
-        // 环境下当场 SIGSEGV（R-61 T1 修前的崩溃帧，kis_webp_export.cpp:579）。
+        // R-61 裁决 A：p709SRGBProfile() 可返空（**输入集合 = 宿主未配 EXTRA_RESOURCE_DIRS
+        // 且色彩引擎已注册**；R-59 裁决 A 的契约），此处原本是裸解引用 —— 该条件下当场
+        // SIGSEGV（R-61 T1 修前的崩溃帧，kis_webp_export.cpp:579）。
+        //
+        // ⚠「未注册色彩引擎」**不在本判据的输入集合内**：探针（R-59 F2 / R-61 T1 的常驻
+        //   载体）只喂过「未设 EXTRA_RESOURCE_DIRS、色彩引擎已注册」这一个条件，从未喂过
+        //   它。本处不对「未注册色彩引擎」作任何保证。且按读码，那种条件下会**更早**在
+        //   KoColorSpace::convertToQImage → convertPixelsTo 里因目标色彩空间为空而崩
+        //   （convertToQImage 内的 rgb8(dstProfile) 在无引擎时取到 null），**根本走不到本行**。
+        //   ——此段为**读码所得、未经探针实测**，不是实测结论。
         //
         // ① 为什么不用 image->profile() 兜底：needSrgbConversion 为真时像素**已经
         //    被转换过**。:395/:526 的 convertToQImage(imageProfile = p709SRGBProfile(),
@@ -589,8 +596,9 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
         //    那个空间」的剖面（rgb8(nullptr)->profile()->rawData()）。既不是凭空造值，
         //    也不是把 ICC 整块删掉；R-59 裁决 B「判空 ≠ 把问题藏起来」的同款检验由
         //    常驻载体 plugins/impex/webp/tests/KisWebPExportNoResourceDirsTest.cpp 钉住。
-        // ③ R-59 裁决 C 的契约：本线不免除宿主配资源目录 / 注册色彩引擎的义务，只保证
-        //    违约时**不崩**、且有定义输出。
+        // ③ R-59 裁决 C 的契约：本线不免除宿主配资源目录的义务；**在上述输入集合内**
+        //    （未配 EXTRA_RESOURCE_DIRS、色彩引擎已注册），只保证违约时**不崩**、且有定义
+        //    输出。「未注册色彩引擎」不在该集合内，本处不对它作任何保证（见开头 ⚠）。
         const KoColorProfile *srgbProfile = needSrgbConversion
             ? KoColorSpaceRegistry::instance()->p709SRGBProfile() : nullptr;
         const PkByteArray profile = needSrgbConversion
