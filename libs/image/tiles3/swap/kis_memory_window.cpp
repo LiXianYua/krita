@@ -46,6 +46,39 @@ bool ensureDirExists(const std::string &path)
     return ::stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
 }
 
+/**
+ * The granularity ::mmap() can start a mapping at. POSIX requires the file
+ * offset handed to ::mmap() to be a multiple of it -- any other offset fails
+ * with EINVAL -- and the kernel rounds the length up to a whole number of
+ * pages, so a mapping is only fully unmappable if both ends are aligned.
+ *
+ * Qt's QFile::map() did this adjustment for the caller and returned a pointer
+ * that already had the delta folded in; Krita never contained the logic itself.
+ * Since the file mapping here is a raw ::mmap() (no Qt file engine left), the
+ * adjustment has to happen in this file -- otherwise every chunk whose byte
+ * offset is not page aligned makes mapFile() fail, and the swap store hands a
+ * null pointer to the tile decompressor.
+ */
+PkTilesQuint64 mappingPageSize()
+{
+    static const PkTilesQuint64 size = []() {
+        const long result = ::sysconf(_SC_PAGESIZE);
+        return result > 0 ? static_cast<PkTilesQuint64>(result) : PkTilesQuint64(4096);
+    }();
+    return size;
+}
+
+inline PkTilesQuint64 alignDown(PkTilesQuint64 value, PkTilesQuint64 alignment)
+{
+    return value - (value % alignment);
+}
+
+inline PkTilesQuint64 alignUp(PkTilesQuint64 value, PkTilesQuint64 alignment)
+{
+    const PkTilesQuint64 remainder = value % alignment;
+    return remainder ? value + (alignment - remainder) : value;
+}
+
 } // namespace
 
 KisMemoryWindow::KisMemoryWindow(const PkString &swapDir, PkTilesQuint64 writeWindowSize)
@@ -171,7 +204,25 @@ bool KisMemoryWindow::adjustWindow(const KisChunkData &requestedChunk,
             windowSize = requestedChunk.size();
         }
 
-        adjustingWindow->chunk.setChunk(requestedChunk.m_begin, windowSize);
+        /**
+         * Round the window out to whole pages before it is mapped. The
+         * requested chunk itself is an arbitrary byte range (the chunk
+         * allocator works in bytes), while ::mmap() only accepts a page
+         * aligned file offset -- so mapping straight at
+         * requestedChunk.m_begin fails with EINVAL on every chunk that does
+         * not happen to be aligned, which is almost all of them.
+         *
+         * `chunk` stays exactly the mapped interval, so calculatePointer()
+         * keeps working for any offset inside the window, and unmapFile()
+         * later gets back an aligned base and a whole number of pages.
+         * The end is rounded *up* so the requested chunk stays fully covered
+         * (windowEnd >= m_begin + windowSize >= requestedChunk.m_end + 1).
+         */
+        const PkTilesQuint64 pageSize = mappingPageSize();
+        const PkTilesQuint64 windowBegin = alignDown(requestedChunk.m_begin, pageSize);
+        const PkTilesQuint64 windowEnd = alignUp(requestedChunk.m_begin + windowSize, pageSize);
+
+        adjustingWindow->chunk.setChunk(windowBegin, windowEnd - windowBegin);
 
         if(adjustingWindow->chunk.m_end >= fileSize()) {
             // Align by 32 bytes
