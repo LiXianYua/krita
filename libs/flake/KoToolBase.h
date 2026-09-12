@@ -41,7 +41,6 @@ class PkString;
 class PkRectF;
 class PkPointF;
 class QTouchEvent;
-class QMenu;
 
 struct KRITAFLAKE_EXPORT PkToolPointerEventData
 {
@@ -398,14 +397,7 @@ public:
     virtual void dropEvent(PkToolEvent *event, const PkPointF &point);
 
     /**
-     * @return a menu with context-aware actions for the current selection. If
-     *         the returned value is null, no context menu is shown.
-     */
-    virtual QMenu* popupActionsMenu() {return nullptr;}
-
-    /**
      * @return a widget with useful controls to be popped up on top of the canvas.
-     *         Will not be called if `popupActionsMenu()` does not return null.
      */
     virtual KisPopupWidgetInterface* popupWidget() {return nullptr;}
 

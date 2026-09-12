@@ -754,6 +754,12 @@ private:
 
 
 
+// Color 桥的 Qt-free 恒等版。Qt-free 下 PK_QCOLOR_ 已宏映射到 PkColor，真 Qt 分支那对
+// 「按分量互转 + 恒等」塌成一个恒等形态。原生调用点实测一个：
+// `tools/KoCreatePathTool.cpp` 的 `toPkColor(...foregroundColor().toQColor())`——
+// `KoColor::toQColor()` 在原生 TU 里已经返回 PkColor（见本文件 toPkByteArray 那句注）。
+inline PkColor toPkColor(const PkColor &c) { return c; }
+
 inline PkTransform toPkTransform(const PkTransform &t) { return t; }
 
 

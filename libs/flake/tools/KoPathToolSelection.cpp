@@ -61,7 +61,7 @@ void KoPathToolSelection::paint(PkPainter &painter, const KoViewConverter &conve
             KoShape::createHandlePainterHelperView(&painter, it.key(), converter, handleRadius, decorationThickness);
         helper.setHandleStyle(KisHandleStyle::selectedPrimaryHandles());
 
-        Q_FOREACH (KoPathPoint *p, it.value()) {
+        for (KoPathPoint *p : it.value()) {
             p->paint(helper, KoPathPoint::All);
         }
     }
@@ -121,11 +121,11 @@ void KoPathToolSelection::selectPoints(const PkRectF &rect, bool clearSelection)
         clear();
     }
 
-    Q_FOREACH (KoPathShape* shape, m_selectedShapes) {
+    for (KoPathShape* shape : m_selectedShapes) {
         KoParameterShape *parameterShape = dynamic_cast<KoParameterShape*>(shape);
         if (parameterShape && parameterShape->isParametricShape())
             continue;
-        Q_FOREACH (KoPathPoint* point, shape->pointsAt(shape->documentToShape(rect)))
+        for (KoPathPoint* point : shape->pointsAt(shape->documentToShape(rect)))
             add(point, false);
     }
     selectionChanged();
@@ -135,11 +135,11 @@ void KoPathToolSelection::selectPoints(const PkRectF &rect, bool clearSelection)
 void KoPathToolSelection::selectAll()
 {
     beginSelectionUpdate();
-    Q_FOREACH (KoPathShape* shape, m_selectedShapes) {
+    for (KoPathShape* shape : m_selectedShapes) {
         KoParameterShape *parameterShape = dynamic_cast<KoParameterShape*>(shape);
         if (parameterShape && parameterShape->isParametricShape())
             continue;
-        Q_FOREACH (KoPathPoint* point, shape->pointsAt(shape->outlineRect().adjusted(-2, -2, 2, 2)))
+        for (KoPathPoint* point : shape->pointsAt(shape->outlineRect().adjusted(-2, -2, 2, 2)))
             add(point, false);
     }
     selectionChanged();
@@ -169,7 +169,7 @@ const PkSet<KoPathPoint *> & KoPathToolSelection::selectedPoints() const
 PkList<KoPathPointData> KoPathToolSelection::selectedPointsData() const
 {
     PkList<KoPathPointData> pointData;
-    Q_FOREACH (KoPathPoint* p, m_selectedPoints) {
+    for (KoPathPoint* p : m_selectedPoints) {
         KoPathShape * pathShape = p->parent();
         pointData.append(KoPathPointData(pathShape, pathShape->pathPointIndex(p)));
     }
@@ -216,13 +216,13 @@ PkList<KoPathShape*> KoPathToolSelection::selectedShapes() const
 
 void KoPathToolSelection::setSelectedShapes(const PkList<KoPathShape*> shapes)
 {
-    Q_FOREACH(KoPathShape *shape, m_selectedShapes) {
+    for (KoPathShape *shape : m_selectedShapes) {
         shape->removeShapeChangeListener(this);
     }
 
     m_selectedShapes = shapes;
 
-    Q_FOREACH(KoPathShape *shape, m_selectedShapes) {
+    for (KoPathShape *shape : m_selectedShapes) {
         shape->addShapeChangeListener(this);
     }
 }
@@ -270,11 +270,11 @@ void KoPathToolSelection::recommendPointSelectionChange(KoPathShape *shape, cons
 {
     PkSet<KoPathPoint*> selectedShapePoints = m_shapePointMap.value(shape, PkSet<KoPathPoint*>());
 
-    Q_FOREACH (KoPathPoint *point, selectedShapePoints) {
+    for (KoPathPoint *point : selectedShapePoints) {
         remove(point);
     }
 
-    Q_FOREACH (const KoPathPointIndex &index, newSelection) {
+    for (const KoPathPointIndex &index : newSelection) {
         KoPathPoint *point = shape->pointByIndex(index);
         KIS_SAFE_ASSERT_RECOVER(point) { continue; }
 
@@ -288,7 +288,7 @@ void KoPathToolSelection::notifyPathPointsChanged(KoPathShape *shape)
 {
     PkSet<KoPathPoint*> selectedShapePoints = m_shapePointMap.value(shape, PkSet<KoPathPoint*>());
 
-    Q_FOREACH (KoPathPoint *point, selectedShapePoints) {
+    for (KoPathPoint *point : selectedShapePoints) {
         m_selectedPoints.remove(point);
     }
     m_shapePointMap.remove(shape);
@@ -307,7 +307,7 @@ void KoPathToolSelection::notifyShapeChanged(KoShape::ChangeType type, KoShape *
         if (KoPathShape *pathShape = static_cast<KoPathShape*>(shape)) {
 
             PkSet<KoPathPoint*> selectedShapePoints = m_shapePointMap.value(pathShape, PkSet<KoPathPoint*>());
-            Q_FOREACH (KoPathPoint *point, selectedShapePoints) {
+            for (KoPathPoint *point : selectedShapePoints) {
                 m_selectedPoints.remove(point);
             }
             m_shapePointMap.remove(pathShape);

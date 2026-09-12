@@ -246,7 +246,7 @@ public:
         uint grabSensitivity = q->grabSensitivity();
         qreal maxDistance = q->canvas()->viewConverter()->viewToDocumentX(grabSensitivity);
 
-        Q_FOREACH(KoShape * s, shapes) {
+        for (KoShape *s : shapes) {
             KoPathShape * path = dynamic_cast<KoPathShape*>(s);
             if (!path)
                 continue;
@@ -426,7 +426,7 @@ public:
     void angleSnapChanged(int angleSnap) {
         angleSnapStatus = ! angleSnapStatus;
         if (angleSnapStrategy) {
-            if (angleSnap == Qt::Checked)
+            if (angleSnap == Pk::Checked)
                 angleSnapStrategy->activate();
             else
                 angleSnapStrategy->deactivate();

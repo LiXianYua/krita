@@ -33,7 +33,7 @@ void KoInteractionTool::paint(PkPainter &painter, const KoViewConverter &convert
     if (d->currentStrategy) {
         d->currentStrategy->paint(painter, converter);
     } else {
-        Q_FOREACH (KoInteractionStrategyFactorySP factory, d->interactionFactories) {
+        for (KoInteractionStrategyFactorySP factory : d->interactionFactories) {
             // skip the rest of rendering if the factory asks for it
             if (factory->paintOnHover(painter, converter)) break;
         }
@@ -61,7 +61,7 @@ void KoInteractionTool::mouseMoveEvent(KoPointerEvent *event)
         d->currentStrategy->handleMouseMove(
             d->lastPoint, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     } else {
-        Q_FOREACH (KoInteractionStrategyFactorySP factory, d->interactionFactories) {
+        for (KoInteractionStrategyFactorySP factory : d->interactionFactories) {
             // skip the rest of rendering if the factory asks for it
             if (factory->hoverEvent(event)) return;
         }
@@ -140,7 +140,7 @@ KoInteractionStrategy *KoInteractionTool::createStrategyBase(KoPointerEvent *eve
 {
     auto * const d = d_func();
 
-    Q_FOREACH (KoInteractionStrategyFactorySP factory, d->interactionFactories) {
+    for (KoInteractionStrategyFactorySP factory : d->interactionFactories) {
         KoInteractionStrategy *strategy = factory->createStrategy(event);
         if (strategy) {
             return strategy;
@@ -154,7 +154,7 @@ void KoInteractionTool::addInteractionFactory(KoInteractionStrategyFactory *fact
 {
     auto * const d = d_func();
 
-    Q_FOREACH (auto f, d->interactionFactories) {
+    for (auto f : d->interactionFactories) {
         KIS_SAFE_ASSERT_RECOVER_RETURN(f->id() != factory->id());
     }
 
@@ -183,7 +183,7 @@ bool KoInteractionTool::hasInteractionFactory(const PkString &id)
 {
     auto * const d = d_func();
 
-    Q_FOREACH (auto f, d->interactionFactories) {
+    for (auto f : d->interactionFactories) {
         if (f->id() == id) {
             return true;
         }
@@ -196,7 +196,7 @@ bool KoInteractionTool::tryUseCustomCursor()
 {
     auto * const d = d_func();
 
-    Q_FOREACH (auto f, d->interactionFactories) {
+    for (auto f : d->interactionFactories) {
         if (f->tryUseCustomCursor()) {
             return true;
         }

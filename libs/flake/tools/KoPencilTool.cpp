@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
+#include <QtGlobal>   // native 桶：解析到 pk/global 的垫片（<QtCore/QtCore> 是 qt 桶的 umbrella）
 #include <PkFlakeBridge.h>
 #include <PkSharedConfig.h>
 #include <PkPointer.h>
@@ -117,7 +117,7 @@ void KoPencilTool::mousePressEvent(KoPointerEvent *event)
 
 void KoPencilTool::mouseMoveEvent(KoPointerEvent *event)
 {
-    if (event->buttons() & Qt::LeftButton)
+    if (event->buttons() & Pk::LeftButton)
         addPoint(event->point);
 
     KoPathPoint * endPoint = endPointAtPosition(event->point);
@@ -145,7 +145,7 @@ void KoPencilTool::mouseReleaseEvent(KoPointerEvent *event)
         point = m_existingEndPoint->parent()->shapeToDocument(m_existingEndPoint->point());
 
     addPoint(point);
-    finish(event->modifiers() & Qt::ShiftModifier);
+    finish(event->modifiers() & Pk::ShiftModifier);
 
     m_existingStartPoint = 0;
     m_existingEndPoint = 0;
@@ -340,11 +340,11 @@ void KoPencilTool::selectMode(int mode)
 void KoPencilTool::setOptimize(int state)
 {
     if (m_mode == ModeRaw) {
-        m_optimizeRaw = state == Qt::Checked ? true : false;
+        m_optimizeRaw = state == Pk::Checked ? true : false;
         m_configGroup.writeEntry("optimizeRaw", m_optimizeRaw);
     }
     else {
-        m_optimizeCurve = state == Qt::Checked ? true : false;
+        m_optimizeCurve = state == Pk::Checked ? true : false;
         m_configGroup.writeEntry("optimizeCurve", m_optimizeCurve);
     }
 }
@@ -392,7 +392,7 @@ KoPathPoint* KoPencilTool::endPointAtPosition(const PkPointF &position)
     qreal minDistance = HUGE_VAL;
     qreal maxDistance = canvas()->viewConverter()->viewToDocumentX(grabSensitivity());
 
-    Q_FOREACH(KoShape * shape, shapes) {
+    for (KoShape * shape : shapes) {
         KoPathShape * path = dynamic_cast<KoPathShape*>(shape);
         if (!path)
             continue;

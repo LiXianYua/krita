@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
+#include <QtGlobal>   // native 桶：解析到 pk/global 的垫片（<QtCore/QtCore> 是 qt 桶的 umbrella）
 #include <PkFlakeBridge.h>
 #include "KoCreatePathTool.h"
 #include "KoCreatePathTool_p.h"
@@ -151,7 +151,7 @@ void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)
     }
 
     //Right click removes last point
-    if (event->button() == Qt::RightButton) {
+    if (event->button() == Pk::RightButton) {
         removeLastPoint();
         return;
     }
@@ -162,9 +162,9 @@ void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)
     const bool haveCloseModifier = d->enableClosePathShortcut
             && d->shape
             && d->shape->pointCount() > 2
-            && (event->modifiers() & Qt::ShiftModifier);
+            && (event->modifiers() & Pk::ShiftModifier);
 
-    if ((event->button() == Qt::LeftButton) && haveCloseModifier && !isOverFirstPoint) {
+    if ((event->button() == Pk::LeftButton) && haveCloseModifier && !isOverFirstPoint) {
         endPathWithoutLastPoint();
         return;
     }
@@ -296,7 +296,7 @@ void KoCreatePathTool::handleMouseMove(const KoPointerEvent *event, bool conside
     PkPointF snappedPosition = canvas()->snapGuide()->snap(
         event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
 
-    if (considerDrag && (event->buttons() & Qt::LeftButton)) {
+    if (considerDrag && (event->buttons() & Pk::LeftButton)) {
         if (d->pointIsDragged ||
             !handleGrabRect(d->dragStartPoint).contains(event->point)) {
 
@@ -304,7 +304,7 @@ void KoCreatePathTool::handleMouseMove(const KoPointerEvent *event, bool conside
             PkPointF offset = snappedPosition - d->activePoint->point();
             d->activePoint->setControlPoint2(d->activePoint->point() + offset);
             // pressing <alt> stops controls points moving symmetrically
-            if ((event->modifiers() & Qt::AltModifier) == 0) {
+            if ((event->modifiers() & Pk::AltModifier) == 0) {
                 d->activePoint->setControlPoint1(d->activePoint->point() - offset);
             }
         }
@@ -351,7 +351,7 @@ void KoCreatePathTool::mouseReleaseEvent(KoPointerEvent *event)
 {
     Q_D(KoCreatePathTool);
 
-    if (! d->shape || (event->buttons() & Qt::RightButton)) return;
+    if (! d->shape || (event->buttons() & Pk::RightButton)) return;
 
     d->prevPointWasDragged  = d->pointIsDragged;
     d->pointIsDragged = false;

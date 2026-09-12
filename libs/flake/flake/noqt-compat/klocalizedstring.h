@@ -20,3 +20,13 @@ inline PkString i18n(const char *, Args &&...)
 {
     return PkString();
 }
+
+/// 带上下文的兄弟形态。原生侧的使用面是 `KoPathTool.cpp` 的两条状态文本
+/// （`i18nc("%1 is a shortcut to be pressed", "Press %1 to …", <shortcut>)`）。
+/// 与 `i18n` 同款：只要求签名可编译、返回值可参与 `toPkString(...)`，
+/// 不追求 KDE `%1` 占位符替换的真实行为。
+template <typename... Args>
+inline PkString i18nc(const char *, const char *, Args &&...)
+{
+    return PkString();
+}

@@ -36,7 +36,6 @@ class PkToolKeyEvent;
 class PkToolInputMethodEvent;
 class PkPainter;
 class PkPointF;
-class QMenu;
 class KisPopupWidgetInterface;
 
 enum class KoPointerInputSource {
@@ -119,9 +118,6 @@ public:
 
     /// Forwarded to the current KoToolBase
     void focusOutEvent(PkToolEvent &event);
-
-    /// Forwarded to the current KoToolBase
-    QMenu* popupActionsMenu();
 
     /// Forwarded to the current KoToolBase
     KisPopupWidgetInterface* popupWidget();

@@ -204,6 +204,21 @@ public:
 #endif
 
     /**
+     * 宿主动作集合的**桶无关**句柄（R-57 新增）。
+     *
+     * 与上面的 `actionCollection()` **名字不同，这不是风格问题**：返回值不进 mangled
+     * name，同名同拼法的两条 inline 定义会被链接器去重成一份，qt 桶的调用点就会拿到
+     * native 桶的取法——那正是 S线-spec「静默缝」一节里 2026-09-10 裁定要关掉的那条缝。
+     * 换个名字 + 一个**两桶不分叉**的类型（`PkObject *` 在 qt 桶与 native 桶是同一个
+     * 类型）就没有这条缝：本函数两桶逐字相同，去重后语义也相同。
+     *
+     * native 桶的消费方（`libs/flake/tools/KoPathTool.cpp`）用它取回宿主动作集合，
+     * 再按 `objectName` 找回动作对象。集合对象由宿主在 native 侧以 `PkObject` 交给
+     * ctor（见 `m_hostActionCollection`）；qt 桶的调用点继续用上面那条 `QObject *` 版本。
+     */
+    PkObject *actionCollectionObject() const { return static_cast<PkObject *>(m_hostActionCollection); }
+
+    /**
      * 宿主动作集合的桶无关回报（KoCanvasActionHost）。
      *
      * 管理器（KoToolManager）不再认识 QAction：它拿到的是 identity + 已编码的

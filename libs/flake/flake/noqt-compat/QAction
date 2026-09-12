@@ -77,6 +77,18 @@ public:
 
     int operator[](int index) const { return m_chords[static_cast<std::size_t>(index)]; }
 
+    /**
+     * 首个和弦。与类内已有的 `count()`/`operator[]` 是同一条面的单数读法，
+     * 与 `PK_QACTION_::setShortcut(int)` 的单数写法对偶。无和弦时返回零值
+     * （`isEmpty()` 为真）——与真 Qt 的 `shortcut()` 在空序列上「返回空
+     * QKeySequence」同义。`KoPathTool.cpp` 的状态文本是唯一读者
+     * （`m_actionBreakSelection->shortcut().toString()`）。
+     */
+    PK_QKEYSEQUENCE_ shortcut() const
+    {
+        return m_chords.empty() ? PK_QKEYSEQUENCE_() : PK_QKEYSEQUENCE_(m_chords.front());
+    }
+
 private:
     PkString m_text;
     std::vector<int> m_chords;
@@ -136,6 +148,12 @@ public:
      * 所以原生桶里它为默认（空）——`fromHostAction()` 因此产出零条冲突记录，这正是
      * 「无宿主 UI 的原生内核里不存在快捷键冲突」的语义。
      */
+    /** 首个快捷键和弦；无快捷键时返回零值。与 `setShortcut(int)` 是同一条面的两半。 */
+    PK_QKEYSEQUENCE_ shortcut() const
+    {
+        return m_shortcuts.isEmpty() ? PK_QKEYSEQUENCE_() : m_shortcuts.first();
+    }
+
     PkList<PK_QKEYSEQUENCE_> shortcuts() const { return m_shortcuts; }
 
     void setShortcuts(const PkList<PK_QKEYSEQUENCE_> &shortcuts) { m_shortcuts = shortcuts; }

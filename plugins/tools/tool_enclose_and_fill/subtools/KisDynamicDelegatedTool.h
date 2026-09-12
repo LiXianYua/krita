@@ -90,8 +90,7 @@ class KisDynamicDelegatedTool : public BaseClass
 public:
     using DelegateType = KisDynamicDelegateTool<BaseClass>;
 
-    using CursorType = QCursor;
-    using PopupMenu = typename KisDynamicMethodTraits<decltype(&BaseClass::popupActionsMenu)>::ReturnType;
+    using CursorType = KisCanvasCursorToken;
 
     explicit KisDynamicDelegatedTool(KoCanvasBase *canvas)
         : BaseClass(canvas, CursorType())
@@ -192,12 +191,6 @@ public:
     void explicitUserStrokeEndRequest() override
     {
         if (m_delegateTool) m_delegateTool->explicitUserStrokeEndRequest();
-    }
-
-    PopupMenu popupActionsMenu() override
-    {
-        if (m_delegateTool) return m_delegateTool->popupActionsMenu();
-        return nullptr;
     }
 
     KisPopupWidgetInterface* popupWidget() override

@@ -437,11 +437,6 @@ void KoToolProxy::focusOutEvent(PkToolEvent &event)
     d->activeTool->focusOutEvent(&event);
 }
 
-QMenu *KoToolProxy::popupActionsMenu()
-{
-    return d->activeTool ? d->activeTool->popupActionsMenu() : 0;
-}
-
 KisPopupWidgetInterface* KoToolProxy::popupWidget()
 {
     return d->activeTool ? d->activeTool->popupWidget() : nullptr;

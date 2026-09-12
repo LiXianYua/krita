@@ -538,7 +538,13 @@ target_link_libraries(kritaflake_painting_objects PRIVATE Eigen3::Eigen kritafla
 
 kritaflake_add_native_object_library(kritaflake_commands_objects ${kritaflake_commands_SRCS})
 kritaflake_add_native_object_library(kritaflake_html_objects ${kritaflake_html_SRCS})
-kritaflake_add_object_library(kritaflake_tools_objects ${kritaflake_tools_SRCS})
+# R-57：`tools/` 整组转 native。三个真 Qt 消费者（`KoPathTool.cpp` 的 QAction/QMenu、
+# `KoZoomTool.cpp` 的 QPixmap、`KoPathToolFactory.cpp` 的 KLocalizedString）按 spec
+# 「宿主 GUI 面按三分法处置」处置完（UI 删 / 非 UI 换 Pk / 无等价物走 flake 自有的
+# `flake/noqt-compat/` 垫片），组里不再有真 Qt 引用，于是与其余对象库同桶。
+# 转 native 同时让 `#include <QAction>` / `<klocalizedstring.h>` 解析到 flake 自有的
+# 垫片——这正是 `KoToolFactoryBase.cpp` 已经在本桶里使用的形态。
+kritaflake_add_native_object_library(kritaflake_tools_objects ${kritaflake_tools_SRCS})
 kritaflake_add_native_object_library(kritaflake_svg_objects ${kritaflake_svg_SRCS})
 target_link_libraries(kritaflake_svg_objects PRIVATE kritaflake_imagecodec)
 kritaflake_add_native_object_library(kritaflake_text_objects ${kritaflake_text_SRCS})

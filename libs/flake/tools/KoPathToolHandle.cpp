@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
+#include <QtGlobal>   // native 桶：解析到 pk/global 的垫片（<QtCore/QtCore> 是 qt 桶的 umbrella）
 #include <PkFlakeBridge.h>
 #include "KoPathToolHandle.h"
 #include "KoPathTool.h"
@@ -85,14 +85,14 @@ PkRectF PointHandle::boundingRect() const
 
 KoInteractionStrategy * PointHandle::handleMousePress(KoPointerEvent *event)
 {
-    if ((event->button() & Qt::LeftButton) == 0)
+    if ((event->button() & Pk::LeftButton) == 0)
         return 0;
-    if ((event->modifiers() & Qt::ControlModifier) == 0) { // no shift pressed.
+    if ((event->modifiers() & Pk::ControlModifier) == 0) { // no shift pressed.
         KoPathToolSelection * selection = dynamic_cast<KoPathToolSelection*>(m_tool->selection());
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(selection, 0);
 
         // control select adds/removes points to/from the selection
-        if (event->modifiers() & Qt::ShiftModifier) {
+        if (event->modifiers() & Pk::ShiftModifier) {
             if (selection->contains(m_activePoint)) {
                 selection->remove(m_activePoint);
             } else {
@@ -182,7 +182,7 @@ PkRectF ParameterHandle::boundingRect() const
 
 KoInteractionStrategy * ParameterHandle::handleMousePress(KoPointerEvent *event)
 {
-    if (event->button() & Qt::LeftButton) {
+    if (event->button() & Pk::LeftButton) {
         KoPathToolSelection * selection = dynamic_cast<KoPathToolSelection*>(m_tool->selection());
         if (selection)
             selection->clear();

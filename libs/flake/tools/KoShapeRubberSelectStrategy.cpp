@@ -17,6 +17,9 @@
 #include "KoCanvasBase.h"
 // [migrate] missing include for Pk/Qt type
 #include <PkColor.h>
+// 原生数值谓词的名字（pk/global/PkGlobal.h）——Qt 名 pkMin/pkMax 只在 qt 桶里存在。
+// 形制照 libs/flake/KoMarker.cpp。
+#include <PkGlobal.h>
 
 KoShapeRubberSelectStrategy::KoShapeRubberSelectStrategy(KoToolBase *tool, const PkPointF &clicked, bool useSnapToGrid)
     : KoInteractionStrategy(*(new KoShapeRubberSelectStrategyPrivate(tool)))
@@ -83,7 +86,7 @@ void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Pk::Keyboar
     x1.setY(d->selectRect.topLeft().y());
     qreal h1 = point.y() - x1.y();
     qreal h2 = old.y() - x1.y();
-    PkRectF A(x1, PkSizeF(point.x() - x1.x(), point.y() < d->selectRect.top() ? qMin(h1, h2) : qMax(h1, h2)));
+    PkRectF A(x1, PkSizeF(point.x() - x1.x(), point.y() < d->selectRect.top() ? pkMin(h1, h2) : pkMax(h1, h2)));
     A = A.normalized();
     d->tool->canvas()->updateCanvas(A);
 
@@ -91,7 +94,7 @@ void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Pk::Keyboar
     x2.setX(d->selectRect.topLeft().x());
     qreal w1 = point.x() - x2.x();
     qreal w2 = old.x() - x2.x();
-    PkRectF B(x2, PkSizeF(point.x() < d->selectRect.left() ? qMin(w1, w2) : qMax(w1, w2), point.y() - x2.y()));
+    PkRectF B(x2, PkSizeF(point.x() < d->selectRect.left() ? pkMin(w1, w2) : pkMax(w1, w2), point.y() - x2.y()));
     B = B.normalized();
     d->tool->canvas()->updateCanvas(B);
 }

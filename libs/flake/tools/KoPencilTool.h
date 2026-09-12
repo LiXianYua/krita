@@ -11,7 +11,7 @@
 #include "KoShapeStroke.h"
 #include "KoToolBase.h"
 #include <PkConfigGroup.h>
-#include <qcolor.h>
+#include <PkColor.h>
 
 class KoPathShape;
 class KoPathPoint;

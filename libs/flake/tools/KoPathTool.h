@@ -16,12 +16,16 @@
 #include "kis_signal_auto_connection.h"
 #include <PkList.h>
 #include "KoCanvasCursorHost.h"
-#include <QMetaObject>
+#include <PkConnection.h>
 #include <KoShapeFillResourceConnector.h>
 #include "KoPathPointTypeCommand.h"
 #include <KoSvgTextShapeOutlineHelper.h>
+// 宿主动作载体。本 TU 组在 native 桶里编（见 libs/flake/CMakeLists.txt 的 R-57 注释），
+// 这条 include 解析到 flake 自有的 `flake/noqt-compat/QAction`（派生 PkObject、
+// 带真 `triggered()` 信号与 enabled/property/快捷键载荷），与已在本桶里这么用的
+// `KoToolFactoryBase.cpp` 是同一形态；qt 桶的消费者仍拿到真 Qt 头。
+#include <QAction>
 
-class QAction;
 class QActionGroup;
 class QButtonGroup;
 class KoCanvasBase;
@@ -29,8 +33,6 @@ class KoInteractionStrategy;
 class KoPathToolHandle;
 class KoParameterShape;
 class KUndo2Command;
-
-class QMenu;
 
 
 /// The tool for editing a KoPathShape or a KoParameterShape.
@@ -61,8 +63,6 @@ public:
 
     bool selectAll() override;
     void deselect() override;
-
-    QMenu* popupActionsMenu() override;
 
     // for KoPathToolSelection
     void notifyPathPointsChanged(KoPathShape *shape);
@@ -132,10 +132,9 @@ private:
     QAction *m_actionMergePoints;
     QAction *m_actionConvertToPath;
     KisCanvasCursorToken m_moveCursor;
-    PkScopedPointer<QMenu> m_contextMenu;
     PkScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
     KisSignalAutoConnectionsStore m_canvasConnections;
-    PkList<QMetaObject::Connection> m_actionConnections;
+    PkList<PkConnection> m_actionConnections;
     KoShapeFillResourceConnector m_shapeFillResourceConnector;
 
     PK_DECLARE_PRIVATE(KoToolBase)
