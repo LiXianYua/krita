@@ -41,7 +41,13 @@ if(kis_impex_registration_target_count EQUAL kis_impex_registration_existing_cou
         target_link_libraries(kis_impex_static_registration_test PRIVATE "-Wl,--no-as-needed")
     endif()
     foreach(target IN LISTS kis_impex_registration_existing_targets)
-        target_link_libraries(kis_impex_static_registration_test PRIVATE "$<TARGET_FILE:${target}>")
+        # 链接 .a 的绝对路径（保留 as-needed/whole-archive 的位置语义，见上），
+        # 同时按 target 名再链一次：codec 用旧的签名式 target_link_libraries 声明
+        # 第三方依赖（如 ${GIF_LIBRARY}/${TIFF_LIBRARIES}），只有按 target 名链接才会
+        # 传递这些 INTERFACE 依赖；只给 $<TARGET_FILE:> 会丢掉它们，导致链接期
+        # 一片未定义符号（DGif*/TIFF*/heif_*/jpeg_*/Jxl*/WebP*/opj_*）。
+        target_link_libraries(kis_impex_static_registration_test PRIVATE
+            "${target}" "$<TARGET_FILE:${target}>")
     endforeach()
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND
        CMAKE_SYSTEM_NAME MATCHES "^(Linux|Android|FreeBSD|NetBSD|OpenBSD|DragonFly|SunOS)$")

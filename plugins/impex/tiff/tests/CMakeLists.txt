@@ -11,6 +11,7 @@ add_test(NAME tiff_validation_probe COMMAND tiff_validation_probe)
 add_executable(tiff_psd_record_probe tiff_psd_record_probe.cpp)
 target_link_libraries(tiff_psd_record_probe PRIVATE
     kritatiffpsd
+    kritapsd
     kritaimage
     kritapigment
     kritastore
