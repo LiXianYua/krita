@@ -575,8 +575,27 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
 
     // According to the standard, the ICC profile must be written first.
     if (cfg->getBool("save_profile", true)) {
+        // R-61 裁决 A：p709SRGBProfile() 可返空（宿主未配 EXTRA_RESOURCE_DIRS /
+        // 未注册色彩引擎；R-59 裁决 A 的契约不变），此处原本是裸解引用 —— 无资源
+        // 环境下当场 SIGSEGV（R-61 T1 修前的崩溃帧，kis_webp_export.cpp:579）。
+        //
+        // ① 为什么不用 image->profile() 兜底：needSrgbConversion 为真时像素**已经
+        //    被转换过**。:395/:526 的 convertToQImage(imageProfile = p709SRGBProfile(),
+        //    …) 在无资源时同样拿到 null，KoColorSpace::convertToQImage 内的
+        //    rgb8(null) 退到默认 RGBA/U8 空间（KoColorSpaceRegistry::colorSpace1(csID,
+        //    !profile) 退默认空间，plan §1 F6 实测）。此时写 image->profile()（源剖面）
+        //    会与像素真实数据不符 —— 那是错的 ICC，不是兜底。
+        // ② 为什么是有定义的降级而非缺陷：写出去的 ICC 逐字节等于「像素真正落进的
+        //    那个空间」的剖面（rgb8(nullptr)->profile()->rawData()）。既不是凭空造值，
+        //    也不是把 ICC 整块删掉；R-59 裁决 B「判空 ≠ 把问题藏起来」的同款检验由
+        //    常驻载体 plugins/impex/webp/tests/KisWebPExportNoResourceDirsTest.cpp 钉住。
+        // ③ R-59 裁决 C 的契约：本线不免除宿主配资源目录 / 注册色彩引擎的义务，只保证
+        //    违约时**不崩**、且有定义输出。
+        const KoColorProfile *srgbProfile = needSrgbConversion
+            ? KoColorSpaceRegistry::instance()->p709SRGBProfile() : nullptr;
         const PkByteArray profile = needSrgbConversion
-            ? KoColorSpaceRegistry::instance()->p709SRGBProfile()->rawData()
+            ? (srgbProfile ? srgbProfile->rawData()
+                           : KoColorSpaceRegistry::instance()->rgb8(nullptr)->profile()->rawData())
             : image->profile()->rawData();
 
         WebPData iccChunk = {reinterpret_cast<const uint8_t *>(profile.data()),
