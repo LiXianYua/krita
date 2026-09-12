@@ -1394,6 +1394,53 @@ c++ -std=c++17 -O2 -I"$QT/lib/QtCore.framework/Headers" -I"$QT/lib/QtGui.framewo
 `cubicTo`/`isNull()` 顺带挡住的，不是这条守卫的功劳）。第 28 例就是第 4 点那个
 `quadTo` 1 ulp，**R-56 已修**。
 
+### `addEllipse` 的「四条三次贝塞尔近似」与放大尺度（2026-09-12，R-58 裁定）
+
+R-54 的 plan §3 第 4 条把「8× 放大下极扁矩形 `{2,2,1,28}` 上各差 4 px」归因给
+`pk/geometry` 的 `addEllipse`。**R-58 实测把这条归因证伪，本条是该裁定的落点。**
+
+**三条实测**（探针命令见下）：
+
+1. `PkPainterPath::addEllipse` 与 `QPainterPath::addEllipse` 在 `{2,2,1,28}`、
+   `{2,2,28,1}`、`{0,0,1,28}`、`{1,2,3,4}`、`{0,0,1,1}`、`{0,0,1e-3,28}` 六个矩形上
+   **元素表逐字节相同**（同一个 13 元素表、同一个 1-ulp 指纹）。
+   ⇒ `pk/geometry` 侧**没有偏离可登记**。
+2. Qt 自己的栅格器上，`QPainter::drawEllipse(rect)` 与
+   `QPainter::drawPath(<addEllipse 建出来的同一条路径>)` 在 **1× / 8× / 16×** 上
+   **逐像素相同**（七个形态全部 `diff=0`）。
+3. Qt 源码：`QPaintEngineEx::drawEllipse`（`qpaintengineex.cpp:846`）**直接调**
+   `qt_curves_for_arc(r, 0, -360, …)`；`QRasterPaintEngine::drawEllipse`
+   （`qpaintengine_raster.cpp:3350`）只在 **`!antialiased` 且整数矩形**时走
+   `drawEllipse_midpoint_i` 快路径（`:3356-3375`），抗锯齿时回到上面那条。
+   `QPainterPath::addEllipse`（`qpainterpath.cpp:1185`）用的也是同一个
+   `qt_curves_for_arc`。
+
+⇒ **「四条三次贝塞尔近似」在 Qt 里就是 `<ellipse>` 的渲染路径本身**，不是 pk 独有的近似。
+两条出路因此都不落在 `pk/geometry`：
+
+- 「按偏离登记」——**不适用**：这里没有偏离（第 1 条）。
+- 「改进近似」——**不成立**：那会主动破坏第 1 条那条与 `QPainterPath` 的逐字节等价，
+  而 `PkPainterPath` 的判据是**与 `QPainterPath` 逐输入对拍**；为追一个
+  Qt 自己都不满足的渲染差异去改值类型，方向是反的。
+
+**4 px 的真根因不在这一层**（在 Pk 的 SVG→命令转换 / Pk 栅格器的扫描线与 AA，
+或 R-54 那次比较本身的口径差），定位它要动 `pk/render` 与 `libs/flake` ——
+**R-58 的 locks 只有 `pk/geometry`**，已在回报里点名交回主会话。
+R-54 把批 2 的等价性主张限死在 32×32、并在 `pk/render/README.md` 登记为覆盖限制 ——
+那条**本身没错**（主张确实只到 32×32），**但它对根因的归因需要订正**。
+
+探针（`/tmp`，不进仓库；源码形态见 R-58 plan 的「探针」节）：
+
+```bash
+source /Users/liyang/Developer/projects/krita-ci-env/env
+QT=$CMAKE_PREFIX_PATH
+clang++ -std=c++17 -O2 -I"$QT/lib/QtCore.framework/Headers" -I"$QT/lib/QtGui.framework/Headers" \
+  -Ipk/geometry -Ipk/global -Ipk/color -Ipk/container -o /tmp/r58/probe-O2 /tmp/r58/probe.cpp \
+  -F"$QT/lib" -Wl,-rpath,"$QT/lib" -framework QtCore -framework QtGui
+DYLD_FRAMEWORK_PATH="$QT/lib" /tmp/r58/probe-O2 ellipse    # 探针 1
+QT_QPA_PLATFORM=offscreen DYLD_FRAMEWORK_PATH="$QT/lib" /tmp/r58/raster   # 探针 2
+```
+
 ### 偏离清单：**已清空，只剩三条 canary**（2026-09-12）
 
 这里曾经有一节「那 23 行怎么读」，讲的是一族 `persp-clip/*` 额度 —— **那一族已经闭合，
