@@ -247,7 +247,7 @@ public:
 public :
     void textSelectionChanged()
     {
-        Q_EMIT KoSvgTextPropertiesInterface::textSelectionChanged();
+        KoSvgTextPropertiesInterface::textSelectionChanged();
     }
     void slotSelectionChanged();
 private:
