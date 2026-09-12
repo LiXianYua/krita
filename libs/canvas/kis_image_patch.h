@@ -42,7 +42,7 @@ public:
 
     /**
      * prescale the patch image. Call after setImage().
-     * This ensures that we use the PkImage smoothscale method, not the Qt's painter scaling,
+     * This ensures that we use the PkImage smoothscale method, not Qt's painter scaling,
      * which is far inferior.
      */
     void preScale(const PkRectF &dstRect);

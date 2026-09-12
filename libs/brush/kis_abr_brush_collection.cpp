@@ -619,7 +619,7 @@ KisAbrBrushCollection::KisAbrBrushCollection(const KisAbrBrushCollection& rhs)
     }
 }
 
-// Qt 的 file-info 在 migrate 后无 Pk 等价（Qt 的 file-info 无 PkFileStream/PkString 构造），
+// Qt 的 file-info 在 migrate 后无 Pk 等价（它无 PkFileStream/PkString 构造），
 // 这里按 S-02-b PkResourceStorageDesktop::lastModifiedMs 的模式用 std::filesystem
 // 复刻「PkString 路径 → 文件名 / 最后修改时间」。
 static PkString pathFileName(const PkString &path)
@@ -666,7 +666,7 @@ bool KisAbrBrushCollection::loadFromDevice(PkStream *dev)
     qint32 layer_ID;
 
     PkByteArray ba = kisBrushReadAll(dev);
-    // Qt 的 buffer(PkByteArray*) 语义：以既有字节为内容的内存设备。PkMemoryStream
+    // Qt 的 buffer 语义：以既有字节为内容的内存设备（PkMemoryStream 承接）。
     // （libs/store S-01 交付）没有该构造，改成 ReadWrite 写入字节再回卷读取。
     PkMemoryStream buf;
     buf.open(PkStream::ReadWrite);

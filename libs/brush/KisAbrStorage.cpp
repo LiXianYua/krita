@@ -17,7 +17,7 @@ KIS_DECLARE_STATIC_INITIALIZER {
     KisStoragePluginRegistry::instance()->addStoragePluginFactory(KisResourceStorage::StorageType::AdobeBrushLibrary, new KisStoragePluginFactory<KisAbrStorage>());
 }
 
-// Qt 的 file-info 在 migrate 后无 Pk 等价（Qt 的 file-info 无 PkString 构造），
+// Qt 的 file-info 在 migrate 后无 Pk 等价（它无 PkString 构造），
 // 按 S-02-b PkResourceStorageDesktop::lastModifiedMs 的模式用 std::filesystem
 // 复刻「PkString 路径 → 文件名 / 最后修改时间」。
 static PkString pathFileName(const PkString &path)

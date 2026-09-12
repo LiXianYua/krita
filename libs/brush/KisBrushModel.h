@@ -132,7 +132,7 @@ struct BRUSH_EXPORT TextBrushData : boost::equality_comparable<TextBrushData>
     PkSize baseSize = PkSize(42, 42);
     qreal scale = 1.0;
     PkString text = "The quick brown fox ate your text";
-    // 默认字体：Qt 的 application 默认字体.toString() 的静态替代。
+    // 默认字体：Qt 的 application 默认字体的静态替代。
     // 格式契约见 impact-map §4：family,pointSizeF,pixelSize,styleHint,weight,style,underline,strikeOut,fixedPitch,0。
     // 这是显式接受的偏差（不再查询运行时系统字体）。
     PkString font = "Sans Serif,9,-1,5,50,0,0,0,0,0";

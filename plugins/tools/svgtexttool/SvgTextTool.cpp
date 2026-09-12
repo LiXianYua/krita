@@ -39,7 +39,6 @@
 #include <QSignalBlocker>
 #include <QTextCharFormat>
 #include <QTextFormat>
-#include <QWidget>
 
 #include <cmath>
 
@@ -79,7 +78,6 @@
 #include <commands/KoKeepShapesSelectedCommand.h>
 
 #ifdef Q_OS_ANDROID
-#include <QMenuBar>
 #endif
 
 
