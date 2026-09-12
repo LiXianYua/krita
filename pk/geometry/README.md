@@ -223,24 +223,31 @@ libstdc++ 的 `operator==` 本就带 `strcmp` 回退）。⇒ 跨镜像用例在
 现在它是机器对账的：对拍程序末尾多打一批 `APISEEN <name>` 行（不影响
 `DIFF`/`DIFFTAG` 的输出契约），`run_oracle.sh` 做三向核对 ——
 ① `APISEEN` 集合必须等于 `oracle/api_seen.expected`；
-② **三个头文件的类体里每一条声明**都要在对应的 `oracle/<族>_api.map` 里有一行
+② **每个头文件的类体里每一条声明**都要在对应的 `oracle/<族>_api.map` 里有一行
    （反之亦然）；
 ③ 各 map 里每个标签都要真的出现在 `APISEEN` 里。
 声明指纹由脚本从头文件机械解析（去注释、**去内联函数体**、去形参名、去默认实参），
 不是人手抄的；键带类名前缀，因为 `PkPoint`/`PkPointF` 这类孪生类有大量同名同参声明。
 
-**②③ 覆盖全部五族**。**只靠 `api_seen.expected` 是自证循环**：那份清单的内容来自
+**②③ 覆盖全部 12 个族**。**只靠 `api_seen.expected` 是自证循环**：那份清单的内容来自
 对拍程序自己打出的 `APISEEN`，**用 `rec()` 去证明 `rec()` 没漏证明不了任何东西**。
-五族都接进同一个解析器之后判据才统一：**头文件的类体声明是独立来源**。规模
+12 个族都接进同一个解析器之后判据才统一：**头文件的类体声明是独立来源**。规模
 （口径：`*_api.map` 的非注释非空行数，与解析器从头文件类体机械数出的声明数逐条对账）：
 
 | map | 头文件 | 类 | 声明 / 行 |
 |---|---|---|---|
 | `oracle/point_api.map` | `PkPoint.h` | `PkPoint`、`PkPointF` | 56 |
 | `oracle/size_api.map` | `PkSize.h` | `PkSize`、`PkSizeF` | 56 |
-| `oracle/rect_api.map` | `PkRect.h` | `PkRect` | 62 |
-| `oracle/rectf_api.map` | `PkRect.h` | `PkRectF` | 64 |
-| `oracle/transform_api.map` | `PkTransform.h` | `PkTransform` | 43 |
+| `oracle/rect_api.map` | `PkRect.h` | `PkRect` | 66 |
+| `oracle/rectf_api.map` | `PkRect.h` | `PkRectF` | 68 |
+| `oracle/transform_api.map` | `PkTransform.h` | `PkTransform` | 48 |
+| `oracle/line_api.map` | `PkLine.h` | `PkLine`、`PkLineF` | 43 |
+| `oracle/margins_api.map` | `PkMargins.h` | `PkMargins`、`PkMarginsF` | 40 |
+| `oracle/polygon_api.map` | `PkPolygon.h` | `PkPolygon`、`PkPolygonF` | 16 |
+| `oracle/vectornd_api.map` | `PkVectorND.h` | `PkVector2D`、`PkVector3D`、`PkVector4D` | 137 |
+| `oracle/matrix4x4_api.map` | `PkMatrix4x4.h` | `PkMatrix4x4` | 27 |
+| `oracle/painterpath_api.map` | `PkPainterPath.h` | `PkPainterPath` | 68 |
+| `oracle/region_api.map` | `PkRegion.h` | `PkRegion` | 41 |
 
 **扩过去当场抓到一个真实缺口**：`PkPoint()` 与 `PkPointF()` 两个默认构造
 **从 Task 2 起就没被对拍比过**（Size 族有 `S::defaultCtor`/`SF::defaultCtor`，
@@ -250,7 +257,7 @@ Point 族没有对应物）。已补两条 `rec()`（`cmp_point_constants`），
 
 | 注入 | `run_tests.sh` | `run_oracle.sh` |
 |---|---|---|
-| `PkRect.h` 加已实现的 `areaHint()`，不写 `rec()` | 退出码 0 全绿 | **FAIL**（闸门②，`PkRect.h 声明 63 条 / rect_api.map 62 行`），`DIFF` 行逐字不变 |
+| `PkRect.h` 加已实现的 `areaHint()`，不写 `rec()` | 退出码 0 全绿 | **FAIL**（闸门②，`PkRect.h 声明 67 条 / rect_api.map 66 行`），`DIFF` 行逐字不变 |
 | `PkPoint.h` 加已实现的 `chebyshevLength()`，不写 `rec()` | 退出码 0 全绿 | **FAIL**（闸门②，`PkPoint.h 声明 57 条 / point_api.map 56 行`），`DIFF` 行逐字不变 |
 
 两组都是 Task 3 那个洞的形状：**新成员压根没被比到，所以 `mismatch` 一动不动**，
