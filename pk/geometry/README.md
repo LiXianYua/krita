@@ -1297,9 +1297,17 @@ Qt 的 `addRect`（`qpainterpath.cpp:1086-1113`）是 `moveTo` 之后**直接 ap
 
 R-56 时这一节登记的是「`arcTo` 的大角度档从此无人常驻守、是登记的缺口」，并只列了 **3 个**
 UB 站点。R-58 实测这条路径上有 **6 个可达站点**，把它们全部收口并常驻守 —— 本节是该收口的落点。
+**其中站点 6 的收口在 Task 1 里并不完整**（非有限角度那条路漏了），由**全分支终审**发现
+（`review-final.md` B-1），**修复轮 3 才真正关掉** —— 轨迹见下面「**B-1 这条轨迹（补齐）**」。
 
-**这是 pk 自己可达的 UB**（任何喂大角度 `arcTo`/`arcMoveTo` 的调用者 —— 用户 SVG/文档数据
-—— 都能走到，不需要 Qt 参与），不是「两侧观测不可比」那种纯对拍问题。
+**这是 pk 自己可达的 UB**（`arcTo`/`arcMoveTo` 都是**公开成员**、都没有入口守卫，任何调用方
+都能喂大角度，不需要 Qt 参与），不是「两侧观测不可比」那种纯对拍问题。
+**但今天两条生产调用链走不到它** —— 生产链只有两条调用点
+（`libs/flake/svg/PkSvgPainterBackend.h:215/216` 与 `libs/flake/PkImageRasterBackend.cpp:509/510`），
+喂的是 `PkDrawArcCommand{…, int startAngle16, int spanAngle16}`（`pk/render/PkPaintCommand.h:23`）
+的**定点角**：`|angle| = |startAngle16|/16 ≤ 2^31/16 ≈ 1.34e8`，**比门槛 `2.147e9` 小 16 倍**。
+所以这一档的定性是「**pk 不该有 UB**」（公共 API 未设入口守卫、**新调用者可达**），
+**不是「线上正在踩的崩」** —— 这个分寸别写重也别写轻。
 
 **六个站点**（`-fsanitize=undefined`，`PkPainterPath.cpp`，探针逐值扫）：
 
@@ -1310,7 +1318,7 @@ UB 站点。R-58 实测这条路径上有 **6 个可达站点**，把它们全�
 | 3 | `:265` | `qreal startT = (startAngle - startSegment * 90) / 90;`（**int 乘法溢出**） | **`1e10`** | ❌ **从未登记** |
 | 4 | `:266` | `qreal endT = (startAngle + sweepLength - endSegment * 90) / 90;`（同上） | **`1e10`** | ❌ **从未登记** |
 | 5 | `:273` | `int end = endSegment + delta;`（**有符号加法溢出**） | 负向 `-2^31` | ✅ |
-| 6 | `:230` | `int quadrant = int(t);`（在 `pkFindEllipseCoords` 里） | **`1e127`**；**经 `arcMoveTo` 单独可达** | ❌ **从未登记** |
+| 6 | `:230` | `int quadrant = int(t);`（在 `pkFindEllipseCoords` 里） | **`1e127`**；**经 `arcMoveTo` 单独可达**；**非有限 `±inf`/`NaN` 同样可达**（修复轮 3 补） | ❌ **从未登记**（Task 1 收口不全，**修复轮 3 才关**） |
 
 站点 **3/4 把 UB 阈值从「`1e12` 档」提前到「`1e10` 档」**：`|angle| >= 2147483700`
 （= `90 × 23860930`）时 `startSegment * 90` 就溢出。站点 **6 与 `arcTo` 无关** ——
@@ -1328,6 +1336,18 @@ UB 站点。R-58 实测这条路径上有 **6 个可达站点**，把它们全�
 | `const int end = endSegment + delta;` | `qstroker.cpp:952` | `:273` |
 | `int quadrant = int(t);` | `qpainterpath.cpp:137` | `:230` |
 
+**B-1 这条轨迹（补齐）**：站点 6（`:230` 的 `int quadrant = int(t);`）在本节 Task 1 收口之后
+**经 `arcMoveTo` 喂非有限角度仍可达** —— Task 1 给 `theta` 加的那条 `|aa| >= 2^53` 取模对
+**非有限** `aa` **取真**、而 `fmod(inf, 360) == NaN`，于是 `t` 是 NaN，那句**裸的** `int(t)`
+仍是越界转换（实测 `PkPainterPath.cpp:288:28`，`-fsanitize=undefined`）。**口径必须写准**：
+这**不是 R-58 引入的新 UB** —— 它在 **BASE（`ac67bea`）就存在、与 Qt 5.15.7 同款**
+（`qpainterpath.cpp:137`）；B-1 说的是「**Task 1 的收口不完整**」（六站点里站点 6 只关了一半），
+**不是**「R-58 引入了 UB」。它由**全分支终审**发现（`review-final.md` B-1），**修复轮 3 用
+`pkQuadrantOf` 关闭**，并把 `±inf`/`NaN` 三格补进 UBSan 闸门（`tests/arc_band_ubsan.cpp` 的
+`kBand`）常驻守它。**夹取前后可观测结果一致**：非有限角度下 `arcMoveTo` 本来就是 no-op
+（`n=0`、`cur=(0,0)` —— 算出的点是 NaN，被 `moveTo` 的坐标守卫 `pkHasValidCoords` 整条丢掉）
+—— 夹取只**关掉 UB**，不改可观测行为。
+
 **`-fwrapv` 把六个站点分成两类**：`pkgeometry` 的 PUBLIC 旗标带 `-fwrapv`（库/单测侧），
 于是**有符号 `int` 乘法/加法溢出**（站点 3/4/5）在本库构建下是**定义良好的回绕**；但
 **浮点→`int` 越界转换**（站点 1/2/6，`int(1e127)` 这类，C++ `[conv.fpint]`）**`-fwrapv`
@@ -1339,12 +1359,19 @@ UB 站点。R-58 实测这条路径上有 **6 个可达站点**，把它们全�
 
 - **越界档先折角**：`arcAngle = std::fmod(startAngle, 360.0)`，只在
   `pkArcAngleUnsafe(startAngle) || pkArcAngleUnsafe(startAngle + sweepLength)` 时做
-  （`PkPainterPath.cpp:324-326`）。
+  （`PkPainterPath.cpp:345-346`）。
 - **段索引与其后的 int 算术全改 `long long`**：`pkArcSegmentOf` 返回 `long long`
   （夹到 `±2^31` 兜底，`:233`），`startSegment`/`endSegment`/`end`/`i` 都是 `long long`
-  （`:332`/`:333`/`:342`/`:346`）。
+  （`:352`/`:353`/`:362`/`:366`）。
 - **`pkFindEllipseCoords` 的 `theta` 大角先取模**：`|aa| >= 2^53` 时
-  `aa = std::fmod(aa, 360.0)`（`:284-285`）。
+  `aa = std::fmod(aa, 360.0)`（`:293-294`）。
+- **`pkFindEllipseCoords` 的 `int quadrant = int(t)` 改成定义良好的 `pkQuadrantOf(t)`**
+  （**修复轮 3 新增的第二条收口手段**；调用点 `:308`、helper 在 `:262`）。这一条**不是**
+  上面那条取模的等价物，是站点 6 独立的第二条收口：取模对**非有限**的 `angles[i]` **取真**、
+  而 `fmod(inf, 360) == NaN` ⇒ `t` 是 NaN ⇒ `int(NaN)` 仍是越界转换（C++ `[conv.fpint]`）。
+  `pkQuadrantOf` 把 NaN / `±inf` / 越界都夹进 `int` 范围 —— 这一档 **Qt 侧同样是 UB**
+  （`qpainterpath.cpp:137` 是裸的 `int quadrant = int(t);`），**没有可比对象**，
+  夹取只保证「不 UB」，**不是对齐、也不是偏离**。
 
 **为什么是「折回」而不是「夹取到 `int` 边界」**：精确算术下 `angle mod 360` 就是段索引之差
 与 `startT`/`endT` 分数部分的**全部信息** —— Qt 自己的 `qt_find_ellipse_coords` 就是这么做的
@@ -1367,13 +1394,17 @@ UB 站点。R-58 实测这条路径上有 **6 个可达站点**，把它们全�
   - `shapeOfArcBand` 把档内按量级分三格（tag 规则一）：`band/int-mul`（`2e11` 起，只有站点
     3/4 那一类）/ `band/int-conv`（`2e11` 起加上站点 1/2）/ `band/theta-loss`（`1e19` 起加上站点 6）。
 - **UBSan 闸门**（`tests/arc_band_ubsan.cpp`，`tests/run_tests.sh` 里接线）：用
-  `-fsanitize=undefined -fno-sanitize-recover=all`、**不带 `-fwrapv`** 编，扫 **22 个大角度值**
-  （4 条入口路径），绿 = `arc_band_ubsan: 扫完 22 个大角度值，无 UB 报告`。
+  `-fsanitize=undefined -fno-sanitize-recover=all`、**不带 `-fwrapv`** 编，扫 **25 个大角度值**
+  （**含修复轮 3 补的 `±INFINITY` / `NAN` 三格** —— 它们常驻守站点 6 的非有限那条路；
+  4 条入口路径），绿 = `arc_band_ubsan: 扫完 25 个大角度值，无 UB 报告`。
 - **常驻单测**：`PkPainterPathCase::testPainterpathArcBand()`（`tests/test_painterpath.cpp`）。
 - **判别力（R-58 实测）**：注入 A（删折角行）红 `PP::arcTo band/int-conv` 与 `band/theta-loss`
   （`mismatch` 3 → 17）；注入 C（删 `pkFindEllipseCoords` 的取模）红 `PP::arcMoveTo band/*`
   （`mismatch` 3 → 7）；注入 D（段索引还原成 int 写法）UBSan 闸门 `exit=134` +
   `signed integer overflow: 23860930 * 90` —— 三条路都**有牙**。
+  **修复轮 3 补**：注入 E（把 `pkQuadrantOf(t)` 还原成裸的 `int(t)`）UBSan 闸门 `exit=134`
+  （SIGABRT）+ `runtime error: nan is outside the range of representable values of type 'int'`
+  （`:288`）—— 证明补进 `kBand` 的非有限那三格确实咬住 B-1（改前对这三格是瞎的）。
 
 **仍然覆盖不到的（必须留下，不许静默）**：**越界档与 Qt 的「直接逐位比较」原理上不存在** ——
 Qt 侧在那一段是 UB，「Qt 值」是一次 UB 的观测值，**不可能稳定对齐**（实测 `startAngle=1e10`：

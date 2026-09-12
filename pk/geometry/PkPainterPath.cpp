@@ -257,6 +257,15 @@ static qreal pkTForArcAngle(qreal angle)
     return 0.5 * (tc + ts);
 }
 
+// `int(t)` 的定义良好版本：NaN、±inf 与越界都夹进 `int` 范围。
+// 见调用点处那段注释 —— 这一档 Qt 侧同样是 UB，夹取只保证不 UB。
+static inline int pkQuadrantOf(qreal t)
+{
+    if (!(t > -1.0)) return 0;      // NaN / -inf / <= -1
+    if (!(t < 5.0))  return 4;      // +inf / >= 5
+    return int(t);
+}
+
 static void pkFindEllipseCoords(const PkRectF &r, qreal angle, qreal length,
                                  PkPointF *startPoint, PkPointF *endPoint)
 {
@@ -285,7 +294,18 @@ static void pkFindEllipseCoords(const PkRectF &r, qreal angle, qreal length,
             aa = std::fmod(aa, 360.0);
         qreal theta = aa - 360 * std::floor(aa / 360);
         qreal t = theta / 90;
-        int quadrant = int(t); t -= quadrant;
+        // `int(t)` 的**定义良好**版本。
+        // 定义域里 `t` 恒落在 `[0,4)`；越界与 NaN 只可能来自**非有限**的 `angles[i]`
+        // —— `PkPainterPath::arcMoveTo` 对角度**没有入口守卫**（`arcTo` 有，所以它
+        // 走不到这里），`±inf` / `NaN` 会一路走到这一句。上面那条折角对非有限值
+        // **取真**、而 `fmod(inf, 360) == NaN`，于是 `t` 是 NaN，`int(NaN)` 就是
+        // 越界转换（C++ [conv.fpint] UB；实测 `PkPainterPath.cpp:288`）。
+        // 那一档 Qt 侧同样是 UB（`qpainterpath.cpp:137` 是裸的 `int quadrant = int(t);`），
+        // **没有可比对象** —— 夹取只保证「不 UB」，不是对齐也不是偏离。
+        // 夹取之后 `t` 与算出来的点仍是 NaN ⇒ `moveTo` 的坐标守卫
+        // （`pkHasValidCoords`）把整条丢掉 ⇒ **非有限角度下 `arcMoveTo` 是 no-op**，
+        // 定义良好（协调者实测：夹取前的可观测结果本来就是 n=0、cur=(0,0)）。
+        const int quadrant = pkQuadrantOf(t); t -= quadrant;
         t = pkTForArcAngle(90 * t);
         if (quadrant & 1) t = 1 - t;
         qreal a, b, c, d; pkBezierCoefficients(t, a, b, c, d);
