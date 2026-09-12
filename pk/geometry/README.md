@@ -316,13 +316,17 @@ R-63 逐层单独复现过（每层单独跑，上一层用 `/tmp` 里的**树�
   git diff --quiet 自证（8 个文件）: 源树零改动
 ```
 
-`exit=0`。**三处新加的守卫都做了注入自证（改了立刻还原）**：① 往
-`graft/rename.sed` 追加一条 → 冻结表零分叉闸门先响（`rename.sed 与 pk/test/graft/rename.sed
-不一致 —— D-23 的规则表分叉了`，exit 1）；② 往 `pk/container/CMakeLists.txt` 的
-`add_library` 里多塞一个 `.cpp` → `R-63: graft 的 libpkcontainer.a 源表与
-pk/container/CMakeLists.txt 不一致`，exit 1；③ 注释掉 `-mmacosx-version-min=13.3` 那行 →
-层 a 的 `'to_chars' is unavailable: introduced in macOS 13.3` 回来、exit 1（⇒ 那一行是
-**必要**的，非空操作）。
+`exit=0`。**逐条登记注入自证（每次改了立刻还原）——「R-63 新加」与「脚本原有」分开写**：
+
+- **R-63 新加 · 派生表自证**（`graft_run.sh` 里「派生表把 `[[:<:]]` 反向替回 `\b` 后与冻结表逐字节相同」的 python 自证）：把派生那一行 `sed -e 's/\\b/[[:<:]]/g' "$SED" > "$BSD_SED"` 末尾多接一条 `-e 's/PK_VERIFY/PK_VERIFYXX/g'`（让派生表多出内容）→ 自证当场响，**在任何编译动作之前**（输出里连一条 `建 …` 都没有）：
+  ```
+  R-63: rename.sed 的 BSD 派生表与冻结表不一致 —— 派生器坏了，拒绝继续
+  EXIT=1
+  ```
+  这条注入**不碰**冻结表（冻结表本身逐字未变），所以它压到的正是派生表自证，与下面「脚本原有」那条压的是**不同的**闸门。**R-63 首轮没能独立证明这条守卫（只被追加 `rename.sed` 那条间接经过、并未触发），本轮修复轮 1 补证。**
+- **R-63 新加 · pkcontainer 源表对账闸门**：往 `pk/container/CMakeLists.txt` 的 `add_library` 里多塞一个 `.cpp` → `R-63: graft 的 libpkcontainer.a 源表与 pk/container/CMakeLists.txt 不一致`，exit 1。
+- **R-63 新加 · `-mmacosx-version-min=13.3`（是补丁行，不是闸门）**：注释掉那行 → 层 a 的 `'to_chars' is unavailable: introduced in macOS 13.3` 回来、exit 1（⇒ 那一行是**必要**的，非空操作）。
+- **脚本原有 · 冻结表零分叉闸门**（`graft_run.sh` 开头 `diff -q pk/test/graft/rename.sed "$SED"`，R-58 之前就在）：往 `graft/rename.sed` 追加一条 → `rename.sed 与 pk/test/graft/rename.sed 不一致 —— D-23 的规则表分叉了`，exit 1。**这条压的是冻结表与 `pk/test/graft/rename.sed` 的逐字一致，不是上面的派生表自证** —— 追加会让脚本在 `diff -q` 那一步就退出，派生逻辑根本不执行。**R-63 首轮把这条误当成了「派生表自证」的证据，此处订正。**
 
 **R-63 没有把 `graft_run.sh` 接进任何收尾路径** —— `pk/geometry/tests/run_tests.sh`
 （标准收尾路径）只调 `run_pathops_oracle.sh`，既不调 `graft_run.sh` 也不调
