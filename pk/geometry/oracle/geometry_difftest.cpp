@@ -4600,23 +4600,58 @@ static constexpr int countOf(const T (&)[N]) { return (int)N; }
 // （控制点算式的 1 ulp，见缺口②）—— 别把它当成守卫的输入。
 static const double kPpTok[] = { 1e200, 1e128, 1e127, INFINITY, -INFINITY, NAN, 5e-324 };
 
-// `arcTo` 的 **startAngle 那一格专用**（R-56 Task 3 改动 3）：把 `1e127` 换成
-// `1e9` —— **不是"改语料凑绿"，是有依据的收窄**。
+// `arcTo` / `arcMoveTo` 的 **startAngle 专用** token 集（R-58 重写）。
 //
-// 实测 `arcTo(rect=(1,2,3,4), startAngle=1e127, sweepLength=-90)` 两侧都**在守卫之后**
-// 做越界的 `int(...)`：
-//   · pk：`pkCurvesForArc` 里 `int startSegment = int(std::floor(startAngle / 90));`
-//   · Qt：`qt_find_ellipse_coords:134` 的 `360 * qFloor(angles[i] / 360)`（`qFloor` 返回 `int`），
-//         随后 `360 * (越界 int)` 又是有符号溢出。
-// 两侧编译器不同 ⇒ 这个输入上的"Qt 值"是**一次 UB 的观测值**，不可能稳定对齐
-//（本仓 README「对拍侧为什么不带 -fwrapv」给它起过名字）。
-// `|360*qFloor(x/360)|` 要落在 `int` 内 ⇒ `|angle| < 2.147e9` 才安全；`1e9` 满足，
-// 用它证明"守卫没有过度拒绝"。界外档（`1e128`/`1e200`/±inf/nan）在入口就被
-// `isValidCoord` 丢掉、根本走不到那段 UB，**照旧全部保留**，判别力不受损。
-// 代价：`2^31 ≤ |angle| < 1e128` 这一档角度的两侧一致性**从此无人常驻守**（缺口，非静默丢弃）。
-// 注：`sweepLength` 那一格**仍用 `kPpTok`**（`1e127`）—— 两侧都先 clamp 到 ±360、
-// 触发不到 UB，实测它本来就不红。
+// 三档，各自的职责不同，**不要合并**：
+//  · kArcStartTok      —— 入口守卫档（界外）：`|angle| >= 1e128` 与非有限，在入口
+//                         就被 `pkIsValidCoord` 丢掉，**走不到任何 int 算术**。
+//                         ⚠ **这一格不能放 `1e127`**（计划原文的代码块写的就是它，实测红）：
+//                         `|angle| >= 2147483700`（`90*23860930`）起两侧都落进有符号 int
+//                         溢出，Qt 5.15.7 与 pk 对同一段 UB 的观测值不同 ⇒ 直接比必然分家
+//                         （`1e127` 实测 Qt n=1 / Pk n=8）。R-56 已把这一格换成 `1e9`；
+//                         `1e127` 只留在 `kArcBandTok` 里走折角等价形式。
+//  · kArcSafeAngleTok  —— **安全区间内的代表值**（R-58 新增）：把「定义域内逐位不变」
+//                         钉住。这 28 个值已在本机逐字符与真 Qt 核对过（全 SAME），
+//                         加进来是**常驻**化那一次核对。
+//  · kArcBandTok       —— **大角度档**（R-58 新增）：`|angle| >= 2147483700`。
+//                         这一档 Qt 侧是 UB，**不能直接比**；语料用「折角等价形式」
+//                         与 Qt 比（见 cmp_pp_entries 里那两处 `reduced-` 的注释）。
 static const double kArcStartTok[] = { 1e200, 1e128, 1e9, INFINITY, -INFINITY, NAN, 5e-324 };
+
+// ⚠ **上界是 2147483699 而不是 2147483700**：`kPkArcIntSafeHi` 是开区间上界，
+//   2147483700 已经属于越界档（它修复前直接比恰好 SAME，修复后必然 DIFF），
+//   所以它**只在 `kArcBandTok` 里**、走折角等价形式。两张表互补、不重叠。
+// ⚠ `kArcSafeAngleTok` / `kArcBandTok` / `shapeOfArcBand` 三者的**位置**：
+//   与 `kPpTok` 同处（`countOf` 之后、`cmp_pp_entry` 定义之前），
+//   即现在的 `kPpTok` 定义块紧接着的下一块。**不要新开函数体**——
+//   `cmp_pp_entries()` 已经在 `countOf` 与 `same_path` 之后，语料表必须在它之前。
+
+static const double kArcSafeAngleTok[] = {
+    0.0, 1.0, 45.0, 89.999, 90.0, 135.0, 180.0, 270.0, 359.0, 360.0,
+    361.0, 405.0, 450.0, 540.0, 720.0, 721.0, 1000.0, 3600.0, 12345.0,
+    -45.0, -90.0, -360.0, -1000.0, 123456789.0, 1e9,
+    2147483647.0, 2147483699.0,
+};
+
+// `|angle| >= 2147483700`（`90 * 23860930`）—— 第一处 int 越界。Qt 侧同样越界，
+// 「Qt 值」是 UB 的观测值，所以这一档**只能**用折角等价形式判（见下）。
+static const double kArcBandTok[] = {
+    2147483700.0, 2147483701.0, 2147484000.0, 3e9, 1e10, 1e12, 1e15, 1e16, 1e18,
+    1e127, -2147483700.0, -1e10, -1e15, -1e18,
+};
+
+// 大角度档的形态标签：**档内按量级分三格**（tag 规则一 —— 形态由**触发差异的那个量**算，
+// 不能合成一个常量）。细档不是为了好看：这一档里三种根因不同
+// （`startSegment * 90` 的 int 乘法 / `int(std::floor(v/90))` 的越界转换 /
+//  `theta` 本身的精度失效），合成一个 tag 的话注入缺陷时分不清是哪一种。
+// 三个门槛都是**量级分格**，不是判据阈值 —— 判据阈值只有一个：`kPkArcIntSafeHi`。
+static std::string shapeOfArcBand(double v)
+{
+    const double m = std::fabs(v);
+    if (m < 2e11)  return "band/int-mul";      // 只有 `:265/:266` 那一类
+    if (m < 1e19)  return "band/int-conv";     // 加上 `:263/:264`
+    return "band/theta-loss";                  // 加上 `:230` 那一档（2^53 起）
+}
 
 static std::string ptok(const char *what, double v)
 { return std::string(what) + "(" + dstr(v) + ")"; }
@@ -4762,6 +4797,65 @@ static void cmp_pp_entries()
             cmp_pp_entry("PP::arcTo", shapeOfCoord(x), "sweepLength" + ptok("v", x),
                 [x](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), 0.0, x); },
                 [x](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), 0.0, x); });
+        }
+    }
+
+    // ── R-58：安全区间内的代表值（把「定义域内逐位不变」常驻化）────────────
+    // 这一批与 Qt 是**直接**比（两侧都定义）。加它们的目的不是找新缺陷，是让
+    // Task 1 那条「折角只在越界档做」有常驻见证：折角一旦越界生效，这一批必红。
+    // 大角度档的形态：档内按量级分三格（tag 规则一 —— 形态由**触发差异的那个量**算）。
+    //   · `|v| < 2e11`：只有 `startSegment * 90` 这一处 int 乘法越界（`:265/:266`）
+    //   · `2e11 <= |v| < 1e19`：int 乘法与 `int(std::floor(v/90))` 都越界（`:263/:264`）
+    //   · `|v| >= 1e19`：连 `theta = v - 360*floor(v/360)` 本身都失去精度
+    //     （实测 1e18 起，阈值取 2^53；`:230` 那一档）
+    // 三个阈值都是**量级分格**，不是判据阈值 —— 判据阈值只有 `kPkArcIntSafeHi` 一个。
+    for (int i = 0; i < countOf(kArcSafeAngleTok); ++i) {
+        const double x = kArcSafeAngleTok[i];
+        const std::string sh = shapeOfCoord(x);
+        cmp_pp_entry("PP::arcTo", sh, "startAngle" + ptok("v", x),
+            [x](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); },
+            [x](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); });
+        cmp_pp_entry("PP::arcMoveTo", sh, "angle" + ptok("v", x),
+            [x](QPainterPath &q) { q.arcMoveTo(QRectF(1.0, 2.0, 3.0, 4.0), x); },
+            [x](PkPainterPath &p) { p.arcMoveTo(PkRectF(1.0, 2.0, 3.0, 4.0), x); });
+    }
+
+    // ── R-58：大角度档 —— **折角等价形式** ──────────────────────────────────
+    // 这一档 Qt 侧是 UB（`qt_curves_for_arc` 的 `int(qFloor(...))` 与
+    // `startSegment * 90`、`qt_find_ellipse_coords` 的 `int(t)`，见 README
+    // 「坐标守卫」第 6 点），**直接比没有意义**（实测 2147483700 起两侧就分家）。
+    // 可比的等价形式是：`Pk@a  ≡  Qt@fmod(a,360)` —— 段索引之差与 startT/endT 的
+    // 分数部分都只依赖 `angle mod 360`，Qt 自己的 `qt_find_ellipse_coords`
+    // 就是这么折角的。**judgement 的谓词与理由同宽**：这里判的就是「pk 在越界档
+    // 给出的答案 = Qt 在折角后给出的答案」，不是「两侧在越界档逐位相同」。
+    // shape 由 `shapeOfArcBand` 生成：**档内再按量级分格**（tag 规则一）——
+    // 档里三种根因不同（int 乘法 / int 转换 / theta 精度失效），合成一个 tag 的话
+    // 注入缺陷时分不清是哪一种。
+    // ⚠ `arcMoveTo` 在 pk 侧**没有折角**（折角在 `pkFindEllipseCoords` 里、阈值 2^53），
+    //   所以它对 `|angle| < 2^53` 的档也成立 —— Task 1 Step 8 已逐值实测。
+    for (int i = 0; i < countOf(kArcBandTok); ++i) {
+        const double x = kArcBandTok[i];
+        const double rx = std::fmod(x, 360.0);
+        const std::string sh = shapeOfArcBand(x);
+        cmp_pp_entry("PP::arcTo", sh, "startAngle" + ptok("v", x),
+            [rx](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), rx, -90.0); },
+            [x](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), x, -90.0); });
+        cmp_pp_entry("PP::arcMoveTo", sh, "angle" + ptok("v", x),
+            [rx](QPainterPath &q) { q.arcMoveTo(QRectF(1.0, 2.0, 3.0, 4.0), rx); },
+            [x](PkPainterPath &p) { p.arcMoveTo(PkRectF(1.0, 2.0, 3.0, 4.0), x); });
+    }
+
+    // `sweepLength` 把**上界**推进越界档：折角等价形式对两个角同时成立
+    //（pk 只折 startAngle、endAngle 由它加 sweep 推出，差保持不变）。
+    {
+        struct { double sa, sl; } k[] = {
+            { 2147483600.0, 360.0 }, { 2147483000.0, 720.0 },   // 720 会被 clamp 到 360
+        };
+        for (const auto &c : k) {
+            const double rx = std::fmod(c.sa, 360.0);
+            cmp_pp_entry("PP::arcTo", "band-sum", "startAngle+sweepLength",
+                [rx, c](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), rx, c.sl); },
+                [c](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), c.sa, c.sl); });
         }
     }
 }

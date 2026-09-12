@@ -605,6 +605,7 @@ PGF::translatedPoint
 PGF::translatedXY
 PP::addEllipse
 PP::addRect
+PP::arcMoveTo
 PP::arcTo
 PP::cubicTo
 PP::lineTo
