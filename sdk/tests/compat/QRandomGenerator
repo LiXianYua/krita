@@ -42,6 +42,19 @@ public:
         return static_cast<quint32>(m_gen());
     }
 
+    // Qt 语义：generateDouble() 返回 [0.0, 1.0) 的 double
+    // （真 Qt QRandomGenerator::generateDouble()，见 qtbase qrandom.cpp：
+    //  `(generate() >> 11) * (1.0 / (1ULL << 53))`，即 53 位尾数）。
+    // 调用点（本 Task 注册面）：
+    //   libs/image/tests/kis_keyframing_test.cpp:678
+    //     `float randomValue = (generator.generateDouble() - 0.5) * (upperLimit - lowerLimit);`
+    // 这里用 std::generate_canonical 取 [0,1)，与 Qt 的 [0,1) 语义一致
+    // （该测试只做「落在 [lowerLimit, upperLimit] 内」的区间断言，不依赖具体序列值）。
+    double generateDouble()
+    {
+        return std::generate_canonical<double, 53>(m_gen);
+    }
+
     // Qt 语义：[0, n) 内的随机整数。n == 0 时 Qt 断言；壳内按 0 返回 0。
     quint32 bounded(quint32 n)
     {

@@ -1,0 +1,20 @@
+// R-65（Task 3）· sdk/tests/compat/QBitArray
+// ---------------------------------------------------------------------------
+// 来源：照抄捐赠集 `.exec/shell/kritaimage/compat/QBitArray`（内容逐字未改，仅
+//       本头注释注明来源与调用点）。
+// 为什么测试面需要它：真实测试源写 `#include <QBitArray>` 并用 `QBitArray(n)`。
+//       pk 树没有 QBitArray 垫片（`pk/container/compat/` 里没有，PkBitArray 本体
+//       在 `libs/pigment/PkBitArray.h`，Task 1 新建）。
+// 唯一的真实调用点（本 Task 注册面 = libs/image/tests 的 pk_add_tests 组）：
+//   libs/image/tests/kis_layer_test.cpp:12      `#include <QBitArray>`
+//   libs/image/tests/kis_layer_test.cpp:50      `QBitArray channels(4);`
+//   libs/image/tests/KisWatershedWorkerTest.cpp:59  `QBitArray()`
+//      （该文件另有 :85/:127 两处，已注释掉、不参与编译）
+// 语义：宏而非类型别名，理由同 pk/*/compat（调用点可能有 `class QBitArray;`
+//       前置声明；类型别名遇它会报 "redeclared as different kind of entity"）。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "QtGlobal"
+#include <PkBitArray.h>
+
+#define QBitArray PkBitArray

@@ -1,0 +1,49 @@
+// R-65（Task 3）· sdk/tests/compat/QByteArray
+// ---------------------------------------------------------------------------
+// 来源：照抄捐赠集 `.exec/shell/kritaimage/compat/QByteArray`（正文逐字未改，仅本
+//       头注释注明来源与调用点）。
+// 为什么测试面需要它：真实测试源写 `#include <QByteArray>` 并直接传 `const char[N]`。
+//       pk 树没有 QByteArray 垫片（PkByteArray 本体在 pk/variant/PkAuxTypes.h）。
+// 唯一的真实调用点（本 Task 注册面 = libs/image/tests 的 pk_add_tests 组）：
+//   libs/image/tests/kis_annotation_test.cpp:15  `QByteArray b("test");`
+//   （`sdk/tests/testutil.h:111` 的 `const QByteArray utf8 = text.toUtf8();` 在 pk 栈
+//     已被 KRITA_TESTSDK_PK_NATIVE 守卫掉，不是本垫片的调用点。）
+// ---------------------------------------------------------------------------
+// 薄壳 QByteArray 垫片（S-03-a Task 2 起；S-06 Task 2 由 #define 改为包装类）。
+// PkByteArray 缺 QByteArray(int size, char fill) 构造，而依赖头
+// libs/image/KisColorSelectionPolicies.h 用它建全零测试缓冲
+// （m_testColor(pixelSize, 0)）。改为壳本地包装类（继承 PkByteArray 全部 API，
+// data()/size()/resize() 语义一致）补上该构造。注意：壳编译闭包内
+// （tiles3/bsplines/floodfill 非测试源）无「QByteArray 必须是 PkByteArray 本体」
+// 的类型身份依赖，tiles3 已直接使用 PkByteArray。
+#include "QtGlobal"
+#include <PkAuxTypes.h>
+
+#include <cstring>
+#include <vector>
+
+class QByteArray : public PkByteArray
+{
+public:
+    QByteArray() = default;
+    QByteArray(const char* data, int len) : PkByteArray(data, len) {}
+    // Qt 语义：QByteArray("literal") 隐式建 NUL 结尾的 C 串副本（不含结尾 NUL）。
+    // kis_annotation_test 等测试源直接传 const char[N]。PkByteArray 无此 ctor。
+    QByteArray(const char* data) : PkByteArray(data, static_cast<int>(std::strlen(data))) {}
+    explicit QByteArray(const std::vector<uint8_t>& data) : PkByteArray(data) {}
+    // 跨转换：已有 PkByteArray → 包装类（PkByteArray 本体不反向需要）。
+    QByteArray(const PkByteArray& other) : PkByteArray(other) {}
+
+    // Qt 语义：构造 size 字节、每字节为 fill 的数组（KisColorSelectionPolicies.h
+    // 用 0 建全零缓冲）。PkByteArray::resize(n) 尾补 0，再整体覆写为 fill。
+    QByteArray(int size, char fill) : QByteArray()
+    {
+        resize(size);
+        if (size > 0) {
+            char* p = data();
+            for (int i = 0; i < size; ++i) {
+                p[i] = fill;
+            }
+        }
+    }
+};

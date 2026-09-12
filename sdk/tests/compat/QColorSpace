@@ -1,0 +1,11 @@
+// R-65（Task 3）· sdk/tests/compat/QColorSpace
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：真实测试源写 `#include <QColorSpace>`。
+// 唯一的真实调用点（本 Task 注册面 = libs/image/tests 的 pk_add_tests 组）：
+//   libs/image/tests/kis_pattern_test.cpp:9  `#include <QColorSpace>`
+//   **只 include、无调用**（实测 `grep -c QColorSpace kis_pattern_test.cpp` = 1）。
+//   pk 树没有 QColorSpace（Qt 的色彩空间描述类型），本树也没有它的消费点 ——
+//   故这里只让 include 解析成功，**不定义任何类型**（定义即无据可依的假能力）。
+//   将来真有调用点时，应当先有 pk 侧的 PkColorSpace 再补真垫片（归色彩管理线）。
+// ---------------------------------------------------------------------------
+#pragma once

@@ -1,0 +1,59 @@
+// R-65（Task 3）· sdk/tests/compat/QtMath
+// ---------------------------------------------------------------------------
+// 与捐赠集 `.exec/shell/kritaimage/compat/QtMath` **不同**（那版只有
+// `#include "PkGlobal.h"`，因为薄壳的 PkGlobal 提供 qSqrt/qSin/…；本树的
+// pk/global/PkGlobal.h 只提供 qAbs/qRound/qMin/qMax/qBound/qIsNull/qFloor/qCeil/
+// qIsNaN/qInf —— 实测，见其顶部注释）。故本垫片按真实调用点补齐到 std::。
+//
+// 为什么测试面需要它：真实测试源写 `#include <QtMath>`（真 Qt 下 QtCore/qmath.h
+// 的转发头）并调用 q* 数学函数。
+// 唯一的真实调用点（本 Task 注册面 = libs/image/tests 的 pk_add_tests 组，
+// 实测 grep 全套 q* 数学名后的全集）：
+//   libs/image/tests/KisSpatialContainerTest.cpp:9     `#include <QtMath>`
+//   libs/image/tests/kis_distance_information_test.cpp:11 `#include <QtMath>`
+//   libs/image/tests/KisFourPointInterpolatorTest.cpp:347,348 `qIsFinite(...)`
+//   KisSpatialContainerTest / kis_distance_information_test 内的 qSqrt/qSin/qCos
+// 语义：真 Qt qmath.h 的 qSqrt/qSin/qCos 就是 std::sqrt/std::sin/std::cos 的
+//       透传（float 重载返回 float）；qIsFinite 就是 std::isfinite。
+//       全部 #ifndef 守卫：pk 侧将来提供同名实现时自动让位。
+// ---------------------------------------------------------------------------
+#pragma once
+#include <cmath>
+#include "PkGlobal.h"
+
+#ifndef qSqrt
+#define qSqrt std::sqrt
+#endif
+#ifndef qSin
+#define qSin std::sin
+#endif
+#ifndef qCos
+#define qCos std::cos
+#endif
+#ifndef qTan
+#define qTan std::tan
+#endif
+#ifndef qAcos
+#define qAcos std::acos
+#endif
+#ifndef qAsin
+#define qAsin std::asin
+#endif
+#ifndef qAtan2
+#define qAtan2 std::atan2
+#endif
+#ifndef qPow
+#define qPow std::pow
+#endif
+#ifndef qFabs
+#define qFabs std::fabs
+#endif
+#ifndef qExp
+#define qExp std::exp
+#endif
+#ifndef qLog
+#define qLog std::log
+#endif
+#ifndef qIsFinite
+#define qIsFinite std::isfinite
+#endif

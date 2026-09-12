@@ -185,6 +185,28 @@ inline bool compareQImagesPremultiplied(QPoint & pt, const QImage & image1, cons
     return compareQImagesImpl(pt, image1, image2, fuzzy, fuzzyAlpha, maxNumFailingPixels, showDebug, true);
 }
 
+// ---------------------------------------------------------------------------
+// R-65 Task 3 · L2 守卫（brief §1.6 L2）
+//
+// 这一族（checkQImageImpl / checkQImage / checkQImagePremultiplied /
+// checkQImageExternal）**从磁盘读参考图**：`QImage ref(fullPath)` 是文件加载，
+// 失败时还有 `image.save(...)` / `ref.save(...)` 文件写出。pk 栈的 `QImage`
+// 是 `PkImage`（`pk/image/compat/QImage` 的 `#define QImage PkImage`），而
+// **PkImage 没有文件 I/O**（无按路径构造、无 save）——那是 R-15 明确排除、
+// 归 impex S 任务的。
+//
+// 因此**只守卫这一族（真的需要文件 I/O 的路径）**：pk 栈上它不参与编译，
+// 需要它的 target 编不过 ⇒ 登记为被挡（本目录 6 个：kis_gradient_painter_test
+// 用 checkQImageExternal，kis_async_merger_test / kis_group_layer_test /
+// kis_marker_painter_test / kis_scanline_fill_test / kis_onion_skin_compositor_test
+// 用 checkQImage / ReferenceImageChecker）。
+//
+// **没有把整个比对族降级成恒真**：上面 compareChannels /
+// compareChannelsPremultiplied / compareQImagesImpl / compareQImages /
+// compareQImagesPremultiplied **一个字不动**——它们是**内存内**比对（两个
+// 已构造的 image 逐行 memcmp + 通道容差），pk 栈上照常工作，语义与真 Qt 逐字相同。
+// 真 Qt 测试栈（kritatestsdk）不定义 KRITA_TESTSDK_PK_NATIVE，本文件行为一个字不变。
+#ifndef KRITA_TESTSDK_PK_NATIVE
 inline bool checkQImageImpl(bool externalTest,
                             const QImage &srcImage, const QString &testName,
                             const QString &prefix, const QString &name,
@@ -291,6 +313,7 @@ inline bool checkQImageExternal(const QImage &image, const QString &testName,
                            prefix, name,
                            fuzzy, fuzzyAlpha, maxNumFailingPixels, false);
 }
+#endif // !KRITA_TESTSDK_PK_NATIVE
 
 }
 

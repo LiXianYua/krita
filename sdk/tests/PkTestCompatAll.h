@@ -127,6 +127,15 @@
 #if PKC_HAS(<QImage>)
 #include <QImage>
 #endif
+// QRgb：真 Qt 下由 QtGui 的 <QImage>/<QColor> 传递进来；pk 栈不链 QtGui，
+// 于是 `QRgb`/`qRed`/`qGreen`/`qBlue`/`qAlpha`/`qRgb`/`qRgba` 无处解析
+// （brief §1.6 L1：28 个 libs/image/tests 可达 target 的首错）。垫片在
+// sdk/tests/compat/QRgb，宏映射到 PkRgb 同名函数。**必须在这里 include 才激活**
+// （宏不 include 不生效）。放在 <QImage> 之后：真 Qt 在场时 <QImage> 已带 QRgb，
+// 本垫片在 pk 栈才是唯一来源。
+#if PKC_HAS(<QRgb>)
+#include <QRgb>
+#endif
 #if PKC_HAS(<QVariant>)
 #include <QVariant>
 #endif
@@ -190,6 +199,47 @@
 #if PKC_HAS(<QRandomGenerator>)
 #include <QRandomGenerator>
 #endif
+// QDom* 族（QtXml）：pk/xml/compat 下已有九个垫片（QDomDocument 等，全是
+// `#define QDomXxx PkXmlXxx`），但**宏不 include 不生效**（与 QRgb 同律）。真实测试源
+// 直接写 `#include <QDomDocument>` / `#include <QDomElement>` 并用 QDomNode/
+// QDomNodeList。实测本 Task 注册面首错落在：
+//   libs/image/tests/kis_dom_utils_test.cpp:33,35,52   QDomDocument / QDomElement
+//   libs/image/tests/kis_mask_generator_test.cpp:32    QDomElement
+// 这里一次预激活整个家族（与真 Qt QtXml 的 qdom.h「一个头带全家族」的传递性对齐）。
+// __has_include 守卫：垫片不存在时不炸。
+#if PKC_HAS(<QDomDocument>)
+#include <QDomDocument>
+#endif
+#if PKC_HAS(<QDomElement>)
+#include <QDomElement>
+#endif
+#if PKC_HAS(<QDomNode>)
+#include <QDomNode>
+#endif
+#if PKC_HAS(<QDomNodeList>)
+#include <QDomNodeList>
+#endif
+#if PKC_HAS(<QDomAttr>)
+#include <QDomAttr>
+#endif
+#if PKC_HAS(<QDomText>)
+#include <QDomText>
+#endif
+#if PKC_HAS(<QDomDocumentType>)
+#include <QDomDocumentType>
+#endif
+#if PKC_HAS(<QDomImplementation>)
+#include <QDomImplementation>
+#endif
+#if PKC_HAS(<QDomCDATASection>)
+#include <QDomCDATASection>
+#endif
+#if PKC_HAS(<QXmlStreamReader>)
+#include <QXmlStreamReader>
+#endif
+#if PKC_HAS(<QXmlStreamWriter>)
+#include <QXmlStreamWriter>
+#endif
 // QDir：kis_memory_window_test 写 `QDir::currentPath()` 但**不** include <QDir>
 // （真 Qt 下由 QtCore 传递进来），所以必须在这里预激活。垫片在 sdk/tests/compat/。
 #if PKC_HAS(<QDir>)
@@ -231,4 +281,31 @@
 #endif
 #ifndef qBound
 #define qBound pkBound
+#endif
+
+// kundo2_noi18n —— Krita 宏 `kundo2_noi18n(text)`，与 `kundo2_i18n` 同族，语义是
+// 「显式声明这段文字**不需要翻译**」（`libs/command/kundo2magicstring.h:143-148` 的
+// 原文注释就写给 kundo2_text_raw 的：「tells explicitly that we don't need a
+// translation ... used either in testing or internal commands」）。
+// 本树 `libs/command/kundo2magicstring.h` 已 Pk 化并带有 `kundo2_i18n` 内联函数族
+// （该头 :325-330，S-09-g 加的），但**漏了它的兄弟 `kundo2_noi18n`**——全仓
+// `grep -rn "define kundo2_noi18n"` 命中 0 处（实测），于是所有调用点编不过。
+//
+// 语义等价（逐字核对本树实现，非推测）：
+//   `kundo2_text_raw(const PkString&)` = `KUndo2MagicString(text)`（该头 :149-152），
+//   而 D-6 之后 `kundo2_text`（= i18n 变体）同样是 `KUndo2MagicString(PkString(text))`
+//   原文直返（该头 :184-187），二者在本树**完全同义**。故本宏映射到 `kundo2_text_raw`。
+//
+// 唯一的真实调用点全集（实测 grep，全仓）：
+//   本 Task 注册面：libs/image/tests/kis_crop_processing_visitor_test.cpp:39,67
+//                   libs/image/tests/kis_transaction_test.cpp:44,85,123,130,206,224,256
+//   锁外（不受影响或另有阻塞）：libs/image/tests/kis_transform_worker_test.cpp:171,199,775,802,830
+//                   plugins/filters/tests/{kis_all_filter_test.cpp:91,kis_crash_filter_test.cpp:55}
+//                   plugins/paintops/libpaintop/tests/*.cpp（5 处）
+// 形参覆盖 `const char*` 与 `const PkString&`（后者落在 `kundo2_noi18n(f->name())`
+// 这类调用点）。宏定义在**测试栈聚合头**（只对 pk 测试 TU 生效，真 Qt 测试栈
+// `kritatestsdk` 不受影响），不动 `libs/command/` 生产头——那超出「只动
+// libs/image/tests」的范围。`#ifndef` 守卫：将来 pk 侧补上同名宏时自动让位。
+#ifndef kundo2_noi18n
+#define kundo2_noi18n(text) kundo2_text_raw(text)
 #endif

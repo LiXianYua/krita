@@ -106,6 +106,32 @@ inline QString diagnosticQString(const PkString &text)
     return QString::fromUtf8(utf8.data(), static_cast<int>(utf8.size()));
 }
 
+// ---------------------------------------------------------------------------
+// R-65 Task 3 · pk 栈守卫（testutil.h）
+//
+// pk 栈上 `QString`→`PkString`、`QImage`→`PkImage`（pk/*/compat 的宏），于是
+// **QImage 族与 PkImage 族的签名会塌成同一个**，且 PkImage↔QImage 的桥接需要
+// PkImage 的**文件/缓冲区**能力（R-15 未交付）。逐条守卫（真 Qt 栈不定义
+// KRITA_TESTSDK_PK_NATIVE，行为一个字不变）：
+//
+//   * pkStringFromQString —— `QByteArray` + `PkString::toUtf8()`（pk 只提供
+//     PkToUtf8()）；唯一调用点是下面 findNode 的 QString 重载；
+//   * diagnosticQImage —— `PkImage` 的**缓冲区构造**（PkImage 只提供
+//     (width,height,format)/(size,format) 两种构造）；
+//   * PkImage 的 checkQImage/checkQImageExternal 重载 —— 在 pk 栈上与
+//     qimage_test_util.h 的同名重载**签名完全相同**（QString→PkString 后
+//     两边都是 (const PkImage&, const PkString&, const PkString&, const PkString&,
+//     int, int, int)）⇒ 报 "redefinition of default argument"；且它们经
+//     diagnosticQImage 桥到上面那一族文件 I/O；
+//   * findNode(KisNodeSP, const QString&) —— 在 pk 栈上与 PkString 重载同签名
+//     ⇒ 报 "redefinition of 'findNode'"（PkString 重载已完整覆盖该语义）；
+//   * ReferenceImageChecker —— 它存在的唯一目的就是调 checkQImage* 读写
+//     参考图（文件 I/O）；
+//   * MaskParent(const QRect&) —— QRect→PkRect 后与默认参数版同签名 ⇒
+//     "constructor cannot be redeclared"。
+// diagnosticQString 不守卫：它只用 PkToUtf8()/PkString::fromUtf8()，pk 栈上
+// 编得过，且被 TestProgressBar::format() 真实使用。
+#ifndef KRITA_TESTSDK_PK_NATIVE
 inline PkString pkStringFromQString(const QString &text)
 {
     const QByteArray utf8 = text.toUtf8();
@@ -120,6 +146,7 @@ inline QImage diagnosticQImage(const PkImage &image)
                         static_cast<QImage::Format>(image.format()));
     return source.convertToFormat(QImage::Format_ARGB32).copy();
 }
+#endif // !KRITA_TESTSDK_PK_NATIVE
 
 inline PkImage pkImageFromQImage(const QImage &image)
 {
@@ -132,6 +159,7 @@ inline PkImage pkImageFromQImage(const QImage &image)
     return result;
 }
 
+#ifndef KRITA_TESTSDK_PK_NATIVE
 inline bool checkQImage(const PkImage &image, const QString &testName,
                         const QString &prefix, const QString &caseName,
                         int fuzzy = 0, int fuzzyAlpha = -1, int maxNumFailingPixels = 0)
@@ -163,6 +191,7 @@ inline bool checkQImageExternal(const PkImage &image, const QString &testName,
     return checkQImageExternal(diagnosticQImage(image), testName, prefix, caseName,
                                fuzzy, fuzzyAlpha, maxNumFailingPixels);
 }
+#endif // !KRITA_TESTSDK_PK_NATIVE
 
 inline KisNodeSP findNode(KisNodeSP root, const PkString &name) {
     if(root->name() == name) return root;
@@ -176,10 +205,12 @@ inline KisNodeSP findNode(KisNodeSP root, const PkString &name) {
     return KisNodeSP();
 }
 
+#ifndef KRITA_TESTSDK_PK_NATIVE
 inline KisNodeSP findNode(KisNodeSP root, const QString &name)
 {
     return findNode(root, pkStringFromQString(name));
 }
+#endif // !KRITA_TESTSDK_PK_NATIVE
 
 inline void dumpNodeStack(KisNodeSP node, PkString prefix = PkString("\t"))
 {
@@ -311,6 +342,9 @@ inline bool comparePaintDevicesClever(const KisPaintDeviceSP dev1, const KisPain
 
 #ifdef FILES_OUTPUT_DIR
 
+// R-65 Task 3 · pk 栈守卫：ReferenceImageChecker 存在的唯一目的就是调
+// checkQImage* 读写参考图（文件 I/O），pk 栈上那族已被守卫掉（见本文件顶部注）。
+#ifndef KRITA_TESTSDK_PK_NATIVE
 struct ReferenceImageChecker
 {
     enum StorageType {
@@ -380,6 +414,7 @@ private:
     int m_maxFailingPixels;
     int m_fuzzy;
 };
+#endif // !KRITA_TESTSDK_PK_NATIVE
 
 
 #endif
@@ -498,11 +533,16 @@ struct MaskParent
         image->addNode(KisNodeSP(layer.data()));
     }
 
+    // R-65 Task 3 · pk 栈守卫：QRect→PkRect 后本重载与上面带默认参数的
+    // MaskParent(const PkRect&) 签名完全相同 ⇒ "constructor cannot be redeclared"。
+    // PkRect 重载已完整覆盖该语义（PkRect 可由 x/y/width/height 构造）。
+#ifndef KRITA_TESTSDK_PK_NATIVE
     explicit MaskParent(const QRect &_imageRect)
         : MaskParent(PkRect(_imageRect.x(), _imageRect.y(),
                             _imageRect.width(), _imageRect.height()))
     {
     }
+#endif // !KRITA_TESTSDK_PK_NATIVE
 
     void waitForImageAndShapeLayers() {
         // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
@@ -564,6 +604,12 @@ struct MeasureDistributionStats {
         }
     }
 
+    // R-65 Task 3 · pk 栈守卫：本诊断打印用 `PkString::arg(double, int, char, int)`
+    // 四参重载（`…arg(qreal(…)*100.0, 7, 'g', 2)`），pk/string/PkString.h 只提供
+    // arg(PkString×1..3)/arg(int)/arg(int,int)/arg(double)（pk/ 在本任务锁外，
+    // 只报不改）。`MeasureDistributionStats` 全仓**零消费者**（唯一出现处就是
+    // 本文件），故 pk 栈上不编译 print() 零影响；真 Qt 栈行为一个字不变。
+#ifndef KRITA_TESTSDK_PK_NATIVE
     void print() {
         qCritical() << "============= Stats ==============";
 
@@ -595,6 +641,7 @@ struct MeasureDistributionStats {
         qCritical() << QString("Total: %1").arg(total);
         qCritical() << "==================================";
     }
+#endif // !KRITA_TESTSDK_PK_NATIVE
 
 private:
     QVector<int> m_values;

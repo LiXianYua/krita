@@ -1,0 +1,28 @@
+#pragma once
+// ===========================================================================
+// R-65 Task 3 · sdk/tests/compat/QRgb —— 测试面 QRgb 垫片（L1）
+//
+// brief §1.6 L1：L1 修掉后露出本层之前的阻塞是 `unknown type name 'QRgb'`
+// （28 个 libs/image/tests 可达 target 的首错）。真 Qt 下 QRgb 由 QtGui 的
+// <QImage>/<QColor> 传递进来；pk 栈不链 QtGui，于是无处可解析。
+//
+// 内容与 `libs/pigment/compat/QRgb`（S-03-a Task 9b 落盘的现成真品）逐字一致：
+// QRgb → PkRgb 宏映射 + 通道提取/打包函数映射到 pk 同名函数。PkRgb.h 位布局
+// 与 Qt 5.15 对齐（0xAARRGGBB），已在《PkRgb.h》头注说明。
+//
+// 为什么放在 sdk/tests/compat/ 而不是直接 include libs/pigment/compat/QRgb：
+// libs/pigment/compat 不在 pk 测试栈的 include 路径上（实测 compile_commands.json
+// 的 -I 清单里只有 sdk/tests/compat 与 pk/*/compat），而 sdk/tests/compat 排在
+// pk/*/compat 之前（同名优先）。宏必须被 include 才激活——只放文件不加 include
+// 无效，所以 PkTestCompatAll.h 里还有一条 `#include <QRgb>`（brief §1.6 L1）。
+// ===========================================================================
+
+#include <PkRgb.h>
+
+#define QRgb PkRgb
+#define qRed pkRed
+#define qGreen pkGreen
+#define qBlue pkBlue
+#define qAlpha pkAlpha
+#define qRgb pkRgb
+#define qRgba pkRgba

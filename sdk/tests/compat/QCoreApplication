@@ -1,0 +1,17 @@
+// R-65（Task 3）· sdk/tests/compat/QCoreApplication
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：真实测试源写 `#include <QCoreApplication>`（真 Qt 下
+// <QApplication> 也不传递它，是本文件显式 include）。
+// 唯一的真实调用点（本 Task 注册面 = libs/image/tests 的 pk_add_tests 组）：
+//   libs/image/tests/kis_paint_layer_test.cpp:11  `#include <QCoreApplication>`
+//   （该文件只 include、无调用 —— 实测 `grep -c QCoreApplication` = 1）
+// 实现：直接转发到本目录的 QApplication 垫片（真 Qt 里 QApplication 派生自
+//   QCoreApplication，`QCoreApplication::instance()/applicationFilePath()` 同语义）。
+//   归属与语义说明见 compat/QApplication 的头注；本文件不新增任何能力。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "QApplication"
+
+#ifndef QCoreApplication
+#define QCoreApplication QApplication
+#endif
