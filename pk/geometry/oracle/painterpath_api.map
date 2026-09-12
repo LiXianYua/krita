@@ -1,0 +1,75 @@
+# PkPainterPath.h 的规则三闸门映射（R-58 新增）。
+# 第一列 = 声明的规范化指纹（闸门解析器产出，**不要手改**）。
+# 第二列 = 标签；取值两种：
+#   · 本对拍有一条 rec() **直接压到这一个重载** ⇒ 写那条 rec 的标签（闸门③ 核对）
+#   · 本对拍不含该重载的 rec() ⇒ 写 `-`（摘要行计数，登记为本目录的覆盖边界）
+# 判定规则：读 `geometry_difftest.cpp` 的 `PP::*` 段，看 rec() 的**实参类型**
+# 是否直接压到这一个重载。「A 转发到 B、B 有 rec」**不算**（规格规则三）。
+PkPainterPath::~PkPainterPath()	-
+PkPainterPath::addEllipse(const PkPointF&,qreal,qreal)	-
+PkPainterPath::addEllipse(const PkRectF&)	PP::addEllipse
+PkPainterPath::addEllipse(qreal,qreal,qreal,qreal)	-
+PkPainterPath::addPath(const PkPainterPath&)	-
+PkPainterPath::addPolygon(const PkPolygonF&)	-
+PkPainterPath::addRect(const PkRectF&)	PP::addRect
+PkPainterPath::addRect(qreal,qreal,qreal,qreal)	-
+PkPainterPath::addRoundedRect(const PkRectF&,qreal,qreal,Pk::SizeMode)	-
+PkPainterPath::addRoundedRect(qreal,qreal,qreal,qreal,qreal,qreal,Pk::SizeMode)	-
+PkPainterPath::angleAtPercent(qreal)	-
+PkPainterPath::arcMoveTo(const PkRectF&,qreal)	PP::arcMoveTo
+PkPainterPath::arcTo(const PkRectF&,qreal,qreal)	PP::arcTo
+PkPainterPath::arcTo(qreal,qreal,qreal,qreal,qreal,qreal)	-
+PkPainterPath::boundingRect()	-
+PkPainterPath::clear()	-
+PkPainterPath::closeSubpath()	-
+PkPainterPath::contains(const PkPainterPath&)	-
+PkPainterPath::contains(const PkPointF&)	-
+PkPainterPath::contains(const PkRectF&)	-
+PkPainterPath::controlPointRect()	-
+PkPainterPath::cubicTo(const PkPointF&,const PkPointF&,const PkPointF&)	PP::cubicTo
+PkPainterPath::cubicTo(qreal,qreal,qreal,qreal,qreal,qreal)	PP::cubicTo
+PkPainterPath::currentPosition()	-
+PkPainterPath::elementAt(int)	-
+PkPainterPath::elementCount()	-
+PkPainterPath::fillRule()	-
+PkPainterPath::intersected(const PkPainterPath&)	-
+PkPainterPath::intersects(const PkPainterPath&)	-
+PkPainterPath::intersects(const PkRectF&)	-
+PkPainterPath::isClosed()	-
+PkPainterPath::isEmpty()	-
+PkPainterPath::length()	-
+PkPainterPath::lineTo(const PkPointF&)	PP::lineTo
+PkPainterPath::lineTo(qreal,qreal)	PP::lineTo
+PkPainterPath::moveTo(const PkPointF&)	PP::moveTo
+PkPainterPath::moveTo(qreal,qreal)	PP::moveTo
+PkPainterPath::operator-=(const PkPainterPath&)	-
+PkPainterPath::operator!=(const PkPainterPath&)	-
+PkPainterPath::operator&=(const PkPainterPath&)	-
+PkPainterPath::operator+=(const PkPainterPath&)	-
+PkPainterPath::operator=(const PkPainterPath&)	-
+PkPainterPath::operator=(PkPainterPath&&)	-
+PkPainterPath::operator==(const PkPainterPath&)	-
+PkPainterPath::operator|=(const PkPainterPath&)	-
+PkPainterPath::percentAtLength(qreal)	-
+PkPainterPath::PkPainterPath()	-
+PkPainterPath::PkPainterPath(const PkPainterPath&)	-
+PkPainterPath::PkPainterPath(const PkPointF&)	-
+PkPainterPath::PkPainterPath(PkPainterPath&&)	-
+PkPainterPath::pointAtPercent(qreal)	-
+PkPainterPath::quadTo(const PkPointF&,const PkPointF&)	PP::quadTo
+PkPainterPath::quadTo(qreal,qreal,qreal,qreal)	PP::quadTo
+PkPainterPath::reserve(int)	-
+PkPainterPath::setElementPositionAt(int,qreal,qreal)	-
+PkPainterPath::setFillRule(Pk::FillRule)	-
+PkPainterPath::simplified()	-
+PkPainterPath::subtracted(const PkPainterPath&)	-
+PkPainterPath::swap(PkPainterPath&)	-
+PkPainterPath::toFillPolygon(const PkTransform&)	-
+PkPainterPath::toFillPolygons(const PkTransform&)	-
+PkPainterPath::toReversed()	-
+PkPainterPath::toSubpathPolygons(const PkTransform&)	-
+PkPainterPath::translate(const PkPointF&)	-
+PkPainterPath::translate(qreal,qreal)	-
+PkPainterPath::translated(const PkPointF&)	-
+PkPainterPath::translated(qreal,qreal)	-
+PkPainterPath::united(const PkPainterPath&)	-

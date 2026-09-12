@@ -75,6 +75,7 @@ API_GROUPS=(
     "pk/geometry/PkPolygon.h|PkPolygon,PkPolygonF|pk/geometry/oracle/polygon_api.map"
     "pk/geometry/PkVectorND.h|PkVector2D,PkVector3D,PkVector4D|pk/geometry/oracle/vectornd_api.map"
     "pk/geometry/PkMatrix4x4.h|PkMatrix4x4|pk/geometry/oracle/matrix4x4_api.map"
+    "pk/geometry/PkPainterPath.h|PkPainterPath|pk/geometry/oracle/painterpath_api.map"
     "pk/geometry/PkRegion.h|PkRegion|pk/geometry/oracle/region_api.map"
 )
 
@@ -370,8 +371,23 @@ def parse_decls(hdr_path, cls):
         # `typedef 类型 名字` 这一种。
         if re.fullmatch(r'(?:(?:public|protected|private)\s*:\s*)?typedef\s+.+', stmt):
             continue
+        # ⚠ **嵌套类型声明跳过**（R-58 新增）：`PkPainterPath` 的 public 段里有
+        # `class Element { … };`（qpainterpath.h:49 的同名嵌套类）。`strip_bodies`
+        # 按花括号剥掉它的体、剩下 `class Element`，函数声明正则匹配不上 ⇒ 掉进
+        # `miss` ⇒ 闸门整个判 FAIL。嵌套类型没有"重载"可言、也没有对应的 rec()，
+        # 规则三管不着它（与枚举/typedef 同一理由）。只放行严格长成
+        # `class 名字` / `struct 名字` / `union 名字` 这一种。
+        # ⚠ **嵌套类自己的成员不在这套闸门的覆盖面上**——这是本骨架的已知边界，
+        # 与"`private:` 之后再开 `public:` 会静默漏"那条并列，写在 README 里。
+        if re.fullmatch(r'(?:(?:public|protected|private)\s*:\s*)?'
+                        r'(?:class|struct|union)\s+[A-Za-z_][A-Za-z0-9_]*', stmt):
+            continue
+        # ⚠ **尾部允许 `= default` / `= delete`**（R-58 新增）：`PkPainterPath` 的
+        # 拷贝/移动构造、两个赋值、析构都是 `= default`，原正则匹配不上 ⇒ 六条掉进
+        # `miss` ⇒ 闸门 FAIL。`= default` 的成员照样是声明、照样要有自己的 rec()/map 行，
+        # 所以这里只是**认出它**，不是放行它。
         mm = re.search(r'(operator\s*\(\s*\)|operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
-                       r'\s*(const)?\s*(?:noexcept)?\s*$', stmt)
+                       r'\s*(const)?\s*(?:noexcept)?\s*(?:=\s*(?:default|delete))?\s*$', stmt)
         if not mm:
             miss.append(stmt); continue
         ps = []
@@ -435,14 +451,19 @@ for hdr_path, classes, map_path in groups:
         if len(cols) != 2:
             print('FAIL: %s:%d 不是两列 tab 分隔' % (map_path, n), file=sys.stderr)
             sys.exit(1)
-        if not cols[1].strip():
-            print('FAIL: %s:%d 标签列为空 —— 每条声明都必须落到至少一条 rec()'
+        # 标签列两种取值（R-58 扩展，口径见本段开头的注释与 README）：
+        #   · 真标签 —— 本对拍有一条 rec() **直接压到这一个重载**，要过闸门③
+        #   · `-`    —— 本对拍不含该重载的 rec()，跳过闸门③，**摘要行里计数**
+        # 空列仍然 FAIL：每条声明都必须被**显式分类**，不许漏写。
+        raw = [x for x in cols[1].split(';') if x]
+        if not raw:
+            print('FAIL: %s:%d 标签列为空 —— 每条声明都必须显式分类（真标签或 `-`）'
                   % (map_path, n), file=sys.stderr)
             sys.exit(1)
         # ⚠ 多标签用 **`;`** 分隔，不能用逗号：标签名自己就含逗号
         # （`operator*(float,rev)`、`S::scale(w,h)`），用逗号切会把一个标签
         # 劈成两半，然后闸门③ 拿两个不存在的名字去查 —— 实测踩过。
-        mapping[cols[0]] = [x for x in cols[1].split(';') if x]
+        mapping[cols[0]] = raw
 
     undeclared = [d for d in decls if d not in mapping]
     orphan = [k for k in mapping if k not in decls]
@@ -462,13 +483,16 @@ for hdr_path, classes, map_path in groups:
 
     for d in decls:
         for lab in mapping.get(d, []):
+            if lab == '-':
+                continue
             if lab not in seen:
                 ok = False
                 print('FAIL: %s 映射到标签 %s，但对拍里根本没有这条 rec()（闸门 ③）'
                       % (d, lab), file=sys.stderr)
-    summary.append('%s 声明 %d 条 / %s %d 行'
+    n_uncov = sum(1 for d in decls if mapping.get(d) == ['-'])
+    summary.append('%s 声明 %d 条 / %s %d 行（其中 %d 条无 rec()，登记为覆盖边界）'
                    % (hdr_path.rsplit('/', 1)[-1], len(decls),
-                      map_path.rsplit('/', 1)[-1], len(mapping)))
+                      map_path.rsplit('/', 1)[-1], len(mapping), n_uncov))
 
 print('\n规则三机器对账：' + '；'.join(summary))
 print('                APISEEN %d 个（期望 %d）' % (len(seen), len(expected)))
