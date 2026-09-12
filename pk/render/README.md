@@ -584,8 +584,19 @@ and `#20` (the flat `{2,2,1,28}` rect), 4 px each: a no-`viewBox` document is **
 its content bbox** to the render target (~8× here), amplifying the SVG path digits' **6
 significant-digit serialisation** into a 4-pixel edge difference — **not** "Pk's
 four-cubic-Bézier ellipse approximation", which **R-64 falsified** (root cause:
-[§R-64](#r-64--the-4-px-at-the-call-site-document-shape-root-cause)). That stretch is why the
-driver set excludes those ellipse rects — the reasoning is written out in
+[§R-64](#r-64--the-4-px-at-the-call-site-document-shape-root-cause)).
+
+> **时效注记（R-64 修复轮 1）：** 上面 `PROBE2 total=288 mismatch=2` 是 R-54 当时的历史实测，
+> 逐字保留不改。**那 2 例（`svg-ellipse#19`/`#20`）已由 R-64 修掉**——`PkSvgPainterBackend`
+> 的椭圆命令现在发 `<ellipse>`/`<circle>`，调用点形态下 `mism[default-vs-qtNoVB]` 由 2 变 0
+> （见 [§R-64](#r-64--the-4-px-at-the-call-site-document-shape-root-cause)）。
+
+That stretch is **no longer** why the driver set excludes those ellipse rects — with the 4 px
+gone there is no Pk-side deviation left to avoid. The exclusion stays (R-54's product; this fix
+round does not touch `tests/graft/svg_backend_driver.cpp`'s input set), and its actual reason is
+the one stated above: the four adversarial rects — degenerate point / negative size / off-canvas
+/ the flat `{2,2,1,28}` — are 判据④ adversarial-coverage inputs, **not** call-site shapes, so they
+are out of the driver's 1:1 pixel-comparison set. The original reasoning is written out in
 `.superpowers/sdd/R-54/task-3-report.md` §3.
 
 **Still owed — the main-tree test `PkSvgPainterBackendTest.cpp` was not given the three primitives
@@ -626,16 +637,19 @@ have had their Qt stripped by later tasks. It is **not** required to be backfill
 R-64 re-opened the one claim R-54 left unexplained: the 4 px on `svg-ellipse#19`/`#20` under the
 **default** ctor (the real call-site document shape — no `width`/`height`/`viewBox`). R-54
 attributed it to *"amplifying Pk's four-cubic-Bézier ellipse approximation"*. **That attribution
-is falsified.** The *stretch* half of R-54's sentence stands; what produces the pixel error is
+is falsified.** The *stretch* half of R-54's sentence stands; what produced the pixel error was
 the **6-significant-digit serialisation of the SVG path digits** — a precision Qt's own generator
-uses too. Every reading below is raw probe stdout, quoted verbatim; the probes are Qt **5.15.7 on
-this macOS host only** — no cross-platform claim. Full probe sources and expected readings live in
+uses too. **Fix round 1 (this revision) rejected registering that gap as an acceptable deviation
+and required `PkSvgPainterBackend` to emit `<ellipse>`/`<circle>` on the `drawEllipse` command;
+the call-site 4 px are now gone (`mism[default-vs-qtNoVB]=0`).** Every reading below is raw probe
+stdout, quoted verbatim; the probes are Qt **5.15.7 on this macOS host only** — no cross-platform
+claim. Full probe sources and expected readings live in
 [`oracle/probes/`](oracle/probes/README.md); run them with `bash pk/render/oracle/probes/run_probes.sh`.
 
-**1. Reproduced, and only on the call-site shape.** Over all **288** cases, the default-ctor Pk
-document vs Qt's default-generator documents gives `mism[default-vs-qtNoVB]=2`, and the two
-failures are **exactly** `svg-ellipse#19`/`#20` (the flat `{2,2,1,28}` rect, `pen2.5:nofill` /
-`pen2.5:fill`), 4 px each. From `probe.out`:
+**1. Reproduced, and only on the call-site shape (before the fix).** Over all **288** cases, the
+default-ctor Pk document vs Qt's default-generator documents gave `mism[default-vs-qtNoVB]=2`, and
+the two failures were **exactly** `svg-ellipse#19`/`#20` (the flat `{2,2,1,28}` rect,
+`pen2.5:nofill` / `pen2.5:fill`), 4 px each. From `probe.out`:
 
 ```
 CASE svg-ellipse#19:pen2.5:nofill  qtvb=0,0,32,32  pkvb=0,0,32,32  qtnovb=0.75,0.75,3.5,30.5  pkvbD=0.75,0.75,3.5,30.5  diff[qt-vs-pkbounds]=0 diff[qtNoVB-vs-pkdefault]=4 diff[qtVB-vs-pkdefault]=924  sizes(qt=32,qtNo=32)
@@ -655,6 +669,13 @@ differing pixels and the alpha delta, from `focus19.out` (`svg-ellipse#19:pen2.5
 diff pixels = 4
 ```
 
+**After the fix** (the `drawEllipse` command emits `<ellipse>`/`<circle>`; same probe, same tree)
+the two flat-rect cases are pixel-identical, and the `focus` probe reports `diff pixels = 0`:
+
+```
+SUMMARY total=288 mism[bounds-vs-qtVB]=0 mism[default-vs-qtNoVB]=0 mism[default-vs-qtVB]=161
+```
+
 **2. Falsified candidate — the two sides do not stretch differently.** Both sides produce the
 **same** `viewBoxF()` and the **same** stretch factors, bit for bit (`focus19.out`):
 
@@ -668,17 +689,20 @@ scale: qt=9.1428571428571423x1.0491803278688525  pk=9.1428571428571423x1.0491803
 So the divergence is **not** a different stretch factor: both the Qt and the Pk document are
 stretched by the **same** content-bbox fallback.
 
-**3. Root cause — 6-significant-digit path serialisation, amplified by the implicit bbox stretch.**
-Both sides round the Bézier control points to 6 significant digits. Qt does it in
-`QSvgPaintEngine::drawPath` (`qsvggenerator.cpp:1063-1074` — the `for` loop feeding `e.x`/`e.y`
-to a `QTextStream` whose `realNumberPrecision` defaults to **6**); Pk matches it in
-`PkSvgPainterBackend::number()` (`PkSvgPainterBackend.h:33-38`, `std::setprecision(6)`). With no
+**3. Root cause of the (now removed) 4 px — 6-significant-digit path serialisation, amplified by
+the implicit bbox stretch.** Both sides round the Bézier control points to 6 significant digits.
+Qt does it in `QSvgPaintEngine::drawPath` (`qsvggenerator.cpp:1063-1074` — the `for` loop feeding
+`e.x`/`e.y` to a `QTextStream` whose `realNumberPrecision` defaults to **6**); Pk matched it in
+`PkSvgPainterBackend::number()` (`PkSvgPainterBackend.h`, `std::setprecision(6)`). With no
 `viewBox`, `QSvgRenderer` falls back to the content bbox — `QSvgTinyDocument::viewBox()`
 (`qsvgtinydocument_p.h:178-185`: `m_viewBox.isNull()` ⇒ `m_viewBox = transformedBounds()`),
-applied by `mapSourceToTarget` (`qsvgtinydocument.cpp:442-470`) — which magnifies the 1-user-unit
+applied by `mapSourceToTarget` (`qsvgtinydocument.cpp:442-470`) — which magnified the 1-user-unit
 ellipse in the `{2,2,1,28}` rect by ×9.14 horizontally, turning the 6th-significant-digit error
-into a ±2/255 alpha difference on those 4 pixels. (Line numbers are Qt 5.15.7 sources; §2 shows
-both sides take this same fallback, which is why their `viewBoxF()` are identical.)
+into a ±2/255 alpha difference on those 4 pixels. This still explains **why the `<path>` form
+differed**; the fix removes the difference by emitting the same `<ellipse>` geometry Qt does (its
+`cx`/`cy`/`rx`/`ry` carry no accumulated Bézier-run error to amplify). (Line numbers are Qt 5.15.7
+sources; §2 shows both sides take this same fallback, which is why their `viewBoxF()` are
+identical.)
 
 **4. Two discriminating controls.** *(a) Qt-vs-Qt.* Qt's **own** `QSvgGenerator` on the **same**
 ellipse through `drawEllipse` and through `drawPath`, both rendered by Qt's `QSvgRenderer` under
@@ -690,14 +714,28 @@ diff Qt(drawEllipse) vs Qt(drawPath) under implicit stretch = 4
 
 and Qt's `drawPath` digits — `2.77614` / `23.732` / `8.26801` / `2.22386` — are **bit-identical
 to Pk's**, so the 6-digit precision is Qt's own serialisation precision, not a Pk deviation.
-*(b) Full-table mirror.* Qt's generator, run through a **Pk-shaped path-command stream**, vs Pk's
-default-ctor documents over all 288 cases (`mirror.out`):
+*(b) Full-table mirror.* Before the fix, Qt's generator run through a **Pk-shaped path-command
+stream** vs Pk's default-ctor documents gave `MIRROR total=288 mismatch=0` — but that compared
+Pk's `<path>` output against Qt's **`drawPath`** output, a Qt entry point that is **not the one
+being replaced** (the replaced call is `drawEllipse`). Fix round 1 re-pointed the mirror's Qt side
+at the replaced entry (Qt's `drawEllipse`, so Qt itself emits `<ellipse>`), and Pk's new
+`<ellipse>` documents still match it across the whole table:
 
 ```
 MIRROR total=288 mismatch=0
 ```
 
-**5. Adjudication.**
+**5. Adjudication (fix round 1 — review B-1).** The branch review judged the earlier
+"acceptable deviation" registration **not established**: the only reasons spec `〈对齐口径〉`
+admits are ones a decision document has explicitly placed out of scope, and the reproducible
+benefit then offered (the old `MIRROR 288/0`) was **circular** — it aligned Pk against Qt's
+non-replaced `drawPath` entry, so it did not measure alignment with the behaviour being replaced.
+**Action taken: `PkSvgPainterBackend`'s `drawEllipse` command now emits `<ellipse>`/`<circle>`**
+(`r.width() == r.height()` ⇒ `<circle cx cy r/>`, else `<ellipse cx cy rx ry/>`; values via the
+same 6-digit `number()`), mirroring `QSvgPaintEngine::drawEllipse`
+(`qsvggenerator.cpp:1036-1050`). The call-site 4 px are gone (`mism[default-vs-qtNoVB]=2` → `0`)
+and the mirror now reads `288/0` **against the replaced entry**. What this re-check did **not**
+disturb:
 
 - **Not `pk/geometry`.** R-58 ruled this out; R-64 re-checks it with stronger evidence — an
   all-precision path vs `<ellipse>` renders identical, and only the 6-digit variant differs
@@ -709,16 +747,17 @@ diff ellipse-vs-path17 = 0
 diff path6-vs-path17   = 4
   ```
 
-- **Not `pk/render`'s implementation.** The mirror control is `288/0`: Pk's path emission is
-  pixel-identical to Qt's own path emission over the whole table.
-- **The one registrable Pk-side deviation.** On the `drawEllipse` command, Qt's generator emits
-  `<ellipse …>` (full precision) while `PkSvgPainterBackend` emits a 6-digit `<path>`; the only
-  observable consequence is the 2 cases / 4 px above. Registered as an **acceptable deviation**
-  under 〈对齐口径〉, **with its reproducible benefit** — the `MIRROR 288/0` result, i.e. Pk has a
-  single uniform path emitter that is digit-for-digit aligned with Qt's `drawPath`. It is **not**
-  changed to `<ellipse>`: doing so would *create* a new deviation from Qt's `drawPath`, and would
-  split `PkPainter::drawEllipse` (identical in shape to the raster backend) into a second form in
-  the SVG backend.
+- **The raster backend is unchanged.** `libs/flake/PkImageRasterBackend.cpp` still renders
+  `PkDrawEllipseCommand` as `addEllipse`+fill+stroke, and the "both backends render the same
+  command the same way" invariant holds in the **render** layer: `<ellipse>` and the full-precision
+  `addEllipse` path are pixel-identical (`isolate`'s `ellipse-vs-path17 = 0`), so the SVG backend
+  has not been split into a divergent rendering form.
 
-**6. Scope.** R-64 changed **no production code** — `pk/render/**` and `libs/flake/svg/**` `.h`/`.cpp`
-are byte-for-byte R-54's delivery, and `pk/render` / `libs/flake/svg` behave exactly as at R-54.
+**6. Scope.** R-64's first pass changed **no production code**. **Fix round 1 changed exactly one
+production file — `libs/flake/svg/PkSvgPainterBackend.h`**: the `PkDrawEllipseCommand` branch now
+emits `<ellipse>`/`<circle>` instead of `addEllipse`+`drawPath`, and the fill/stroke attribute
+assembly was factored into a private `strokeAttributes()` helper shared with `drawPath` (whose
+emitted bytes are unchanged). `PkPainterPath::addEllipse` and `libs/flake/PkImageRasterBackend.cpp`
+are untouched. `oracle/svg_primitive_golden.txt` was regenerated by re-running the unchanged
+`run_svg_primitive.sh` (only the 21 ellipse cases' `doc=` column changed; the `qt=`/`pk=` pixel
+columns are byte-identical).

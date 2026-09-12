@@ -1,6 +1,12 @@
-// R-64 全表对照：Qt 自己的 QSvgGenerator 走 **与 Pk 后端同形的路径式命令流**
-// （addEllipse+drawPath / addPolygon+closeSubpath+drawPath / arcMoveTo+arcTo+drawPath），
+// R-64 全表对照：Qt 自己的 QSvgGenerator 走 **与 Pk 后端收到的同一套命令流**
+// （椭圆 drawEllipse / 多边形 addPolygon+closeSubpath+drawPath / 弧 arcMoveTo+arcTo+drawPath），
 // 默认 generator 设置（无 width/height/viewBox），与 Pk default-ctor 文档逐像素比。
+//
+// R-64 修复轮 1 订正：椭圆侧原先让 Qt 改道走 addEllipse+drawPath（于是比对的是
+// 「Pk 的 path 输出 = Qt 的 drawPath 输出」——对齐到**未被替换**的入口，是全分支评审 B-1
+// 点名的循环论证）。现改为 Qt 椭圆也走 drawEllipse（Qt 自己发 <ellipse>），与 Pk 后端
+// 收到的同一命令对齐 —— 这才是替换契约本身。多边形/弧仍走 path 形态（Pk 后端对它们
+// 仍发 <path>）。
 //
 // 落点：pk/render/oracle/probes/mirror.cpp（Qt 侧）。由同目录 run_probes.sh 编译运行；它回答什么、期望读数见同目录 README.md。
 #include "svg_primitive_cases.h"
@@ -33,7 +39,8 @@ static QByteArray mirrorDoc(const pkSvgCases::Case &c)
     p.setBrush(c.hasBrush ? QBrush(Qt::red) : QBrush(Qt::NoBrush));
     switch (c.kind) {
     case pkSvgCases::Kind::Ellipse: {
-        QPainterPath path; path.addEllipse(c.rect); p.drawPath(path); break; }
+        // 与 Pk 后端收到的同一条命令：drawEllipse（Qt 发 <ellipse>/<circle>，与 Pk 同形）。
+        p.drawEllipse(c.rect); break; }
     case pkSvgCases::Kind::Polygon: {
         QPainterPath path; QPolygonF poly;
         for (const auto &q : c.points) poly << q;

@@ -131,23 +131,45 @@ class PkSvgPainterBackend final : public PkPainterBackend
         m_body += "<g transform=\"" + matrix(m_state.transform) + "\" opacity=\"" + number(m_state.opacity) + "\">" + element + "</g>";
         for (std::size_t i = 0; i < m_state.clips.size(); ++i) m_body += "</g>";
     }
+    // 描边属性拼装：drawPath 与 drawEllipse 共用（避免两份）。集合与顺序照 drawPath 原样，
+    // 逐字节不变 —— Qt 的 QSvgPaintEngine::drawEllipse 只在 pen.isCosmetic() 时补
+    // vector-effect，其余描边属性与 path 同形。
+    std::string strokeAttributes(const PkPen &pen) {
+        if (pen.style() == Pk::NoPen) return " stroke=\"none\"";
+        std::string out = brushAttributes(pen.brush(), "stroke") + " stroke-width=\"" + number(pen.widthF() == 0 ? 1 : pen.widthF()) +
+            "\" stroke-linecap=\"" + (pen.capStyle() == Pk::FlatCap ? "butt" : pen.capStyle() == Pk::RoundCap ? "round" : "square") +
+            "\" stroke-linejoin=\"" + (pen.joinStyle() == Pk::RoundJoin ? "round" : pen.joinStyle() == Pk::BevelJoin ? "bevel" : "miter") +
+            "\" stroke-miterlimit=\"" + number(pen.miterLimit()) + "\"";
+        if (pen.isCosmetic()) out += " vector-effect=\"non-scaling-stroke\"";
+        const auto dashes = pen.dashPattern();
+        if (!dashes.empty()) {
+            out += " stroke-dasharray=\"";
+            for (auto d : dashes) out += number(d * (pen.widthF() == 0 ? 1 : pen.widthF())) + " ";
+            out += "\" stroke-dashoffset=\"" + number(pen.dashOffset() * (pen.widthF() == 0 ? 1 : pen.widthF())) + "\"";
+        }
+        return out;
+    }
     void drawPath(const PkPainterPath &path, const PkBrush &brush, const PkPen &pen) {
         std::string element = "<path d=\"" + pathData(path) + "\" fill-rule=\"" +
-            (path.fillRule() == Pk::OddEvenFill ? "evenodd" : "nonzero") + "\"" + brushAttributes(brush, "fill");
-        if (pen.style() == Pk::NoPen) element += " stroke=\"none\"";
-        else {
-            element += brushAttributes(pen.brush(), "stroke") + " stroke-width=\"" + number(pen.widthF() == 0 ? 1 : pen.widthF()) +
-                "\" stroke-linecap=\"" + (pen.capStyle() == Pk::FlatCap ? "butt" : pen.capStyle() == Pk::RoundCap ? "round" : "square") +
-                "\" stroke-linejoin=\"" + (pen.joinStyle() == Pk::RoundJoin ? "round" : pen.joinStyle() == Pk::BevelJoin ? "bevel" : "miter") +
-                "\" stroke-miterlimit=\"" + number(pen.miterLimit()) + "\"";
-            if (pen.isCosmetic()) element += " vector-effect=\"non-scaling-stroke\"";
-            const auto dashes = pen.dashPattern();
-            if (!dashes.empty()) {
-                element += " stroke-dasharray=\"";
-                for (auto d : dashes) element += number(d * (pen.widthF() == 0 ? 1 : pen.widthF())) + " ";
-                element += "\" stroke-dashoffset=\"" + number(pen.dashOffset() * (pen.widthF() == 0 ? 1 : pen.widthF())) + "\"";
-            }
-        }
+            (path.fillRule() == Pk::OddEvenFill ? "evenodd" : "nonzero") + "\"" + brushAttributes(brush, "fill") +
+            strokeAttributes(pen);
+        append(element + "/>");
+    }
+    // R-64 修复轮 1：椭圆命令改发 <ellipse>/<circle>，对齐**被替换**入口 Qt 的
+    // QSvgPaintEngine::drawEllipse（qsvggenerator.cpp 5.15.7:1036-1050）：
+    // r.width()==r.height() 发 <circle cx cy r/>，否则 <ellipse cx cy rx ry/>；
+    // pen.isCosmetic() 时补 vector-effect（由 strokeAttributes 统一处理）。
+    // 数值一律走 number()（std::setprecision(6)，与 Qt 的 << 同精度）。fill/stroke 与
+    // drawPath 同一套（brushAttributes + strokeAttributes）。渲染层仍与栅格后端同形：
+    // <ellipse> 与全精度 addEllipse 路径逐像素等价（oracle/probes/isolate: ellipse-vs-path17 = 0）。
+    void drawEllipse(const PkRectF &rect, const PkBrush &brush, const PkPen &pen) {
+        const bool isCircle = rect.width() == rect.height();
+        const PkPointF center = rect.center();
+        std::string element = std::string("<") + (isCircle ? "circle" : "ellipse") +
+            " cx=\"" + number(center.x()) + "\" cy=\"" + number(center.y()) + "\"";
+        if (isCircle) element += " r=\"" + number(rect.width() / 2.0) + "\"";
+        else element += " rx=\"" + number(rect.width() / 2.0) + "\" ry=\"" + number(rect.height() / 2.0) + "\"";
+        element += brushAttributes(brush, "fill") + strokeAttributes(pen);
         append(element + "/>");
     }
     void clip(const PkPainterPath &path, Pk::ClipOperation op) {
@@ -194,10 +216,10 @@ public:
             // R-54 批 2：椭圆 / 多边形 / 弧，语义逐条对齐同族的栅格后端
             // libs/flake/PkImageRasterBackend.cpp（两个后端对同一命令必须同形）。
             else if constexpr (std::is_same_v<T, PkDrawEllipseCommand>) {
-                // 与栅格后端同形：addEllipse 后 fill+stroke（Qt 的 drawEllipse == 先填充
-                // 再描边那条 addEllipse 路径，实测见 PkImageRasterBackend.cpp:475）。
-                PkPainterPath path; path.addEllipse(c.rect);
-                drawPath(path, m_state.brush, m_state.pen);
+                // R-64 修复轮 1（评审 B-1）：不再 addEllipse+drawPath，改发 <ellipse>/<circle>，
+                // 对齐**被替换**入口 Qt 的 QSvgPaintEngine::drawEllipse。渲染层仍与栅格后端
+                // 同形：<ellipse> 与全精度 addEllipse 路径逐像素等价（isolate 探针实测）。
+                drawEllipse(c.rect, m_state.brush, m_state.pen);
             }
             else if constexpr (std::is_same_v<T, PkDrawPolygonCommand>) {
                 // closeSubpath() 不能省：Qt 的 drawPolygon 在描边前闭合子路径，
