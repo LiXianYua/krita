@@ -4856,7 +4856,7 @@ static void cmp_pp_entries()
             // 形态由**输入**算（tag 规则一）—— 触发折角的是 `startAngle + sweepLength`
             //（`pkArcAngleUnsafe(sa) || pkArcAngleUnsafe(sa + sl)` 的后半句），不是字面常量。
             // 合成一个字面 "band-sum" 就违反了「形态必须由触发差异的那个量算出来」。
-            const std::string sh = shapeOfArcBand(c.sa + c.sl) + "/sum";
+            const std::string sh = shapeOfArcBand(c.sa + c.sl) + "/sum" + ptok("v", c.sa + c.sl);
             cmp_pp_entry("PP::arcTo", sh, "startAngle+sweepLength",
                 [rx, c](QPainterPath &q) { q.arcTo(QRectF(1.0, 2.0, 3.0, 4.0), rx, c.sl); },
                 [c](PkPainterPath &p) { p.arcTo(PkRectF(1.0, 2.0, 3.0, 4.0), c.sa, c.sl); });
