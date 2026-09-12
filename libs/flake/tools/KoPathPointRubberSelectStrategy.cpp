@@ -30,7 +30,7 @@ void KoPathPointRubberSelectStrategy::handleMouseMove(const PkPointF &p, Pk::Key
 
 void KoPathPointRubberSelectStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
-    Q_D(KoShapeRubberSelectStrategy);
+    auto * const d = d_func();
     KoPathToolSelection * selection = dynamic_cast<KoPathToolSelection*>(m_tool->selection());
     if (!selection) {
         return;
@@ -45,7 +45,7 @@ void KoPathPointRubberSelectStrategy::finishInteraction(Pk::KeyboardModifiers mo
 
 void KoPathPointRubberSelectStrategy::cancelInteraction()
 {
-    Q_D(KoShapeRubberSelectStrategy);
+    auto * const d = d_func();
 
     m_tool->canvas()->updateCanvas(d->selectedRect().normalized() |
                                    m_tool->decorationsRect());
