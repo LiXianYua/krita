@@ -259,7 +259,29 @@ int KisImageConfig::tilesHardLimit() const
     qreal hp = qreal(memoryHardLimitPercent()) / 100.0;
     qreal pp = qreal(memoryPoolLimitPercent()) / 100.0;
 
-    return totalRAM() * hp * (1 - pp);
+    const qreal hardLimitMiB = totalRAM() * hp * (1 - pp);
+
+    /**
+     * Never truncate a positive limit down to zero MiB.
+     *
+     * The result is consumed as a *tile* limit by KisStoreLimits: a hard limit
+     * of 0 MiB becomes an emergency threshold of 0, which tells the tile
+     * swapper that not a single tile may stay in memory. That condition is
+     * unsatisfiable by construction -- the store always holds the tile a
+     * thread is working on -- so KisTileDataSwapper::checkFreeMemory() fires on
+     * *every* tile load to run a swap cycle that can never reach its target.
+     * Measured with such a configuration: paint_smoke (256x256 image) never
+     * finishes (still running after 300 s, single-threaded at 100% CPU, swap
+     * file not growing -- i.e. churn, not progress), while the next value up
+     * that does not truncate (1.1 MiB) finishes in about a second.
+     *
+     * A sub-MiB limit is a legitimate request (Krita's own low-memory tests ask
+     * for a 1 MiB / 1.1 MiB hard limit), so rounding a positive value up to the
+     * smallest representable limit preserves the intent instead of turning it
+     * into "no memory at all". Values of 1 MiB and above are unaffected, and an
+     * explicitly configured 0 still means 0.
+     */
+    return hardLimitMiB > 0.0 ? pkMax(1, static_cast<int>(hardLimitMiB)) : 0;
 }
 
 int KisImageConfig::tilesSoftLimit() const
