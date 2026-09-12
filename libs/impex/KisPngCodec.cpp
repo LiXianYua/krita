@@ -1091,7 +1091,15 @@ KisImportExportErrorCode KisPngCodec::buildFile(PkStream* iodevice, const PkRect
 
     // set sRGB only if the profile is sRGB  -- http://www.w3.org/TR/PNG/#11sRGB says sRGB and iCCP should not both be present
 
-    const bool sRGB = *device->colorSpace()->profile() == *KoColorSpaceRegistry::instance()->p709SRGBProfile();
+    // 这一处只决定「要不要写可选的 sRGB chunk」这一条元数据判定。参照剖面是数据文件
+    // （elle sRGB ICC），宿主没配资源目录 / 没注册色彩引擎时 p709SRGBProfile() 返回 nullptr；
+    // 届时无法确认这是 sRGB，故取 sRGB = false，落进下面既有的 `if (!sRGB || ...)` 分支，
+    // 把设备真实的剖面写进 iCCP —— 输出更保守、信息更全，不是静默降级。
+    // 这里返回成功是设计，不是把「资源没配」藏起来：真影响产物正确性的失败在别处报错——同一函数
+    // 里拿不到能完成转换的目标色彩空间时返回 FormatColorSpaceUnsupported，两者按「失败是否影响
+    // 产物正确性」分界，不是双标。
+    const KoColorProfile *srgbProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
+    const bool sRGB = srgbProfile && *device->colorSpace()->profile() == *srgbProfile;
     /*
      * This automatically writes the correct gamma and chroma chunks along with the sRGB chunk, but firefox's
      * color management is bugged, so once you give it any incentive to start color managing an sRGB image it
