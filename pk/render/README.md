@@ -502,12 +502,13 @@ ctest guard that compares only the `doc=` column (the Pk document's FNV-1a); it 
 Pk document has not drifted", **not** equivalence with Qt — the two must be run on the same
 commit, and the batch-2 CMake block says so at the target.
 
-**Measured live on this tree, 2026-09-12 (R-54 Task 3), thin-shell build `/tmp/r54-pkrender-build`:**
+**Measured live on this tree, 2026-09-12 (R-54 Task 3; the `run_svg_primitive.sh` row below was
+re-measured by **R-54 修复轮 1**), thin-shell build `/tmp/r54-pkrender-build`:**
 
 | item | value |
 |---|---|
 | `run_shape_primitive.sh` | `identical (288 cases)` — 161 discriminating, 127 degenerate/no-op |
-| `run_svg_primitive.sh` | `identical (204 cases)`; comparator `DIFF total=204 mismatch=0` |
+| `run_svg_primitive.sh` | `identical (288 cases)`; comparator `DIFF total=288 mismatch=0` |
 | thin-shell ctest | **7 / 7 pass, 0 skipped** (`test_pksvg_rasterizer`, `test_shape_primitive`, `test_svg_primitive`, `test_blur_kernel`, `test_text`, `test_pkfont`, `test_pkxml`) |
 | 判据③ `nm -u -C libpkrender.a \| grep -E '\bQ[A-Z][A-Za-z0-9_]*\b'` | **0 hits** (denominator: 12 objects, 16998 raw `nm` lines, 683 undefined symbols) |
 | 判据③ same command on `svg_primitive_oracle_pk` / `svg_backend_driver` | **0 / 0** (6805 / 6883 raw lines; 163 / 166 undefined symbols) |
@@ -532,8 +533,8 @@ satisfy the four conditions of 〈依赖墙挡住真实测试类时〉:
 - **(2) validation values from a real-Qt probe.** Batch 1b compares against
   `oracle/shape_primitive_golden.txt`, whose provenance header is `# qt=5.15.7` /
   `# backend=Qt5Gui`. Batch 2's driver is Qt-free and prints only **its own** document hashes,
-  so its validation comes from a hand-compiled real-Qt probe; run over the driver's 192
-  call-site-shaped cases the probe reports **`PROBE2 total=192 mismatch=0`** (probe command
+  so its validation comes from a hand-compiled real-Qt probe; run over the driver's 276
+  call-site-shaped cases the probe reports **`PROBE2 total=276 mismatch=0`** (probe command
   and raw output in `.superpowers/sdd/R-54/task-3-report.md` §3).
 - **(3) explicitly a substitute.** Batch 2's driver header and four `DRIVER-NOTICE` stdout
   lines state that it is **not** `libs/flake/svg/SvgWriter.cpp`, and that its printed hashes
@@ -545,28 +546,42 @@ satisfy the four conditions of 〈依赖墙挡住真实测试类时〉:
   are outside R-54's locks. Batch 1b's call site compiles into `plugins/tools/tool_knife/`,
   likewise outside the locks.
 
-**Registered gap — the batch-2 angle-coverage hole (measured, not fixed here).** Batch 1b's
-case table originally had a 判据④ coverage hole: every arc angle was a multiple of 16, so
-`startAngle16 / 16.0` → `/ 16` was a compile-time no-op with zero discriminating power over
-the whole arc family. **R-54 Task 3 Step 1b fixed that for batch 1b**: `oracle/shape_primitive_cases.h`
-appends four `x % 16 != 0` angle groups, and the falsification (`/16.0` → `/16` in
-`PkImageRasterBackend.cpp:509-510`) now turns the oracle **red** — 48 differing cases, **all**
-at index ≥ 204 (the four new angle groups); the 204 pre-existing cases are untouched. The same
-hole exists in **batch 2** (`oracle/svg_primitive_cases.h`'s `arcAngles[]` are all `k*16`, and
-`PkSvgPainterBackend.h:215-216` has the same `/ 16.0`). Measured: mutating batch 2's `/ 16.0`
-→ `/ 16` leaves `run_svg_primitive.sh` at `identical (204 cases), mismatch=0` — i.e. zero
-discriminating power there too. **Not fixed by this task**: batch 2 is Task 2's product, and
-the brief permits editing Task 1/2 products only for Step 1b. Registered so a later batch can
-close it.
+**Closed — the batch-2 angle-coverage hole (was: measured, not fixed; closed by R-54 修复轮 1).**
+Both batches' case tables originally had the same 判据④ coverage hole: every arc angle was a
+multiple of 16, so `startAngle16 / 16.0` → `/ 16` was a compile-time no-op with zero
+discriminating power over the whole arc family. **R-54 Task 3 Step 1b fixed it for batch 1b**
+(`oracle/shape_primitive_cases.h` appends four `x % 16 != 0` angle groups; the falsification
+`/16.0` → `/16` in `PkImageRasterBackend.cpp:509-510` turns the oracle **red** — 48 differing
+cases, all at index ≥ 204, the 204 pre-existing cases untouched). **R-54 修复轮 1 closed the
+identical hole in batch 2**: `oracle/svg_primitive_cases.h` appends four `x % 16 != 0` angle
+groups (same append-after-the-existing-groups pattern), and the falsification `/16.0` → `/16`
+in `PkSvgPainterBackend.h:215-216` now turns the batch-2 oracle **red**. Measured live on this
+tree (2026-09-12, thin-shell build `/tmp/r54-pkrender-build`):
 
-**Batch-2 driver input set (why 192 of 204).** The driver replicates the real call site's
+| step | command | reading |
+|---|---|---|
+| **before** (204-case table) + `PkSvgPainterBackend.h` mutated `/16.0`→`/16` | `run_svg_primitive.sh` | `identical (204 cases)`, **0** `DIFFTAG` lines — the no-op |
+| after (288-case table), unmutated | `run_svg_primitive.sh` | `identical (288 cases)`, comparator `DIFF total=288 mismatch=0` |
+| **after** (288-case table) + same mutation | `run_svg_primitive.sh` | `DIVERGED`, `DIFF total=288 mismatch=46`, rc=1 |
+
+The 46 red cases are **entirely** in the four appended angle groups (per group: `{415,3615}`
+12, `{-415,-2879}` 12, `{2879,911}` 12, `{0,1455}` 10) and span indices **205–287** — all
+inside the appended region (`index ≥ 204`); **0** of the 204 pre-existing cases move, and the
+pre-existing 204 lines of `oracle/svg_primitive_golden.txt` are byte-identical before and after
+(verified by `diff`). The appended groups do not regress the green direction either: the
+unmutated 288-case run is `mismatch=0` against the real-Qt comparator.
+
+**Batch-2 driver input set (why 276 of 288).** The driver replicates the real call site's
 **default** ctor, which emits an `<svg>` with **no** `width`/`height`/`viewBox`, whereas the
-oracle uses the **bounds** ctor (`canvasRect()` = 32×32) for 1:1 pixel comparison. Measured
-consequence: on the adversarial rects (degenerate point / negative size / off-canvas / the
-flat `{2,2,1,28}`) a no-`viewBox` document is **stretched by its content bbox** to the render
-target (~8× here), amplifying Pk's four-cubic-Bézier ellipse approximation into a 4-pixel edge
-difference. Over **all 204** cases with the default ctor the probe reports `mismatch=2` (only
-`svg-ellipse#19` and `#20`, the flat rect); over the **192 call-site-shaped** cases the driver
-actually emits it reports `mismatch=0`. Those adversarial rects are 判据④ coverage inputs, not
-call-site shapes, so the driver set excludes them — the reasoning is written out in
-`.superpowers/sdd/R-54/task-3-report.md` §3.
+oracle uses the **bounds** ctor (`canvasRect()` = 32×32) for 1:1 pixel comparison. It keeps
+all polygons and all arcs and drops the 12 ellipse cases on the four adversarial rects
+(degenerate point / negative size / off-canvas / the flat `{2,2,1,28}`), which are 判据④
+adversarial coverage inputs, not call-site shapes. Measured live (R-54 修复轮 1): the driver
+prints `DRIVER-SUMMARY emitted=276 failures=0`, and the real-Qt probe over those **276**
+call-site-shaped cases reports **`PROBE2 total=276 mismatch=0`**. With the default ctor over
+**all 288** cases the probe reports **`PROBE2 total=288 mismatch=2`** — only `svg-ellipse#19`
+and `#20` (the flat `{2,2,1,28}` rect), 4 px each: a no-`viewBox` document is **stretched by
+its content bbox** to the render target (~8× here), amplifying Pk's four-cubic-Bézier ellipse
+approximation into a 4-pixel edge difference. That stretch is why the driver set excludes
+those ellipse rects — the reasoning is written out in `.superpowers/sdd/R-54/task-3-report.md`
+§3.
