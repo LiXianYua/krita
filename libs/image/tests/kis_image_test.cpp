@@ -213,6 +213,18 @@ void KisImageTest::testAssignImageProfile()
 {
     const KoColorSpace *rgb8 = KoColorSpaceRegistry::instance()->rgb8();
     const KoColorSpace *gray8 = KoColorSpaceRegistry::instance()->graya8();
+
+    // R-72：p709SRGBProfile() / p2020G10Profile() 都可返空（R-59 裁决 A 定下的契约：
+    // 这两个访问器就是 profileByName(“…elle…icc”)，剖面是数据文件，取不到就返 nullptr）。
+    // 本用例的前提是「资源齐备、elle 剖面已载入」；未配 EXTRA_RESOURCE_DIRS
+    // （色彩引擎已注册）时前提不成立。**「未注册色彩引擎」不在本判据喂过的输入集合内**，
+    // 这里不对它作任何断言。取受检局部量：不崩、也不静默跳过——明确报失败
+    // （R-59 裁决 C：本线不免除宿主配资源目录的义务，本用例也不替宿主兜底）。
+    const KoColorProfile *elleSrgb = KoColorSpaceRegistry::instance()->p709SRGBProfile();
+    const KoColorProfile *elleRec2020G10 = KoColorSpaceRegistry::instance()->p2020G10Profile();
+    if (!elleSrgb || !elleRec2020G10) {
+        PK_VERIFY2(false, PkString("p709SRGBProfile()/p2020G10Profile() == nullptr: the elle ICC profiles are unavailable, so testAssignImageProfile's premise (rgb8() carries sRGB-elle-V2-srgbtrc.icc and assignImageProfile(elle Rec2020 g10) round-trips) does not hold (no resource dirs / color engine not registered)").PkToUtf8());
+    }
     KisImageSP image = new KisImage(0, 1000, 1000, rgb8, "stest");
 
     KisPaintDeviceSP device1 = new KisPaintDevice(rgb8);
@@ -234,30 +246,30 @@ void KisImageTest::testAssignImageProfile()
     image->addNode(blur1, image->root());
 
     QCOMPARE(*image->colorSpace(), *rgb8);
-    QCOMPARE(*image->colorSpace()->profile(), *KoColorSpaceRegistry::instance()->p709SRGBProfile());
+    QCOMPARE(*image->colorSpace()->profile(), *elleSrgb);
 
     QCOMPARE(*paint1->colorSpace(), *rgb8);
-    QCOMPARE(*paint1->colorSpace()->profile(), *KoColorSpaceRegistry::instance()->p709SRGBProfile());
+    QCOMPARE(*paint1->colorSpace()->profile(), *elleSrgb);
 
     QCOMPARE(*paint2->colorSpace(), *gray8);
 
     QCOMPARE(*blur1->colorSpace(), *rgb8);
-    QCOMPARE(*blur1->colorSpace()->profile(), *KoColorSpaceRegistry::instance()->p709SRGBProfile());
+    QCOMPARE(*blur1->colorSpace()->profile(), *elleSrgb);
 
 
     image->assignImageProfile(KoColorSpaceRegistry::instance()->p2020G10Profile());
     image->waitForDone();
 
     QVERIFY(*image->colorSpace() != *rgb8);
-    QCOMPARE(*image->colorSpace()->profile(), *KoColorSpaceRegistry::instance()->p2020G10Profile());
+    QCOMPARE(*image->colorSpace()->profile(), *elleRec2020G10);
 
     QVERIFY(*paint1->colorSpace() != *rgb8);
-    QCOMPARE(*paint1->colorSpace()->profile(), *KoColorSpaceRegistry::instance()->p2020G10Profile());
+    QCOMPARE(*paint1->colorSpace()->profile(), *elleRec2020G10);
 
     QCOMPARE(*paint2->colorSpace(), *gray8);
 
     QVERIFY(*blur1->colorSpace() != *rgb8);
-    QCOMPARE(*blur1->colorSpace()->profile(), *KoColorSpaceRegistry::instance()->p2020G10Profile());
+    QCOMPARE(*blur1->colorSpace()->profile(), *elleRec2020G10);
 }
 
 void KisImageTest::testGlobalSelection()

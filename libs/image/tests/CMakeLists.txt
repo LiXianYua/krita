@@ -242,3 +242,19 @@ krita_add_broken_unit_test(
     NAME_PREFIX libs-image-
     LINK_LIBRARIES kritaimage kritatestsdk
 )
+
+# R-72 Task 1 降级 driver（R线-spec「依赖墙挡住真实测试类时：允许降级成复刻调用点
+# 形状的 driver」）：逐行复刻 `KisImageTest::testAssignImageProfile`
+# （`kis_image_test.cpp:216–260`）里 p709SRGBProfile()/p2020G10Profile() 的调用点形状
+# （`rgb8()` → `new KisImage(0,1000,1000,rgb8,"stest")` → 剖面 `operator==` 比较）。
+# 真实测试类本树编不过（四类源码层阻塞，见该 .cpp 头注释与 R-72 plan §1 F3），故用
+# plain main() driver 落常驻证据。零 Qt：只链 kritaimage + kritalcmsengine，
+# 除 kritaimage/kritapigment 传递的包含目录外，只需 lcms 引擎头（registerLcmsEngine）。
+# 这堵墙什么时候拆：S 线完成 `libs/image` 源码迁移 + R-65 收口测试侧 target。
+kis_add_test(
+    PkImageProfileNoResourceDirsDriver.cpp
+    LINK_LIBRARIES kritaimage kritalcmsengine
+)
+target_include_directories(PkImageProfileNoResourceDirsDriver PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugins/color/lcms2engine
+)
