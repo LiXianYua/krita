@@ -33,10 +33,20 @@
 // 实现用 `mkstemps()`：它一次做完「模板里 XXXXXX → 唯一随机名 + 保留后缀」，
 // 正是探针测到的行为；`mkstemp()` 不支持后缀，会错把 `.exr` 也当成 XXXXXX 的一部分。
 //
-// 模板里没有 `XXXXXX` 时的退化分支（**修复轮 1 补探针实测**，Task 3b N-6；
-// 此前是「按 Qt 文档口径」的推断）：真 Qt 5.15.7 追加的是 **`.XXXXXX`**（带点号），
-// 4/4 用例 —— `/tmp/x` → `/tmp/x.PuyfRY` · `/tmp/x.txt` → `/tmp/x.txt.FsyUmx` ·
-// `/tmp/x.` → `/tmp/x..atMXnd` · `/tmp/x.part.txt` → `/tmp/x.part.txt.nhwRWx`。
+// 模板里没有 `XXXXXX` 时的退化分支（**修复轮 2 真探针实测**，Task 3b N-6）：
+// 修复轮 1 曾把它标成「已实测 4/4」并据此改代码，但探针里**没有**这个用例、跑法里
+// **没有** `env -u TMPDIR`、输出也没有归档 —— 复审 N-6 判其为阻塞（「推断被换成了
+// 实测，而实测不存在」）。本轮补的**真探针**：`pk/test/oracle/probe_file_shims.cpp`
+// 新增 **§8b**（4 个模板里不含 `XXXXXX` 的用例），跑法 `pk/test/oracle/run_oracle.sh`
+// （现跑两遍，第二遍 `env -u TMPDIR`）；**原始输出**归档在
+// `.superpowers/sdd/R-77/evidence/fix2-oracle.txt`。实测：真 Qt 5.15.7 追加的是
+// **`.XXXXXX`**（带点号），4/4 ——
+//   `/tmp/r77_noxxx_x`          → `/tmp/r77_noxxx_x.axdDrC`
+//   `/tmp/r77_noxxx_x.txt`      → `/tmp/r77_noxxx_x.txt.GrcSbl`
+//   `/tmp/r77_noxxx_x.`         → `/tmp/r77_noxxx_x..dhHJFv`
+//   `/tmp/r77_noxxx_x.part.txt` → `/tmp/r77_noxxx_x.part.txt.DbQlYO`
+// （末 6 字符是 `mkstemps` 的随机名，每次运行都不同 —— 上面这四条字面量只对应**那一次**
+//   归档运行；可复现的是**形状**「模板 + `.` + 6 个随机字符」。）
 // 本垫片此前追加的是**不带点号**的 `XXXXXX`（`/tmp/x` → `/tmp/xABCDEF`），与真 Qt
 // 差一个 `.` —— 已按上述探针改成追加 `.XXXXXX`。该分支在用量表里**没有调用点**
 // （唯一调用点 `kis_exr_test.cpp:58` 的模板带 `XXXXXX`），保留它只是不让同一个类

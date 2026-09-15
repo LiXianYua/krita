@@ -263,6 +263,27 @@ int main()
         std::printf("无参 QTemporaryFile::open() fileName='%s'\n", tf.fileName().toUtf8().constData());
     }
 
+    // ---------------------------------------------------------------- 8b. 模板不含 XXXXXX
+    // [修复轮 2 · Task 3b N-6] 这条分支此前只有「按 Qt 文档口径」的推断，没有实测。
+    // 本段就是那个实测：4 个「模板里没有 XXXXXX」的用例，各自打印真 Qt 展开出的名字。
+    hdr("8b. QTemporaryFile 模板里**不含** `XXXXXX` 时的退化分支");
+    {
+        const char *tmpls[] = { "/tmp/r77_noxxx_x",
+                                "/tmp/r77_noxxx_x.txt",
+                                "/tmp/r77_noxxx_x.",
+                                "/tmp/r77_noxxx_x.part.txt" };
+        for (const char *t : tmpls) {
+            QTemporaryFile tf(QString::fromUtf8(t));
+            tf.setAutoRemove(false);   // 手动清理，别让析构删掉后再去比对
+            const bool ok = tf.open();
+            const QString name = tf.fileName();
+            std::printf("  模板 '%s' -> open=%d  fileName='%s'  exists=%d\n",
+                        t, (int)ok, name.toUtf8().constData(), (int)QFile::exists(name));
+            tf.close();
+            QFile::remove(name);
+        }
+    }
+
     // ---------------------------------------------------------------- 9. QLatin1String 用量
     hdr("9. QLatin1String 在本用量表下需要什么");
     std::printf("QLatin1String(\"/krita_XXXXXX\") 可否与 QString operator+ : ");
@@ -312,6 +333,16 @@ int main()
         const char *t = getenv("TMPDIR");
         std::printf("realpath($TMPDIR) = '%s'\n", (t && realpath(t, rp)) ? rp : "(n/a)");
     }
+
+    // ---------------------------------------------------------------- 9f. tempPath 退化分支
+    // [修复轮 2 · Task 3b N-6 ①] `run_oracle.sh` 现在跑**两遍**：一遍沿用环境里的
+    // TMPDIR、一遍 `env -u TMPDIR`。这一段把当前那遍的取值打出来——两遍的对照就是
+    // 「TMPDIR 未设时 tempPath() 退化成什么」的**实测**（此前只是推断）。
+    hdr("9f. QDir::tempPath() 在 $TMPDIR 未设时的取值（两遍对照，见 run_oracle.sh）");
+    std::printf("  本次运行 TMPDIR=%s  ->  QDir::tempPath() = '%s'  （退化成 /tmp 了吗：%s）\n",
+                getenv("TMPDIR") ? getenv("TMPDIR") : "(unset)",
+                QDir::tempPath().toUtf8().constData(),
+                (QDir::tempPath() == QStringLiteral("/tmp")) ? "是" : "否");
 
     // ---------------------------------------------------------------- 9e. cleanPath 更多边角
     hdr("9e. QDir::cleanPath 边角（垫片要逐条对齐）");

@@ -28,7 +28,16 @@ echo "### otool -L $OUT/probe_file_shims (证明链的是真 Qt5.15.7 框架)"
 otool -L "$OUT/probe_file_shims" | sed 's/^/    /'
 
 echo
-echo "### probe 原始输出（HOME=$(mktemp -d) 隔离，模拟 ctest 口径）"
+echo "### probe 原始输出 ①（HOME=$(mktemp -d) 隔离，模拟 ctest 口径；TMPDIR 沿用环境）"
 _HOME="$(mktemp -d)"
 HOME="$_HOME" "$OUT/probe_file_shims"
+rm -rf "$_HOME"
+
+# 第二遍：[修复轮 2 · Task 3b N-6] 控制变量 —— `env -u TMPDIR`。
+# 专为「TMPDIR 未设时 `QDir::tempPath()` 退化成什么」（§1 / §9d / §9f）取证。
+# `QTemporaryFile` 模板不含 XXXXXX 的分支（§8b）用绝对路径模板，两遍都要看。
+echo
+echo "### probe 原始输出 ②（控制变量：env -u TMPDIR；HOME 同样隔离）"
+_HOME="$(mktemp -d)"
+HOME="$_HOME" env -u TMPDIR "$OUT/probe_file_shims"
 rm -rf "$_HOME"
