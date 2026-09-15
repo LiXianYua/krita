@@ -214,71 +214,12 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
 }
 
 
-// ---------------------------------------------------------------------------
-// R-77：下面三个函数**两栈同源**（pk 栈也编译）。函数体自 R-77 起只依赖
-// sdk/tests/compat/ 的垫片面；**断言、容差、行为一律未改**——它们本来就是纯文件
-// 权限操作，R-77 之前之所以编不了，只是因为这些垫片当时还不存在。
-// 真 Qt 语义逐条探针实测（task1-report.md §3.2），改动前先看那份原始输出。
-// ---------------------------------------------------------------------------
-void prepareFile(QFileInfo sourceFileInfo, bool removePermissionToWrite, bool removePermissionToRead)
-{
+// R-82：下面三个函数（`prepareFile` / `restorePermissionsToReadAndWrite` /
+// `impexTempFilesDir`）已搬到 `sdk/tests/impex_file_utils.h` —— **函数体一字未改**。
+// 搬家的理由见那个头的头注（一句话：`PkTestSupportSelfTest` 零 Krita 库依赖，
+// 够不到 `testutil.h`，而它只需要这三个函数）。
+#include "impex_file_utils.h"
 
-    QFileDevice::Permissions permissionsBefore;
-    if (sourceFileInfo.exists()) {
-        permissionsBefore = QFile::permissions(sourceFileInfo.absoluteFilePath());
-        qDebug() << "prepareFile permissions before:" << permissionsBefore;
-    } else {
-        QFile file(sourceFileInfo.absoluteFilePath());
-        bool opened = file.open(QIODevice::ReadWrite);
-        if (!opened) {
-            qDebug() << "The file cannot be opened/created: " << file.error() << file.errorString();
-        }
-        permissionsBefore = file.permissions();
-        file.close();
-    }
-    QFileDevice::Permissions permissionsNow = permissionsBefore;
-    if (removePermissionToRead) {
-        permissionsNow = permissionsBefore &
-                (~QFileDevice::ReadUser & ~QFileDevice::ReadOwner
-                 & ~QFileDevice::ReadGroup & ~QFileDevice::ReadOther);
-    }
-    if (removePermissionToWrite) {
-        permissionsNow = permissionsBefore &
-                (~QFileDevice::WriteUser & ~QFileDevice::WriteOwner
-                 & ~QFileDevice::WriteGroup & ~QFileDevice::WriteOther);
-    }
-
-    bool success = QFile::setPermissions(sourceFileInfo.absoluteFilePath(), permissionsNow);
-    if (!success) {
-        qWarning() << "prepareFile(): Failed to set permission of file" << sourceFileInfo.absoluteFilePath()
-                   << "from" << permissionsBefore << "to" << permissionsNow;
-    }
-}
-
-void restorePermissionsToReadAndWrite(QFileInfo sourceFileInfo)
-{
-    QFileDevice::Permissions permissionsNow = sourceFileInfo.permissions();
-    QFileDevice::Permissions permissionsAfter = permissionsNow
-            | (QFileDevice::ReadUser | QFileDevice::ReadOwner
-            | QFileDevice::ReadGroup | QFileDevice::ReadOther)
-            | (QFileDevice::WriteUser | QFileDevice::WriteOwner
-            | QFileDevice::WriteGroup | QFileDevice::WriteOther);
-    bool success = QFile::setPermissions(sourceFileInfo.absoluteFilePath(), permissionsAfter);
-    if (!success) {
-        qWarning() << "restorePermissionsToReadAndWrite(): Failed to set permission of file" << sourceFileInfo.absoluteFilePath()
-                   << "from" << permissionsNow << "to" << permissionsAfter;
-    }
-}
-
-const QString &impexTempFilesDir() {
-    static const QString s_path = []() {
-        const QString path = QDir::cleanPath(
-                QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/impex_test") + '/';
-        QDir(path).mkpath(QStringLiteral("."));
-        return path;
-    }();
-    return s_path;
-}
 
 
 // ---------------------------------------------------------------------------

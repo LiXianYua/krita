@@ -4,16 +4,23 @@
 // 编过的东西，都是 PkTestCompatAll.h 被 `-include` 强制激活带来的（这正是
 // libs/**/tests 里那一大批「靠 Qt 传递 include 才编得过」的测试所依赖的机制）。
 //
-// R-77 增补：下面两个用例要**直接调** `sdk/tests/filestest.h` 里的真实函数，
-// 所以必须 include 它（这是本文件唯一的 Krita 侧 include；它自己那套重量级
-// include——testutil.h/KisDocument 一族——已在 R-77 用 `#ifndef
-// KRITA_TESTSDK_PK_NATIVE` 挡在 pk 栈外，见 filestest.h 的端口化注释）。
-// **这条与上面「刻意不 include」的取舍是刻意的**：那三行说的是「机器自测不要
+// R-77 增补、R-82 改：下面两个用例要**直接调** `TestUtil::prepareFile` /
+// `restorePermissionsToReadAndWrite` / `impexTempFilesDir` 这三个真实函数，
+// 所以必须 include 它们的家。
+//
+// **R-82 把那个家从 `filestest.h` 换成了 `impex_file_utils.h`**：R-82 撤掉了
+// filestest.h 的 pk 守卫（它现在两栈同源、被 24 个 impex target 直接消费），
+// 于是 filestest.h 会拉 `testutil.h` → `<KoResource.h>` / `<KoColorSpace.h>` /
+// `<kis_paint_device.h>` 一族，而本 target 是**零 Krita 库依赖**的、拿不到那些
+// include 目录（实测：`ninja -C build-r82 PkTestSupportSelfTest` →
+// `sdk/tests/testutil.h:63: fatal error: 'KoResource.h' file not found`）。
+// 那三个函数已**原样**搬进 `sdk/tests/impex_file_utils.h`，该头**只要 compat 垫片**。
+//
+// **这条与上面「刻意不 include」的取舍仍然是刻意的**：那三行说的是「机器自测不要
 // 靠自己的 include 去补垫片」，而这里要证的恰恰是「垫片面上那三个真函数跑得起来」
-// ——那是 brief §3.4 点名要的收尾证据，代价是本 target 从此多一个 Krita 侧依赖面。
-// 它仍然**零 Krita 库依赖**（只多了一个头），所以「红了就是机器坏了」这条性质
-// 只被削弱一点：若垫片面塌了，本 target 会红在垫片上——这正是要暴露的。
-#include "filestest.h"
+// ——那是 R-77 brief §3.4 点名要的收尾证据。本 target 仍**零 Krita 库依赖**
+// （只多了一个不依赖 Krita 的头），「红了就是机器坏了」这条性质保住了。
+#include "impex_file_utils.h"
 
 void PkTestSupportSelfTest::testCompatMacroAliases()
 {
