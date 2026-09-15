@@ -22,6 +22,9 @@ set(PKGEOMETRY_SOURCES
     PkRegion.cpp
     PkPainterPath.cpp
     PkGeometryDebug.cpp
+    # R-87：PkRect 的 std::ostream 插入运算符（PK_COMPARE 诊断通道）。与
+    # PkGeometryDebug.cpp 零耦合：新开独立 TU，免得把 PkLogEmit 带进链接。
+    PkRectTestString.cpp
     # PkPen（S-07-b 越锁补定义）是纯头 data-carrier，列进源仅为 IDE 可见性；
     # 依赖 PkColor（pk/color），见下方 ../color include。
     PkPen.h

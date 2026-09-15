@@ -16,6 +16,10 @@
 // 探针会失去判别力，反过来也可能把干净 TU 的断言变成假红）。
 // 匿名 namespace 把整包压成内部链接，链接顺序再影响不了任何东西。
 // 纪律只有一条：**系统头必须留在 namespace 之外**（否则会造出 (anonymous)::std）。
+// R-87 起 **PkRect.h 自己带一条系统头 `#include <iosfwd>`**，于是那条纪律
+// 多一条连带要求（与 geometry_difftest.cpp 对 PkSize.cpp/PkRect.cpp 的写法
+// 一样）：**被 include 进 namespace 的 pk 头若带系统头，那条系统头必须先在
+// 下面的系统头区里出现过**，否则 (anonymous)::std 会遮住/撞上 ::std。
 //
 // 附带的一条：PkRect.cpp 里的 normalized / operator| / operator& / contains ×2 /
 // intersects / toAlignedRect 是**非 inline** 的（照 Qt 的形态，实现编在
@@ -27,6 +31,7 @@
 
 #include <cmath>
 #include <limits>
+#include <iosfwd>   // R-87：PkRect.h 带它，必须先在 namespace 外落地（见上）
 
 namespace {
 

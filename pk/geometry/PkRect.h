@@ -7,6 +7,14 @@
 #include "PkPoint.h"
 #include "PkSize.h"
 
+// R-87：下面那条 std::ostream 插入运算符的声明只需要 <iosfwd> 的前向声明。
+// ⚠ **这是本头唯一一条系统头**（此前 PkRect.h 零系统头）。把本头 include 进
+//   某个 namespace 的 TU（geometry/oracle 的对拍 TU、tests/*_macro_proof.cpp 的
+//   匿名 namespace）必须把 <iosfwd> **先在 namespace 之外** include 一次，否则会
+//   造出 (anonymous)::std / pkoracle::std 遮住 ::std。既有先例见
+//   geometry_difftest.cpp 对 PkSize.cpp 的 <type_traits> 那条注释。
+#include <iosfwd>
+
 // ---------------------------------------------------------------------------
 // PkRect —— QRect 的零 Qt 替代。
 //
@@ -1007,5 +1015,20 @@ constexpr inline PkRect PkRectF::toRect() const noexcept
 class PkDebug;
 PkDebug operator<<(PkDebug dbg, const PkRect &v);
 PkDebug operator<<(PkDebug dbg, const PkRectF &v);
+
+// R-87：PK_COMPARE 诊断通道用的 `std::ostream` 插入运算符。
+//
+// **与上面那条 PkDebug 运算符是两条通道、两种文本** —— 真 Qt 本身也是两条：
+// `QTest::toString`（在测试库 QtTest/qtest.h，逐类型特化）与 `QDebug`（在类型头），
+// 且 **QRect 的文本不同**（前者多一个 `(bottomright …)`；探针① 结论 3）。**别统一**。
+// 本运算符的文本 = 真 Qt `QTest::toString(const QRect&)` 的原文，只把类型名换成
+// PkRect（登记偏离，见 README「偏离登记」）。定义在 pk/geometry/PkRectTestString.cpp
+// —— 那个 TU 与 PkGeometryDebug.cpp **零耦合**（后者一被拉进链接就带出 PkLogEmit）。
+//
+// ⚠ **这是 pk/ 全树第一处 `std::ostream operator<<`**（此前实测零处）——不是既有
+// 惯例，是一条新开的口子。`pk/test/PkTestCompare.h` 的 SFINAE 会自动点亮它。
+// 两条通道互不干扰是实测结论：`dbg << rect` 仍选中上面那条 PkDebug 自由运算符
+// （探针③ [b]，无二义、qDebug 文本不漂）。
+std::ostream &operator<<(std::ostream &os, const PkRect &r);
 
 #endif // PK_GEOMETRY_PKRECT_H
