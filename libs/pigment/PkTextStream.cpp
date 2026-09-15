@@ -1,10 +1,15 @@
 /*
     SPDX-FileCopyrightText: 2026 S-03-a
     SPDX-License-Identifier: LGPL-2.1-or-later
+
+    文件名是历史遗留：`plugins/impex/qml/tests/CMakeLists.txt` 曾按绝对路径引用
+    `${CMAKE_SOURCE_DIR}/libs/pigment/PkTextStream.cpp`，故与头名 `PigmentTextStream.h`
+    不一致；R-79 已删掉那处引用（该 target 改链 `pktextstream`），故本文件现在可以随之
+    `git mv` 为 `PigmentTextStream.cpp`（本任务按范围约束未改名，留给后续）。
  */
 
 #include <iomanip>
-#include "PkTextStream.h"
+#include "PigmentTextStream.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -12,7 +17,7 @@
 #include <string>
 #include <vector>
 
-PkTextStream::PkTextStream(PkStream *device)
+PigmentTextStream::PigmentTextStream(PkStream *device)
     : m_device(device)
     , m_pos(0)
 {
@@ -30,18 +35,18 @@ PkTextStream::PkTextStream(PkStream *device)
     m_readBuf = PkByteArray(buf);
 }
 
-PkTextStream::PkTextStream(PkString *str)
+PigmentTextStream::PigmentTextStream(PkString *str)
     : m_device(nullptr)
     , m_pkStr(str)
 {
 }
 
-PkTextStream::~PkTextStream()
+PigmentTextStream::~PigmentTextStream()
 {
     flush();
 }
 
-void PkTextStream::appendToWriteBuf(const char *data, std::size_t len)
+void PigmentTextStream::appendToWriteBuf(const char *data, std::size_t len)
 {
     if (m_pkStr) {
         // PkString 后端：UTF-8 字节直接追加（PkString 内部按码元收）。
@@ -53,12 +58,12 @@ void PkTextStream::appendToWriteBuf(const char *data, std::size_t len)
     std::memcpy(m_writeBuf.data() + old, data, len);
 }
 
-bool PkTextStream::atEnd() const
+bool PigmentTextStream::atEnd() const
 {
     return m_pos >= static_cast<std::size_t>(m_readBuf.size());
 }
 
-PkString PkTextStream::readAll()
+PkString PigmentTextStream::readAll()
 {
     if (atEnd()) {
         return PkString();
@@ -69,7 +74,7 @@ PkString PkTextStream::readAll()
     return result;
 }
 
-PkString PkTextStream::readLine()
+PkString PigmentTextStream::readLine()
 {
     if (atEnd()) {
         return PkString();
@@ -91,7 +96,7 @@ PkString PkTextStream::readLine()
     return line;
 }
 
-bool PkTextStream::readLineInto(PkString &line)
+bool PigmentTextStream::readLineInto(PkString &line)
 {
     if (atEnd()) {
         line = PkString();
@@ -101,7 +106,7 @@ bool PkTextStream::readLineInto(PkString &line)
     return true;
 }
 
-bool PkTextStream::skipWhitespace()
+bool PigmentTextStream::skipWhitespace()
 {
     const char *data = m_readBuf.data();
     const std::size_t size = static_cast<std::size_t>(m_readBuf.size());
@@ -116,7 +121,7 @@ bool PkTextStream::skipWhitespace()
     return m_pos < size;
 }
 
-bool PkTextStream::readToken(PkString &out)
+bool PigmentTextStream::readToken(PkString &out)
 {
     const char *data = m_readBuf.data();
     const std::size_t size = static_cast<std::size_t>(m_readBuf.size());
@@ -136,7 +141,7 @@ bool PkTextStream::readToken(PkString &out)
     return true;
 }
 
-PkTextStream &PkTextStream::operator>>(int &v)
+PigmentTextStream &PigmentTextStream::operator>>(int &v)
 {
     v = 0;
     if (!skipWhitespace()) {
@@ -166,7 +171,7 @@ PkTextStream &PkTextStream::operator>>(int &v)
     return *this;
 }
 
-PkTextStream &PkTextStream::operator>>(float &v)
+PigmentTextStream &PigmentTextStream::operator>>(float &v)
 {
     v = 0.0f;
     if (!skipWhitespace()) {
@@ -181,7 +186,7 @@ PkTextStream &PkTextStream::operator>>(float &v)
     return *this;
 }
 
-PkTextStream &PkTextStream::operator>>(PkString &v)
+PigmentTextStream &PigmentTextStream::operator>>(PkString &v)
 {
     v = PkString();
     if (!skipWhitespace()) {
@@ -191,14 +196,14 @@ PkTextStream &PkTextStream::operator>>(PkString &v)
     return *this;
 }
 
-PkTextStream &PkTextStream::operator<<(const PkString &s)
+PigmentTextStream &PigmentTextStream::operator<<(const PkString &s)
 {
     const std::string utf8 = s.PkToUtf8();
     appendToWriteBuf(utf8.data(), utf8.size());
     return *this;
 }
 
-PkTextStream &PkTextStream::operator<<(qreal v)
+PigmentTextStream &PigmentTextStream::operator<<(qreal v)
 {
     std::ostringstream os;
     os << std::setprecision(m_realPrec) << v;
@@ -206,7 +211,7 @@ PkTextStream &PkTextStream::operator<<(qreal v)
     return *this;
 }
 
-PkTextStream &PkTextStream::operator<<(const char *s)
+PigmentTextStream &PigmentTextStream::operator<<(const char *s)
 {
     if (s) {
         appendToWriteBuf(s, std::char_traits<char>::length(s));
@@ -214,20 +219,20 @@ PkTextStream &PkTextStream::operator<<(const char *s)
     return *this;
 }
 
-PkTextStream &PkTextStream::operator<<(int v)
+PigmentTextStream &PigmentTextStream::operator<<(int v)
 {
     const std::string s = std::to_string(v);
     appendToWriteBuf(s.data(), s.size());
     return *this;
 }
 
-PkTextStream &PkTextStream::operator<<(char c)
+PigmentTextStream &PigmentTextStream::operator<<(char c)
 {
     appendToWriteBuf(&c, 1);
     return *this;
 }
 
-void PkTextStream::flush()
+void PigmentTextStream::flush()
 {
     if (m_writeBuf.size() > 0 && m_device) {
         const char *data = m_writeBuf.data();
@@ -245,12 +250,12 @@ void PkTextStream::flush()
     }
 }
 
-void PkTextStream::setCodec(const char * /*codecName*/)
+void PigmentTextStream::setCodec(const char * /*codecName*/)
 {
     // 内部统一 UTF-8，无需转换。
 }
 
-void PkTextStream::setAutoDetectUnicode(bool /*enabled*/)
+void PigmentTextStream::setAutoDetectUnicode(bool /*enabled*/)
 {
     // no-op：本垫片总是按 UTF-8 读。
 }

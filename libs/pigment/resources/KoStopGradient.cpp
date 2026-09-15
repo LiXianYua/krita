@@ -18,7 +18,7 @@
 #include <filesystem>
 #include <vector>
 
-#include <PkTextStream.h>
+#include <PigmentTextStream.h>
 #include <PkStringList.h>
 #include <PkVariant.h>
 
@@ -727,8 +727,8 @@ PkString KoStopGradient::saveSvgGradient() const
 
 bool KoStopGradient::saveToDevice(PkStream* dev) const
 {
-    PkTextStream stream(dev);
-    // setUtf8OnStream 无 Qt 世界为空操作（PkTextStream 原生 UTF-8），不引 libs/global/KisPortingUtils.h
+    PigmentTextStream stream(dev);
+    // setUtf8OnStream 无 Qt 世界为空操作（PigmentTextStream 原生 UTF-8），不引 libs/global/KisPortingUtils.h
     stream << saveSvgGradient();
 
     return true;

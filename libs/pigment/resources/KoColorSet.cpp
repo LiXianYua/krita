@@ -13,7 +13,7 @@
 
 #include <PkStream.h>
 #include <PkMemoryStream.h>
-#include <PkTextStream.h>
+#include <PigmentTextStream.h>
 #include <PkXmlStreamReader.h>
 #include <PkXmlStreamAttributes.h>
 #include <PkXmlNode.h>
@@ -62,10 +62,10 @@ PkStringList pkReadAllLinesSafe(const PkByteArray &data)
     buffer.close();
     buffer.open(PkStream::ReadOnly);
 
-    PkTextStream stream(&buffer);
+    PigmentTextStream stream(&buffer);
 
     PkString line;
-    while (stream.readLineInto(line)) {   // PkTextStream::readLineInto 取 PkString&，不是指针
+    while (stream.readLineInto(line)) {   // PigmentTextStream::readLineInto 取 PkString&，不是指针
         lines << line;
     }
 
@@ -1700,7 +1700,7 @@ bool KoColorSet::Private::saveGpl(PkStream *dev) const
     Q_ASSERT(dev->isOpen());
     Q_ASSERT(dev->isWritable());
 
-    PkTextStream stream(dev);
+    PigmentTextStream stream(dev);
     stream << "GIMP Palette\nName: " << colorSet->name() << "\nColumns: " << colorSet->columnCount() << "\n#\n";
 
     KisSwatchGroupSP global = colorSet->getGlobalGroup();

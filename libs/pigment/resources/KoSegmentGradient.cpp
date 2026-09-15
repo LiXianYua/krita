@@ -29,7 +29,7 @@
 #include <limits>
 
 #include <PkGlobal.h>
-#include <PkTextStream.h>
+#include <PigmentTextStream.h>
 
 #include <DebugPigment.h>
 #include <KoCanvasResourcesIds.h>
@@ -96,8 +96,8 @@ bool KoSegmentGradient::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP re
 {
     Q_UNUSED(resourcesInterface);
 
-    PkTextStream fileContent(dev);
-    // setUtf8OnStream 无 Qt 世界为空操作（PkTextStream 原生 UTF-8），不引 libs/global/KisPortingUtils.h
+    PigmentTextStream fileContent(dev);
+    // setUtf8OnStream 无 Qt 世界为空操作（PigmentTextStream 原生 UTF-8），不引 libs/global/KisPortingUtils.h
     fileContent.setAutoDetectUnicode(true);
 
     PkString header = fileContent.readLine();
@@ -206,8 +206,8 @@ bool KoSegmentGradient::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP re
 
 bool KoSegmentGradient::saveToDevice(PkStream *dev) const
 {
-    PkTextStream fileContent(dev);
-    // setUtf8OnStream 无 Qt 世界为空操作（PkTextStream 原生 UTF-8），不引 libs/global/KisPortingUtils.h
+    PigmentTextStream fileContent(dev);
+    // setUtf8OnStream 无 Qt 世界为空操作（PigmentTextStream 原生 UTF-8），不引 libs/global/KisPortingUtils.h
     fileContent << "GIMP Gradient\n";
     fileContent << "Name: " << name() << "\n";
     fileContent << m_segments.count() << "\n";
