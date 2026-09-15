@@ -22,6 +22,12 @@
 // 参考：libs/pigment/PkXmlCompat.h（S-03-a 范本，PK_CAT_/PK_INC_ 技巧同源）与
 // 壳内全量版 .superpowers/sdd/S-08/shell/kritaflake/PkXmlCompat.h（git-ignored，
 // include 面来源）。
+// ⚠ R-81：本文件原名 PkXmlCompat.h，与 libs/pigment/PkXmlCompat.h 同名。
+//   两份是**真分叉**（激活集合互不包含：本头多几何/Dom/QLoggingCategory/qMin，
+//   pigment 那份多 ByteArray/BitArray/MultiMap/Rgb/Q_DECL_HIDDEN），谁先被 include
+//   path 命中谁赢。实测：把取本头的 73 个 TU 换成 pigment 那份 ⇒ 14 个由绿转红
+//   （见 $WT/.superpowers/sdd/R-81/impact-map.md §3.3）。改名后 flake 侧必须
+//   include <FlakeXmlCompat.h>，写 <PkXmlCompat.h> 会**响亮**地失败。
 
 #define PK_CAT_(a, b) a##b
 #define PK_INC_(x) <x>

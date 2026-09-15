@@ -56,7 +56,7 @@
 #pragma pop_macro("Q_DECLARE_FLAGS")
 #pragma pop_macro("Q_DECLARE_OPERATORS_FOR_FLAGS")
 // 真 Qt 头在前（R-38 约定）：先 include 真 Qt 全量，保证本头内的 Q 名解析到真类型。
-// 本头不激活任何 compat 宏——它就是给 real-Qt-first 的 TU 用的。与 PkXmlCompat.h 的
+// 本头不激活任何 compat 宏——它就是给 real-Qt-first 的 TU 用的。与 FlakeXmlCompat.h 的
 // umbrella 同款（QtCore/QtGui/QtWidgets/QtXml/QtSvg），real-Qt-first TU 需要的真 Qt
 // API 一次全给；不 #undef 调试宏——real-Qt-first TU 保持真 Qt 语义，Pk 跨界由下方
 // operator<< 桥接。
@@ -729,8 +729,9 @@ private:
 
 #else
 // ---- Qt-free 薄壳分支（QT_CORE_LIB 未定义）----
-// 壳内 PkXmlCompat.h（shell/kritaflake/PkXmlCompat.h，include 路径第一命中）把 Q 名
-// 宏映射到 Pk 类型；本分支再补 pk/color/PkColor.h（壳 PkXmlCompat 刻意不含 Color 的
+// 本头在 R-81 起显式 include <FlakeXmlCompat.h>（libs/flake/PkXmlCompat.h 的原名；
+// R-81 改名以消掉「与 libs/pigment/PkXmlCompat.h 同名、谁先被 include path 命中谁赢」）。
+// 它把 Q 名宏映射到 Pk 类型；本分支再补 pk/color/PkColor.h（该头刻意不含 Color 的
 // compat 映射，桥接用到 PkColor 才单独引）。桥接函数退化为 Pk 恒等透传——前提是 Q 名
 // 已宏映射到同一 Pk 类型（List→PkList、PointF→PkPointF、DomElement→PkXmlElement 等），
 // 透传与真 Qt 分支按分量互转在 Qt-free 下语义一致。唯一例外是 String：壳 compat 的
@@ -740,7 +741,7 @@ private:
 // （ImageShape.cpp、KoSvgSymbolCollectionResource.cpp、ImageShapeFactory.cpp、
 // KoFlakeUtils.h），故本分支按恒等透传补齐它们（见文末）。Image/IODevice 相关的桥接
 // 暂仍只服务真 Qt 分支——本波实测未暴露原生调用点。
-#include <PkXmlCompat.h>
+#include <FlakeXmlCompat.h>
 #include <pk/color/PkColor.h>
 #include <pk/geometry/PkPen.h>
 #include <pk/geometry/PkPainterPath.h>
