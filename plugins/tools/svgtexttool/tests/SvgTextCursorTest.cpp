@@ -27,6 +27,7 @@
 #include <KoSvgTextShapeMarkupConverter.h>
 #include <KoFontRegistry.h>
 #include <KoCanvasController.h>
+#include <SvgTextQtPlatformHost.h>
 #include <KoToolRegistry.h>
 #include <KoViewConverter.h>
 #include <kis_coordinates_converter.h>
@@ -35,6 +36,7 @@
 #include <QImage>
 #include <QInputMethod>
 #include <QInputMethodEvent>
+#include <QKeySequence>
 #include <QMimeData>
 #include <QTextCharFormat>
 #include <QWidget>
@@ -95,10 +97,83 @@ public:
     void resetScrollBars() override {}
     PkPointF currentCursorPosition() const override { return {}; }
     KoZoomState zoomState() const override { return {}; }
+
+    // 桶无关宿主动作面（R-70）：controller 既报 identity（读路，SvgTextQtPlatformHost
+    // 的 actionShortcut 从这里取），也记录工具写回的启用态（写路，slotTextTypeUpdated
+    // 的 setHostActionEnabled）。两条都是可写的测试观测点。
+    PkList<KisHostActionIdentity> hostActions() const override { return hostActionIdentities; }
+    void setHostActionEnabled(const PkString &objectName, bool enabled) override
+    {
+        hostActionEnabledWrites.insert(objectName, enabled);
+    }
+
+    PkList<KisHostActionIdentity> hostActionIdentities;
+    PkMap<PkString, bool> hostActionEnabledWrites;
+
     KoCanvasBase *currentCanvas = nullptr;
 };
 
-class ApplyingCanvas final : public MockCanvas
+/**
+ * 宿主的按键绑定面 mock（R-70，impact-map §5 / R-69 交接的 latent）。
+ *
+ * 本文件此前**没有** `KoCanvasKeyBindingHost` 的任何实现，而
+ * `SvgTextTool::pkKeyPressEvent` 用 `dynamic_cast<const KoCanvasKeyBindingHost *>(canvas())`
+ * 取它 ⇒ 恒 null ⇒ `svgTextNativeKeyEvent` 的 `command` 恒 `None`、`hostActionDispatch*`
+ * 一族的兜底派发分支永不执行。补这份 mock 是让那些断言**真的有判别力地跑起来**，
+ * 不是放宽断言。
+ *
+ * `textCommand` 是 `SvgTextQtPlatformHost::textCommand` 那张 Qt 5.15 表的逐字副本：
+ * 生产侧的宿主适配器与测试侧的 mock 回答同一张表，内核拿到同一套绑定标识。
+ * `actionShortcuts` 由测试直接写：键是宿主动作的 objectName，值是它今天绑的 chord
+ * （形态与生产侧 `KoCanvasActionHost::hostActions()` 的 `shortcutChords` 一致 —— 已解码的 int）。
+ */
+class MockKeyBindingHost : public KoCanvasKeyBindingHost
+{
+public:
+    KoCanvasKeyBindingHost::TextCommand textCommand(int key, Pk::KeyboardModifiers modifiers) const override
+    {
+        using Command = TextCommand;
+        const QKeySequence sequence(static_cast<int>(modifiers) | key);
+        if (sequence == QKeySequence::MoveToNextChar) return Command::MoveNextChar;
+        if (sequence == QKeySequence::SelectNextChar) return Command::SelectNextChar;
+        if (sequence == QKeySequence::MoveToPreviousChar) return Command::MovePreviousChar;
+        if (sequence == QKeySequence::SelectPreviousChar) return Command::SelectPreviousChar;
+        if (sequence == QKeySequence::MoveToNextLine) return Command::MoveNextLine;
+        if (sequence == QKeySequence::SelectNextLine) return Command::SelectNextLine;
+        if (sequence == QKeySequence::MoveToPreviousLine) return Command::MovePreviousLine;
+        if (sequence == QKeySequence::SelectPreviousLine) return Command::SelectPreviousLine;
+        if (sequence == QKeySequence::MoveToNextWord) return Command::MoveNextWord;
+        if (sequence == QKeySequence::SelectNextWord) return Command::SelectNextWord;
+        if (sequence == QKeySequence::MoveToPreviousWord) return Command::MovePreviousWord;
+        if (sequence == QKeySequence::SelectPreviousWord) return Command::SelectPreviousWord;
+        if (sequence == QKeySequence::MoveToStartOfLine) return Command::MoveStartOfLine;
+        if (sequence == QKeySequence::SelectStartOfLine) return Command::SelectStartOfLine;
+        if (sequence == QKeySequence::MoveToEndOfLine) return Command::MoveEndOfLine;
+        if (sequence == QKeySequence::SelectEndOfLine) return Command::SelectEndOfLine;
+        if (sequence == QKeySequence::MoveToStartOfBlock || sequence == QKeySequence::MoveToStartOfDocument) return Command::MoveStartOfBlock;
+        if (sequence == QKeySequence::SelectStartOfBlock || sequence == QKeySequence::SelectStartOfDocument) return Command::SelectStartOfBlock;
+        if (sequence == QKeySequence::MoveToEndOfBlock || sequence == QKeySequence::MoveToEndOfDocument) return Command::MoveEndOfBlock;
+        if (sequence == QKeySequence::SelectEndOfBlock || sequence == QKeySequence::SelectEndOfDocument) return Command::SelectEndOfBlock;
+        if (sequence == QKeySequence::DeleteStartOfWord) return Command::DeleteStartOfWord;
+        if (sequence == QKeySequence::DeleteEndOfWord) return Command::DeleteEndOfWord;
+        if (sequence == QKeySequence::DeleteEndOfLine) return Command::DeleteEndOfLine;
+        if (sequence == QKeySequence::DeleteCompleteLine) return Command::DeleteCompleteLine;
+        if (sequence == QKeySequence::Backspace) return Command::Backspace;
+        if (sequence == QKeySequence::Delete) return Command::Delete;
+        if (sequence == QKeySequence::InsertLineSeparator || sequence == QKeySequence::InsertParagraphSeparator) return Command::InsertLineSeparator;
+        return Command::None;
+    }
+
+    PkKeySequence actionShortcut(const PkString &actionName) const override
+    {
+        // 没登记 = 该动作今天没绑 = 空序列（PkMap::value 对缺项返回 V()）。
+        return actionShortcuts.value(actionName);
+    }
+
+    PkMap<PkString, PkKeySequence> actionShortcuts;
+};
+
+class ApplyingCanvas final : public MockCanvas, public MockKeyBindingHost
 {
 public:
     void addCommand(KUndo2Command *command) override
@@ -110,7 +185,7 @@ public:
     }
 };
 
-class HostToolCanvas final : public MockCanvas
+class HostToolCanvas final : public MockCanvas, public MockKeyBindingHost
 {
 public:
     explicit HostToolCanvas(KoShapeControllerBase *shapeController)
@@ -470,16 +545,31 @@ void SvgTextCursorTest::nativeKeyDispatchMatchesQt515Adapter()
     cursor.setShape(&shape);
     cursor.setPos(end, end);
 
-    PkToolKeyEvent qtWordLeft(Pk::Key_Left, Pk::ControlModifier, false);
+    // 宿主面在 canvas 上（SvgTextTool 用的就是 dynamic_cast<... *>(canvas())），
+    // 所以这里把 mock 宿主交给它——否则 bindingHost 恒 null、command 恒 None，
+    // 下面那条 QCOMPARE 会因为「没有宿主可问」而红（R-69 交接的 latent）。
+    // 刺激不能写死 chord：生产侧 `SvgTextQtPlatformHost::textCommand` 走
+    // `QKeySequence::*` 标准键表，该表**按平台**取值 —— macOS / Qt 5.15.7 实测
+    // `MoveToPreviousWord == Alt+Left`（Linux/Windows 才是 Ctrl+Left；
+    // macOS 上 Ctrl+Left 不命中任何标准键 ⇒ command 恒 None）。R-69 写死 Ctrl+Left
+    // 是 Linux/Windows 口径，在 macOS 上这条断言与 mock 无关地恒红。故按同一张标准
+    // 键表取 chord：**断言不变**（command 仍是 MovePreviousWord、游标仍要落到词首），
+    // 换的只是刺激 —— 即该平台真实的绑定。
+    const QKeySequence wordLeftChord(QKeySequence::MoveToPreviousWord);
+    QVERIFY(wordLeftChord.count() >= 1);
+    const int wordLeftCode = wordLeftChord[0];
+    PkToolKeyEvent qtWordLeft(static_cast<Pk::Key>(wordLeftCode & ~Qt::KeyboardModifierMask),
+                              static_cast<Pk::KeyboardModifiers>(wordLeftCode & Qt::KeyboardModifierMask),
+                              false);
     const SvgTextCursor::NativeKeyEvent nativeWordLeft =
-        svgTextNativeKeyEvent(qtWordLeft, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
+        svgTextNativeKeyEvent(qtWordLeft, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight, &canvas);
     QCOMPARE(nativeWordLeft.command, SvgTextCursor::NativeKeyCommand::MovePreviousWord);
     QVERIFY(cursor.keyPressEvent(nativeWordLeft));
     QCOMPARE(cursor.getPos(), shape.wordStart(end));
 
     PkToolKeyEvent qtPrintable(static_cast<Pk::Key>(Qt::Key_Z), Pk::NoModifier, false, false, "Z");
     const SvgTextCursor::NativeKeyEvent nativePrintable =
-        svgTextNativeKeyEvent(qtPrintable, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
+        svgTextNativeKeyEvent(qtPrintable, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight, &canvas);
     QVERIFY(cursor.keyPressEvent(nativePrintable));
     QCOMPARE(toQString(shape.plainText()), QStringLiteral("one Ztwo"));
 }
@@ -568,17 +658,9 @@ void SvgTextCursorTest::nativeActionDispatchPreservesPropertySemantics()
 
 void SvgTextCursorTest::hostActionDispatchKeepsPrintableAltGrInput()
 {
-    PkObject actionCollection;
-    SvgTextToolFactory factory;
-    factory.createActions(&actionCollection);
-    QAction *const alignRight =
-        actionCollection.findChild<QAction *>(QStringLiteral("svg_align_right"));
-    QVERIFY(alignRight);
-    alignRight->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_R));
-
-    CursorController controller(&actionCollection);
     MockShapeController shapeController;
     HostToolCanvas canvas(&shapeController);
+    CursorController controller;
     controller.setCanvas(&canvas);
     canvas.setCanvasController(&controller);
 
@@ -593,6 +675,12 @@ void SvgTextCursorTest::hostActionDispatchKeepsPrintableAltGrInput()
     const auto originalAlignment = shape.textProperties().propertyOrDefault(
         KoSvgTextProperties::TextAlignAllId);
 
+    // 输入端：宿主把「对齐右」绑在 Ctrl+Alt+R 上。AltGr 在真 Qt 里就报成 Ctrl+Alt，
+    // 于是同一组合键既是这条动作的 chord、又携带可打印字符 —— 内核必须先把它当
+    // 输入收下（acceptableInput 短路），不能派发给动作。
+    canvas.actionShortcuts.insert(PkString("svg_align_right"),
+                                  PkKeySequence{QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_R)[0]});
+
     PkToolKeyEvent altGrEvent(Pk::Key_R,
                               Pk::ControlModifier | Pk::AltModifier,
                               false, false, toPkString(QString::fromUtf8("®")));
@@ -606,13 +694,9 @@ void SvgTextCursorTest::hostActionDispatchKeepsPrintableAltGrInput()
 
 void SvgTextCursorTest::hostTextTypeRetriggerKeepsCurrentActionChecked()
 {
-    PkObject actionCollection;
-    SvgTextToolFactory factory;
-    factory.createActions(&actionCollection);
-
-    CursorController controller(&actionCollection);
     MockShapeController shapeController;
     HostToolCanvas canvas(&shapeController);
+    CursorController controller;
     controller.setCanvas(&canvas);
     canvas.setCanvasController(&controller);
 
@@ -626,52 +710,45 @@ void SvgTextCursorTest::hostTextTypeRetriggerKeepsCurrentActionChecked()
     tool.activate({&shape});
     const KoSvgTextShape::TextType originalTextType = shape.textType();
 
-    QAction *const preformatted = actionCollection.findChild<QAction *>(
-        QStringLiteral("text_type_preformatted"));
-    QAction *const prePositioned = actionCollection.findChild<QAction *>(
-        QStringLiteral("text_type_pre_positioned"));
-    QAction *const inlineWrap = actionCollection.findChild<QAction *>(
-        QStringLiteral("text_type_inline_wrap"));
-    QVERIFY(preformatted);
-    QVERIFY(prePositioned);
-    QVERIFY(inlineWrap);
-
-    QAction *current = nullptr;
+    PkString currentAction;
     switch (shape.textType()) {
     case KoSvgTextShape::PreformattedText:
-        current = preformatted;
+        currentAction = PkString("text_type_preformatted");
         break;
     case KoSvgTextShape::PrePositionedText:
-        current = prePositioned;
+        currentAction = PkString("text_type_pre_positioned");
         break;
     case KoSvgTextShape::InlineWrap:
-        current = inlineWrap;
+        currentAction = PkString("text_type_inline_wrap");
         break;
     case KoSvgTextShape::TextInShape:
         QFAIL("The host text-type actions do not represent TextInShape");
         break;
     }
-    QVERIFY(current);
-    QVERIFY(current->isChecked());
 
-    current->trigger();
+    // 输入端：宿主把「当前已经是的那条类型动作」绑在 Ctrl+T 上，然后按下去。
+    canvas.actionShortcuts.insert(currentAction,
+                                  PkKeySequence{QKeySequence(Qt::CTRL | Qt::Key_T)[0]});
 
+    PkToolKeyEvent event(Pk::Key_T, Pk::ControlModifier, false);
+    tool.pkKeyPressEvent(&event);
+
+    QVERIFY(event.isAccepted());
+    // 重触发「当前类型」的动作是幂等的：slotConvertType 在
+    // index == shape->textType() 时只走 slotTextTypeUpdated() 并把类型原样留在那里。
     QCOMPARE(shape.textType(), originalTextType);
-    QCOMPARE(int(preformatted->isChecked()) + int(prePositioned->isChecked())
-                 + int(inlineWrap->isChecked()),
-             1);
-    QVERIFY(current->isChecked());
+
+    // 原用例还断言过「三个 text_type 动作互斥勾选」（按下后恰好一条 isChecked()）。
+    // 那是**宿主态**：KisHostActionIdentity 没有承载 checked 的字段、KoCanvasActionHost
+    // 也没有写通道 —— 按 impact-map §4 登记 1 移出保留范围，故此处不再断言。
+    // 动作面本身仍被上面两条断言覆盖：键盘 chord → 内核处理器确实跑到。
 }
 
 void SvgTextCursorTest::hostMappedTextTypeShortcutDispatches()
 {
-    PkObject actionCollection;
-    SvgTextToolFactory factory;
-    factory.createActions(&actionCollection);
-
-    CursorController controller(&actionCollection);
     MockShapeController shapeController;
     HostToolCanvas canvas(&shapeController);
+    CursorController controller;
     controller.setCanvas(&canvas);
     canvas.setCanvasController(&controller);
 
@@ -683,15 +760,16 @@ void SvgTextCursorTest::hostMappedTextTypeShortcutDispatches()
 
     SvgTextTool tool(&canvas);
     tool.activate({&shape});
-    QAction *target = actionCollection.findChild<QAction *>(
-        shape.textType() == KoSvgTextShape::InlineWrap
-            ? QStringLiteral("text_type_preformatted")
-            : QStringLiteral("text_type_inline_wrap"));
-    QVERIFY(target);
-    const KoSvgTextShape::TextType expectedType =
-        target->objectName() == QStringLiteral("text_type_inline_wrap")
+
+    // 目标：当前类型之外的那一条类型动作（原用例同款选择规则）。
+    const PkString target = shape.textType() == KoSvgTextShape::InlineWrap
+        ? PkString("text_type_preformatted")
+        : PkString("text_type_inline_wrap");
+    const KoSvgTextShape::TextType expectedType = target == PkString("text_type_inline_wrap")
         ? KoSvgTextShape::InlineWrap : KoSvgTextShape::PreformattedText;
-    target->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
+
+    // 输入端：宿主把目标动作绑在 Ctrl+T 上。
+    canvas.actionShortcuts.insert(target, PkKeySequence{QKeySequence(Qt::CTRL | Qt::Key_T)[0]});
 
     PkToolKeyEvent event(Pk::Key_T, Pk::ControlModifier, false);
     tool.pkKeyPressEvent(&event);
@@ -702,13 +780,9 @@ void SvgTextCursorTest::hostMappedTextTypeShortcutDispatches()
 
 void SvgTextCursorTest::hostMappedMovementShortcutDispatchesWhenEnabled()
 {
-    PkObject actionCollection;
-    SvgTextToolFactory factory;
-    factory.createActions(&actionCollection);
-
-    CursorController controller(&actionCollection);
     MockShapeController shapeController;
     HostToolCanvas canvas(&shapeController);
+    CursorController controller;
     controller.setCanvas(&canvas);
     canvas.setCanvasController(&controller);
 
@@ -720,11 +794,10 @@ void SvgTextCursorTest::hostMappedMovementShortcutDispatchesWhenEnabled()
 
     SvgTextTool tool(&canvas);
     tool.activate({&shape});
-    QAction *movement = actionCollection.findChild<QAction *>(
-        QStringLiteral("svg_type_setting_move_selection_start_left_1_px"));
-    QVERIFY(movement);
-    movement->setEnabled(true);
-    movement->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_M));
+
+    // 输入端：宿主把「排版模式左移 1px」绑在 Ctrl+M 上。
+    canvas.actionShortcuts.insert(PkString("svg_type_setting_move_selection_start_left_1_px"),
+                                  PkKeySequence{QKeySequence(Qt::CTRL | Qt::Key_M)[0]});
 
     const int start = shape.posForIndex(0);
     const int end = shape.posForIndex(shape.plainText().size());
@@ -740,6 +813,95 @@ void SvgTextCursorTest::hostMappedMovementShortcutDispatchesWhenEnabled()
         shape.getPositionsAndRotationsForRange(start, end);
     QCOMPARE(after.size(), before.size());
     QVERIFY(after.first().finalPos != before.first().finalPos);
+
+    // 原用例在此前还有一句 `movement->setEnabled(true)` —— 那是给 QAction 的
+    // 启用态解闸：旧路径的兜底派发调 `hostAction->trigger()`，而 disabled 的
+    // QAction 触发是 no-op（slotTextTypeUpdated() 此前刚把四个移动动作 setEnabled(false)）。
+    // 改挂内核物化边界后，启用态由 slotTextTypeUpdated() 经
+    // KoCanvasActionHost::setHostActionEnabled 写回**宿主**，内核这条兜底派发不再读它
+    // （KisHostActionIdentity 只承载 alwaysEnabled，没有「当前是否 enabled」的回读通道）
+    // ⇒ 这一句既无对象也不再影响本用例。**该语义变化是本轮新识别的**，已登记在报告
+    // 的「移植丢失」一节，不在 impact-map §4 的既有登记里。
+}
+
+void SvgTextCursorTest::hostActionBoundaryReadsIdentitiesAndWritesEnabledState()
+{
+    MockShapeController shapeController;
+    HostToolCanvas canvas(&shapeController);
+    CursorController controller;
+    controller.setCanvas(&canvas);
+    canvas.setCanvasController(&controller);
+
+    // ---- 读路：宿主动作快捷键不再从真 Qt QAction 读（K-4 消费方 2）------------
+    // 改挂内核物化边界后，唯一的来源是桶无关的 KoCanvasActionHost::hostActions()。
+    // 这些 identity 是 native 侧解码好的（丢空 chord、逐和弦取 int），此处逐条验
+    // 解码结果与旧路径 `action->shortcut()` 的语义一致。
+    const int ctrlT = QKeySequence(Qt::CTRL | Qt::Key_T)[0];
+
+    KisHostActionIdentity single;
+    single.objectName = PkString("text_type_inline_wrap");
+    single.shortcutChords.append(std::vector<int>{ctrlT});
+
+    KisHostActionIdentity triple;
+    triple.objectName = PkString("svg_align_right");
+    triple.shortcutChords.append(std::vector<int>{1, 2, 3});
+
+    KisHostActionIdentity unbound;
+    unbound.objectName = PkString("svg_clear_formatting");
+
+    controller.hostActionIdentities.append(single);
+    controller.hostActionIdentities.append(triple);
+    controller.hostActionIdentities.append(unbound);
+
+    SvgTextQtPlatformHost platformHost(&canvas);
+
+    const PkKeySequence singleChord = platformHost.actionShortcut(PkString("text_type_inline_wrap"));
+    QCOMPARE(singleChord.size(), 1);
+    QCOMPARE(singleChord[0], ctrlT);
+
+    const PkKeySequence tripleChords = platformHost.actionShortcut(PkString("svg_align_right"));
+    QCOMPARE(tripleChords.size(), 3);
+    QCOMPARE(tripleChords[0], 1);
+    QCOMPARE(tripleChords[1], 2);
+    QCOMPARE(tripleChords[2], 3);
+
+    // 该动作没有 shortcutChords（今天没绑）= 空序列，与旧路径「QAction 的 shortcut 为空」同义。
+    QVERIFY(platformHost.actionShortcut(PkString("svg_clear_formatting")).isEmpty());
+    // 宿主根本不报这个名字 = 也返回空序列。
+    QVERIFY(platformHost.actionShortcut(PkString("not-a-host-action")).isEmpty());
+    // 没有 canvasController 时同样是空序列（不崩）。
+    SvgTextQtPlatformHost detachedHost(nullptr);
+    QVERIFY(detachedHost.actionShortcut(PkString("text_type_inline_wrap")).isEmpty());
+
+    // ---- 写路：slotTextTypeUpdated() 的启用态写回（取代 setEnabled）-----------
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">abc</text>", {},
+                                     PkRectF(0, 0, 300, 300), 72.0));
+    canvas.shapeManager()->selection()->select(&shape);
+
+    SvgTextTool tool(&canvas);
+    tool.activate({&shape});
+
+    // 三个 text_type 动作：shape != nullptr ⇒ 写 enabled=true。
+    const PkStringList enabledOnSelection = {
+        "text_type_preformatted", "text_type_pre_positioned", "text_type_inline_wrap"
+    };
+    for (const PkString &name : enabledOnSelection) {
+        QVERIFY(controller.hostActionEnabledWrites.contains(name));
+        QVERIFY(controller.hostActionEnabledWrites.value(name));
+    }
+    // 四个排版模式移动动作：无 UI 可激活 ⇒ 恒写 enabled=false。
+    const PkStringList alwaysDisabled = {
+        "svg_type_setting_move_selection_start_down_1_px",
+        "svg_type_setting_move_selection_start_up_1_px",
+        "svg_type_setting_move_selection_start_left_1_px",
+        "svg_type_setting_move_selection_start_right_1_px"
+    };
+    for (const PkString &name : alwaysDisabled) {
+        QVERIFY(controller.hostActionEnabledWrites.contains(name));
+        QVERIFY(!controller.hostActionEnabledWrites.value(name));
+    }
 }
 
 void SvgTextCursorTest::nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery()

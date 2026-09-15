@@ -20,13 +20,13 @@
 #include "SvgTextToolOptionsData.h"
 #include "SvgTextOnPathDecorationHelper.h"
 
+#include <functional>
 #include <memory>
 
 class KoSelection;
 class KoSvgTextShape;
 class KoInteractionStrategy;
 class KUndo2Command;
-class QAction;
 
 class SvgTextTool : public KoToolBase
 {
@@ -192,9 +192,23 @@ private:
     HighlightItem m_highlightItem {HighlightItem::None};
     bool m_strategyAddingCommand {false};
 
+    /**
+     * 宿主动作绑定的内核侧载体（R-70，K-3① / K-4）。
+     *
+     * 动作对象本身不再进保留源码：这里只剩「内核处理器 + 宿主回写来的 active」。
+     * `trigger` 直接调内核操作（`m_textCursor.triggerAction` /
+     * `slotMoveTextSelection` / `slotConvertType`）；`active` 承接旧路径上
+     * 宿主动作 isChecked 的那个回程（游标 `actionStateChangedCallback` 写回），
+     * 派发时作为实参交给 `trigger`。
+     */
+    struct HostActionBinding {
+        std::function<void(bool active)> trigger;
+        bool active = false;
+    };
+
     std::unique_ptr<SvgTextCursor::HostSurface> m_cursorHost;
     SvgTextCursor m_textCursor;
-    PkMap<PkString, QAction *> m_cursorActions;
+    PkMap<PkString, HostActionBinding> m_cursorActions;
     SvgTextOnPathDecorationHelper m_textOnPathHelper;
     std::unique_ptr<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
 

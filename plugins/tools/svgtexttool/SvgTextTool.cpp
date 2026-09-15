@@ -30,9 +30,6 @@
 #include "SvgChangeTextPaddingMarginStrategy.h"
 #include <commands/KoSvgTextAddRemoveShapeCommands.h>
 
-#include <QAction>
-#include <QSignalBlocker>
-
 #include <cmath>
 
 #include <klocalizedstring.h>
@@ -81,19 +78,6 @@ using SvgInlineSizeHelper::InlineSizeInfo;
 
 namespace
 {
-/**
- * Host action identity retrieval. KoToolBase::action() was removed with the
- * bucket-agnostic host-action carrier; the native side has no action object, so
- * each qt consumer resolves the objectName against the canvas controller's own
- * action collection itself (see impact-map §6.3).
- */
-QAction *hostToolAction(KoCanvasBase *canvas, const PkString &name)
-{
-    KoCanvasController *controller = canvas ? canvas->canvasController() : nullptr;
-    QObject *collection = controller ? controller->actionCollection() : nullptr;
-    return collection ? collection->findChild<QAction *>(toQString(name)) : nullptr;
-}
-
 class QtSvgTextCursorHost final : public SvgTextCursor::HostSurface
 {
 public:
@@ -239,11 +223,12 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
                                  , enableCursorWithSelection);
     m_textCursor.setDecorationUpdateCallback([this](const PkRectF &rect) { slotUpdateCursorDecoration(rect); });
     m_textCursor.setSelectionChangedCallback([this] { updateTextPathHelper(); });
-    m_textCursor.setActionStateChangedCallback([this](const PkString &name, bool checked) {
-        QAction *action = m_cursorActions.value(name);
-        if (action && action->isCheckable() && action->isChecked() != checked) {
-            const QSignalBlocker blocker(action);
-            action->setChecked(checked);
+    // 游标状态回写：旧路径把它写进宿主动作的 checked（设过 checkable 的只有三个
+    // text_type 动作），现在写进绑定自己的 `active`。只在**已注册**的名字上写 ——
+    // `PkMap::operator[]` 对缺项会插入，故先判 `contains`（旧路径对缺项是 no-op）。
+    m_textCursor.setActionStateChangedCallback([this](const PkString &name, bool active) {
+        if (m_cursorActions.contains(name)) {
+            m_cursorActions[name].active = active;
         }
     });
     if (canvas->canvasController()) {
@@ -255,9 +240,11 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
         });
     }
 
+    // 不再探宿主：动作面已改挂内核物化边界（R-70，K-4），每个名字都登记一条内核
+    // 处理器；宿主到底给不给这条动作、绑不绑 chord，由派发时的
+    // `KoCanvasKeyBindingHost::actionShortcut()` 决定（给不出序列就不派发）。
     for (const PkString &name : SvgTextShortCuts::possibleActions()) {
-        QAction *a = hostToolAction(canvas, name);
-        if (a) connectCursorAction(name);
+        connectCursorAction(name);
     }
 
     const PkStringList extraActions = {
@@ -267,10 +254,7 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
         "svg_clear_formatting"
     };
     for (const PkString &name : extraActions) {
-        QAction *a = hostToolAction(canvas, name);
-        if (a) {
-            connectCursorAction(name);
-        }
+        connectCursorAction(name);
     }
 
     addMappedAction("text_type_preformatted", KoSvgTextShape::PreformattedText, false);
@@ -581,20 +565,17 @@ void SvgTextTool::slotUpdateTextPasteBehaviour()
 void SvgTextTool::slotTextTypeUpdated()
 {
     KoSvgTextShape *shape = selectedShape();
+    KoCanvasController *controller = canvas() ? canvas()->canvasController() : nullptr;
     const PkStringList textTypeActions = {
         "text_type_preformatted", "text_type_pre_positioned", "text_type_inline_wrap"
     };
     for (const PkString &name : textTypeActions) {
-        if (QAction *hostAction = hostToolAction(canvas(), name)) {
-            hostAction->setCheckable(true);
-            hostAction->setEnabled(shape != nullptr);
-        }
+        if (controller) controller->setHostActionEnabled(name, shape != nullptr);
     }
-    if (shape) {
-        hostToolAction(canvas(), "text_type_preformatted")->setChecked(shape->textType() == KoSvgTextShape::PreformattedText);
-        hostToolAction(canvas(), "text_type_pre_positioned")->setChecked(shape->textType() == KoSvgTextShape::PrePositionedText);
-        hostToolAction(canvas(), "text_type_inline_wrap")->setChecked(shape->textType() == KoSvgTextShape::InlineWrap);
-    }
+    // 旧路径在这里还对宿主动作做 setCheckable(true) / setChecked(...)，表达「三个
+    // text_type 动作互斥勾选」。那是**宿主态**：KisHostActionIdentity 没有承载
+    // checked 的字段、KoCanvasActionHost 也没有写通道（(a) 下无通路），按
+    // impact-map §4 登记 1 移出保留范围，本任务不再写回。
     // Typesetting mode has no UI to activate it, so it is always disabled.
     const PkStringList movementActions = {
         "svg_type_setting_move_selection_start_down_1_px",
@@ -603,7 +584,7 @@ void SvgTextTool::slotTextTypeUpdated()
         "svg_type_setting_move_selection_start_right_1_px"
     };
     for (const PkString &name : movementActions) {
-        if (QAction *hostAction = hostToolAction(canvas(), name)) hostAction->setEnabled(false);
+        if (controller) controller->setHostActionEnabled(name, false);
     }
     m_textCursor.updateTypeSettingDecorFromShape();
 }
@@ -1104,13 +1085,18 @@ void SvgTextTool::pkKeyPressEvent(PkToolKeyEvent *event)
                 return false;
             }
             for (auto it = m_cursorActions.constBegin(); it != m_cursorActions.constEnd(); ++it) {
-                QAction *hostAction = it.value();
-                if (!hostAction) {
+                const HostActionBinding &binding = it.value();
+                // 旧代码在这里判「宿主动作是否存在」（if (!hostAction) continue;）。
+                // 动作面改挂内核物化边界后，「有没有这条动作」由内核处理器是否登记
+                // 表达 —— 即 trigger 是否为空。
+                if (!binding.trigger) {
                     continue;
                 }
                 const PkKeySequence shortcut = bindingHost->actionShortcut(it.key());
                 if (shortcut.size() == 1 && shortcut[0] == chord) {
-                    hostAction->trigger();
+                    // active 承接旧路径上宿主动作 isChecked 的回程（见
+                    // HostActionBinding 的注释与 impact-map §4）。
+                    binding.trigger(binding.active);
                     return true;
                 }
             }
@@ -1190,26 +1176,22 @@ KoSvgText::WritingMode SvgTextTool::writingMode() const
 
 void SvgTextTool::connectCursorAction(const PkString &actionName)
 {
-    QAction *hostAction = hostToolAction(canvas(), actionName);
-    if (!hostAction) return;
-    m_cursorActions.insert(actionName, hostAction);
     const PkPointer<SvgTextTool> toolGuard(this);
-    QObject::connect(hostAction, &QAction::triggered, hostAction,
-                     [toolGuard, actionName](bool checked) {
-        if (toolGuard) toolGuard->m_textCursor.triggerAction(actionName, checked);
-    });
+    HostActionBinding binding;
+    binding.trigger = [toolGuard, actionName](bool active) {
+        if (toolGuard) toolGuard->m_textCursor.triggerAction(actionName, active);
+    };
+    m_cursorActions.insert(actionName, binding);
 }
 
 void SvgTextTool::addMappedAction(const PkString &actionName, int value, bool movementAction)
 {
-    QAction *hostAction = hostToolAction(canvas(), actionName);
-    if (!hostAction) return;
-    m_cursorActions.insert(actionName, hostAction);
     const PkPointer<SvgTextTool> toolGuard(this);
-    QObject::connect(hostAction, &QAction::triggered, hostAction,
-                     [toolGuard, value, movementAction] {
+    HostActionBinding binding;
+    binding.trigger = [toolGuard, value, movementAction](bool) {
         if (!toolGuard) return;
         if (movementAction) toolGuard->slotMoveTextSelection(value);
         else toolGuard->slotConvertType(value);
-    });
+    };
+    m_cursorActions.insert(actionName, binding);
 }

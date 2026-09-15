@@ -5,7 +5,6 @@
 
 #include "SvgTextQtPlatformHost.h"
 
-#include <QAction>
 #include <QApplication>
 #include <QKeySequence>
 #include <QPalette>
@@ -79,22 +78,37 @@ SvgTextQtPlatformHost::textCommand(int key, Pk::KeyboardModifiers modifiers) con
 PkKeySequence SvgTextQtPlatformHost::actionShortcut(const PkString &actionName) const
 {
     KoCanvasController *controller = m_canvas ? m_canvas->canvasController() : nullptr;
-    QObject *collection = controller ? controller->actionCollection() : nullptr;
-    QAction *action = collection ? collection->findChild<QAction *>(toQString(actionName)) : nullptr;
-    if (!action) {
+    if (!controller) {
         return PkKeySequence();
     }
 
-    const QKeySequence shortcut = action->shortcut();
-    // `QKeySequence` 的 chord 数上限是 4（Qt 5.15 的 `int key[4]`），`operator[]` 到
-    // `count()` 之外返回 0 且不越界。按现场 chord 数收进既有载体——`PkKeySequence` 的
-    // `std::initializer_list` 构造函数是它今天唯一的成串入口，故此处按数分支；
-    // 内核拿到的是与 Qt 侧等长的序列，之后只做 `size()` / `operator[]` 整数比较。
-    switch (shortcut.count()) {
-    case 0:  return PkKeySequence();
-    case 1:  return PkKeySequence{shortcut[0]};
-    case 2:  return PkKeySequence{shortcut[0], shortcut[1]};
-    case 3:  return PkKeySequence{shortcut[0], shortcut[1], shortcut[2]};
-    default: return PkKeySequence{shortcut[0], shortcut[1], shortcut[2], shortcut[3]};
+    // 宿主动作面已改挂内核物化边界（R-70，K-4）：这里不再持有任何动作对象，只经
+    // 桶无关的 `KoCanvasActionHost::hostActions()` 拿 identity。`shortcutChords` 是
+    // **已解码**的 encoded chord（丢空 chord、逐和弦取 int 都在 native 侧完成，见
+    // KoCanvasController::encodeHostActionShortcuts），故此处只按 objectName 找条目、
+    // 再按 chord 数还原。语义与旧的 `action->shortcut()` 路径逐条相同：找不到该
+    // objectName、或该动作没有非空 shortcut 时，都返回空序列；`PkKeySequence` 的
+    // `std::initializer_list` 构造函数是它今天唯一的成串入口，故仍按数分支。
+    const PkList<KisHostActionIdentity> identities = controller->hostActions();
+    for (int i = 0; i < identities.size(); ++i) {
+        const KisHostActionIdentity &identity = identities.at(i);
+        if (identity.objectName != actionName) {
+            continue;
+        }
+        if (identity.shortcutChords.isEmpty()) {
+            return PkKeySequence();
+        }
+        // 宿主动作的 chord 数上限是 4（Qt 5.15 的 `int key[4]`），encoded chord
+        // 因此最长 4 段；与旧路径一样按数分支，多出来的段不会出现。
+        const std::vector<int> &chords = identity.shortcutChords.first();
+        switch (chords.size()) {
+        case 0:  return PkKeySequence();
+        case 1:  return PkKeySequence{chords[0]};
+        case 2:  return PkKeySequence{chords[0], chords[1]};
+        case 3:  return PkKeySequence{chords[0], chords[1], chords[2]};
+        default: return PkKeySequence{chords[0], chords[1], chords[2], chords[3]};
+        }
     }
+
+    return PkKeySequence();
 }

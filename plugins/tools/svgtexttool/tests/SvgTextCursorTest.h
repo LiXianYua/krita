@@ -26,6 +26,7 @@ private Q_SLOTS:
     void hostTextTypeRetriggerKeepsCurrentActionChecked();
     void hostMappedTextTypeShortcutDispatches();
     void hostMappedMovementShortcutDispatchesWhenEnabled();
+    void hostActionBoundaryReadsIdentitiesAndWritesEnabledState();
     void nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery();
     void nativeRegistrationPreservesFactoryAndResources();
     void shortcutValuesMatchQt515Oracle();
