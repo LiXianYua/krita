@@ -14,6 +14,59 @@
 // R-10 模式改写。
 
 
+// ===========================================================================
+// R-77 Task 2 · pk 栈分支（KRITA_TESTSDK_PK_NATIVE）
+//
+// 上面的 [GAP] 登记描述的是 **Qt 分支**（未定义 KRITA_TESTSDK_PK_NATIVE 时）。
+// 那条路径原封不动地留在下面 `#else` 里——字节就是 BASE 的字节，一行未动。
+// 本块只**新增** pk 栈需要的最小面，形制照 sdk/tests/simpletest.h 的 R-10
+// 端口化与 sdk/tests/filestest.h 的 R-77 端口化。
+//
+// 为什么必须有这一支：`testui.h` 只有两行 —— `#define TESTUI` +
+// `#include "kistest.h"`（引号，先查 sdk/tests/ 自己目录 ⇒ 必然命中本文件），
+// 而 41 个直接消费者 + 经 testui.h 的 18 个都靠本文件拿 KISTEST_MAIN。
+// pk 测试栈（kritatestsdk_pk，不链 Qt5::Test/Widgets ⇒ 没有 Qt 头路径）上，
+// 原来的无条件 Qt 头链在第 20-25 行就当掉（`'QApplication' file not found`）；
+// 即便 Qt 头可达（混血 target 走 kritatestsdk），第 25 行拉进的真 Qt
+// `qglobal.h` 也会与 pk 兼容头双份定义 —— 实测 `redefinition of 'qAbs'`
+// @ libs/image/tests/{kis_fixed_paint_device_test,kis_transaction_test}。
+// 补上本支之后，这些消费者**源码一个字节不用改**（锁外只剩
+// `kis_add_test` → `pk_add_test` 这一处注册宏的机械改动）。
+//
+// 本支**给什么**（就这一样）：
+//   KISTEST_MAIN(TestObject) → SIMPLE_TEST_MAIN(TestObject)
+//   —— sdk/tests/simpletest.h 的 pk 入口：PkThread::registerMainThread()
+//   （登记当前线程为主线程）+ PkThreadCallQueue::warmUpCurrentThread()（备好本线程
+//   调用队列）+ PkTest::qExec。测试对象构造与退出码语义与 Qt 支同形。
+//
+// 本支**刻意不给**什么（逐条有据，见 R-77 Task 2 报告 §4.1）：
+//   * `registerResources()` / `addResourceTypes()` / KisTestUiResource 一族：
+//     pk 栈上真实调用点只有两个，都在**锁外**
+//     （plugins/impex/libkra/tests/kis_kra_loader_test.cpp:218、
+//      kis_kra_saver_test.cpp:647），且这两处**在 BASE 就是红的**；锁内没有任何
+//     「可跑绿」的调用点需要它。给一个空实现只会让资源测试静默跑绿（假绿），
+//     故**不引入**（R线-spec〈判据必须在收尾路径上〉）。
+//   * `KRITA_PLUGIN_PATH` / `EXTRA_RESOURCE_DIRS` 的 qputenv：决策 D-12 之后插件层
+//     是静态注册、没有可加载的插件 DSO（plugins/** 里 0 个 MODULE 目标，已由
+//     S-09-g 落地），该环境变量在**任何**栈上都不再生效。
+//   * QApplication / QLocale::setDefault / QStandardPaths::setTestModeEnabled /
+//     AA_Use96Dpi / 键盘导航禁用：D-30 明写要删；pk 侧由 PkThread +
+//     PkThreadCallQueue 承接（同 sdk/tests/simpletest.h 的那段注释）。
+// ===========================================================================
+#ifdef KRITA_TESTSDK_PK_NATIVE
+
+#ifndef KISTEST
+#define KISTEST
+
+#include <simpletest.h>
+
+#define KISTEST_MAIN(TestObject) SIMPLE_TEST_MAIN(TestObject)
+
+#endif // KISTEST
+
+#else
+
+
 #ifndef KISTEST
 #define KISTEST
 
@@ -359,3 +412,5 @@ int main(int argc, char *argv[]) \
 
 
 #endif
+
+#endif // KRITA_TESTSDK_PK_NATIVE

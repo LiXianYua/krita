@@ -17,6 +17,15 @@ int qExec(QObject *testObject, int argc, char **argv);
 #include <KoTestConfig.h>
 #endif
 
+// R-77：pk 分支这里是**空**，这不是漏了。决策 D-12 之后插件层是静态注册、没有可加载的
+// 插件 DSO（plugins/** 里 0 个 MODULE 目标，已由 S-09-g 落地），qputenv("KRITA_PLUGIN_PATH")
+// 在任何栈上都不再生效——空掉它不会少给任何东西。原文「归 S0 处理」的归因已失效。
+// 真需要注册表条目（如 KisFilterRegistry 的 "invert"）的测试，走既成的「静态链入 provider」
+// 范式，不再走环境变量：样例是 plugins/impex/libkra/tests/CMakeLists.txt:22,26 的 -force_load /
+// whole-archive，聚合器是 plugins/kritaplugin_registry/ 的 registerAllPlugins()。
+// 锁外承接方：libs/image/tests/CMakeLists.txt——5 个 pk target 因 provider 未静态链入而在
+// ctest 阶段 SegFault（kis_filter_test / kis_filter_mask_test / kis_async_merger_test /
+// kis_adjustment_layer_test / kis_layer_test）；R-77 只报不改。
 #ifdef KRITA_TESTSDK_PK_NATIVE
 #define KRITA_SIMPLE_TEST_PLUGIN_PATH_SETUP
 #else
@@ -34,7 +43,8 @@ int qExec(QObject *testObject, int argc, char **argv);
 // （登记当前线程为主线程，KisImage 等对象 moveToThread(mainThreadId()) 转的
 // 就是它）+ PkThreadCallQueue::warmUpCurrentThread()（为当前线程准备调用队列，
 // 跨线程投递的 PkThreadCallQueue::post 才能落到这里）承接。qExec 之前的资源
-// 目录 qputenv（KRITA_PLUGIN_PATH）由本文件接入生成的测试配置；
+// 目录 qputenv（KRITA_PLUGIN_PATH）今日在任何栈上都已失效，见上方
+// KRITA_SIMPLE_TEST_PLUGIN_PATH_SETUP 的 R-77 说明；
 // KisSynchronizedConnectionBase::setAutoModeForUnittestsEnabled 由 D-30 裁定删除。
 
 namespace KritaTestSdk
