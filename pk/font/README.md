@@ -67,11 +67,15 @@ SKIP: Qt has no FreeType text engine (0)
 事实，不是这条判据在本机整体失效：
 
 ```
-$ PK_RENDER_BUILD_DIR=/tmp/r55-pkrender bash pk/render/oracle/run_shape_primitive.sh
-shape primitive Qt oracle: identical (36 cases)
+$ bash pk/render/tests/run_tests.sh          # 收尾入口；内部调用 run_shape_primitive.sh
+...
+shape primitive Qt oracle: identical (288 cases)
 ```
 
-（2026-09-12 本机复现，退出 0。原文见 R-55 plan §2 P8。）
+（2026-09-15 本机复现，commit `fa56cde`，退出 0。）**本条是复现命令，数字随用例表变，
+引用前先跑**：R-55 写下的 `36 cases` 是当时那张用例表的读数，R-54 给用例表补了四组弧角
+后已是 **288**。直接跑 oracle 的形态是
+`bash pk/render/oracle/run_shape_primitive.sh`（配一个已配置好的 `PK_RENDER_BUILD_DIR`）。
 
 ### `compare.cmake` 的探测与 SKIP 语义
 
@@ -117,8 +121,9 @@ QtGui」这个语义，且不依赖 `CMAKE_PREFIX_PATH` 在测试运行时还在
      非零（⇒ `0` 不是「nm 读了个空文件」的假阴性）。`font_pixels_qt_comparison` 打印
      `SKIP: Qt has no FreeType text engine (0)`、**退出 0**、**不改写任何产出**。
    - **判别力对照（P8）**：同一条〈逐输入对拍〉判据作用在**几何类**上本机**是绿的**：
-     `PK_RENDER_BUILD_DIR=/tmp/r55-pkrender bash pk/render/oracle/run_shape_primitive.sh`
-     → `shape primitive Qt oracle: identical (36 cases)`，退出 0。所以「本机不可达」是
+     `bash pk/render/tests/run_tests.sh`（内部跑 `run_shape_primitive.sh`）
+     → `shape primitive Qt oracle: identical (288 cases)`（2026-09-15 实测，commit
+     `fa56cde`；数字随用例表变，引用前先跑），退出 0。所以「本机不可达」是
      **文字类特有**的平台事实，不是这条判据在本机整体失效。
    - **为什么是「不可运行」而不是「未实现」**：两者的区别就是上面这条对照 —— 判据本身
      在本机是好的，缺的是**参照系**（Qt 在 macOS 走 CoreText，Pk 按
@@ -186,6 +191,38 @@ QtGui」这个语义，且不依赖 `CMAKE_PREFIX_PATH` 在测试运行时还在
      「与 Qt 逐像素相等」—— 任何拿它当 Qt 金标读的结论都是错的。有 FreeType 的宿主跑
      一次 `run_text.sh` 会换成 Qt 出生证明，同一个测试即变成真正的跨侧断言。
    - 源：plan §6-6；第 1 条同源。
+
+### A+（R-76）—— `test_pkfont` 的 fact ③ 判定：**不是假绿**
+
+R-64 交接里有一条：「`test_pkfont` 在宿主默认 fontconfig 下 `Passed` ⇒ 没真跑到却是绿的」。
+R-76 **实测判定它不成立**，登记如下（三档都在本机跑过，2026-09-15，commit `fa56cde`；
+命令与逐字原始输出见 `.superpowers/sdd/R-76/task-4-report.md`）：
+
+| 档 | 环境 | 原始输出 | 退出码 |
+|---|---|---|---|
+| (a) | `FONTCONFIG_PATH=<prefix>/_install/etc/fonts` | `font rasterizer matches Qt 5.15 brush oracle` | **0** |
+| (b) | `env -u FONTCONFIG_PATH` | `Fontconfig error: Cannot load default config file: No such file: (null)` ＋上一档那行 | **0** |
+| (c) | `FONTCONFIG_FILE=<合法但无 dir 元素的配置>` | `FAIL: native font metrics differ: 0x0` | **1** |
+
+- **结论**：**R-64 那条不成立。** (c) 证明它对字体解析**有判别力** —— 拿走 fontconfig 的
+  字体目录后，`render("A", DejaVu Sans 24px)` 的期望尺寸 `17×29` 当场变 `0×0` 并红。
+  (b) 的那行 error 是 fontconfig 的**日志噪音**：`fc-match "DejaVu Sans"` 在有/无
+  `FONTCONFIG_PATH` 时解析到**同一个文件**（`DejaVuSans.ttf: "DejaVu Sans" "Book"`；
+  `fc-list | wc -l` = **2694**）。**断言一字未改。**
+- **本任务对本测试的唯一相关改动**：把 `FONTCONFIG_PATH` 烘进 `test_pkfont` 的 ctest
+  `ENVIRONMENT`（`pk/font/CMakeLists.txt:47-50`；探测值来自父工程 `pk/render/CMakeLists.txt`
+  的 `PK_RENDER_FONTCONFIG_PATH`，与 `pk/render` 已给 `test_text` 做的是同一件事）。理由写清
+  是**环境确定性**：`test_pkfont` pin 的是 `"DejaVu Sans"` 24px 的逐像素值与 `17×29` 尺寸，
+  它经 fontconfig 解析字体文件；换个宿主解析到别的字体就是**环境假红**，而 R-76 已把它拉进
+  收尾入口，红的会是整条入口。**不是它原来是假绿。**
+- **blast radius**（`codegraph explore`，本 worktree 索引，2026-09-15）：
+  `PkFontRasterizer::render`（`pk/font/PkFontRasterizer.cpp:507`）的唯一生产消费方是
+  `libs/brush/kis_text_brush.cpp`；`PkFontRasterizer::coverage`
+  （`pk/font/PkFontRasterizer.cpp:526`）的唯一生产消费方是
+  `libs/flake/PkImageRasterBackend.cpp:1287`；两者的**唯一测试都是 `test_pkfont`**
+  （`pk/font/CMakeLists.txt:36` `add_executable(test_pkfont tests/test_font.cpp)`，
+  `pk/font/tests/` 下只有这一个文件）。⇒ 它是文字栅格在保留范围里的**唯一守卫**，所以
+  「它假绿与否」这件事本身够格进登记表。
 
 ### B. `task-4fix-report.md` §9 的三条新增未修分歧
 
