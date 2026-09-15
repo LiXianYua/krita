@@ -171,21 +171,26 @@ shape oracle compares per-image digests, not pixel counts.
   readback. **R-52 restores both** (see the R-52 section below).
 
 **Host portability of this directory's scripts** (measured on macOS arm64, 2026-09-15,
-commit `fa56cde`): `tests/run_tests.sh` **runs on both platforms** — it locates the
-dependency env by searching upwards for `krita-ci-env/env`, passes
-`-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3` on Darwin (the `pk/` layer needs `std::to_chars`'s
-floating-point overload; the CI env sets 10.15), and picks `otool -L` on Darwin vs
-`readelf -d` + `ldd` on Linux for the dynamic-dependency closure.
+commit `2d9d57d`): `tests/run_tests.sh` **runs on both platforms**, but only the macOS
+arm64 branch was exercised live this session — the Linux branch (the same upward env
+search, and `readelf -d` + `ldd` instead of `otool -L`) is inherited from the file, not
+re-run here. It locates the dependency env by searching upwards for `krita-ci-env/env`,
+passes `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3` on Darwin (the `pk/` layer needs
+`std::to_chars`'s floating-point overload; the CI env sets 10.15), and picks `otool -L` on
+Darwin vs `readelf -d` + `ldd` on Linux for the dynamic-dependency closure.
 **It is the finishing entry**: it builds, runs `ctest` (**asserting `Not Run == 0`**),
-runs `test_pkrender` (which has no `add_test`), then runs all three oracles
+runs `test_pkrender` (which has no `add_test`), then runs **all four** oracles
 (`oracle/run_shape_primitive.sh`, `oracle/run_svg_primitive.sh`,
-`oracle/probes/run_probes.sh`) and finally the criterion-③ symbol scan with a
-**freshly picked** discriminating control.
+`oracle/probes/run_probes.sh`, `oracle/run_blur_kernel.sh`) and finally the criterion-③
+symbol scan with a **freshly picked** discriminating control.
 `oracle/run_brush_gradient.sh` / `oracle/run_brush_transform.sh` **still do not run here**
-(they hardcode the Linux env path `/mnt/ssd-disk/...` and pass `-Wl,--start-group`, which
-ld64 rejects); `oracle/run_blur_kernel.sh` and `oracle/run_text.sh` are **not on the
-finishing path either** — the entry runs only the three oracles above, and R-76 registers
-all four as a gap it did not close.
+(they `source` a hardcoded Linux path `/mnt/ssd-disk/...` and pass `-Wl,--start-group`,
+which ld64 rejects).
+`oracle/run_text.sh` **does run here but takes its honest SKIP path** (`QFontEngineFT=0` on
+this host — the Qt-side reference does not exist), so it is deliberately **not** on the
+entry; `oracle/run_blur_kernel.sh` **is** on it (measured live 2026-09-15: green in ~1.5 s
+ccache-warm, `identical (138 cases)` — the script header quotes `~3 s` — and it is the Qt
+birth certificate for the golden that `test_blur_kernel` consumes).
 `oracle/run_shape_primitive.sh` rewrites `oracle/shape_primitive_golden.txt` in the source
 tree on every run — that is deliberate (the golden is a checked-in record of the Qt
 measurement, and regenerating it is how it stays honest), and it is idempotent: when the
@@ -198,11 +203,11 @@ before quoting (`R线-spec`〈判别力对照物〉).
 
 **The finishing entry for this directory is `tests/run_tests.sh`** (R-76 rewrote it; it
 had been unrunnable on this host). It builds, runs `ctest` in full **asserting
-`Not Run == 0`**, runs `test_pkrender` (which has no `add_test`), runs the three oracles
+`Not Run == 0`**, runs `test_pkrender` (which has no `add_test`), runs the four oracles
 (`oracle/run_shape_primitive.sh`, `oracle/run_svg_primitive.sh`,
-`oracle/probes/run_probes.sh`, ~30 s together), then runs the criterion-③ symbol scan
-with a **freshly picked** discriminating control. Three shapes a reader must not misread
-(all measured live 2026-09-15, commit `fa56cde`):
+`oracle/probes/run_probes.sh`, `oracle/run_blur_kernel.sh`), then runs the criterion-③
+symbol scan with a **freshly picked** discriminating control. Three shapes a reader must
+not misread (all measured live 2026-09-15, commit `2d9d57d`):
 
 1. **The two `EXCLUDE_FROM_ALL` targets are point-built by the entry, and that is why
    `Not Run` is 0.** `pk/render/CMakeLists.txt:75-76` still marks the `pk/font` and
@@ -214,8 +219,12 @@ with a **freshly picked** discriminating control. Three shapes a reader must not
 2. **`test_pkrender` is not in the ctest list.** `pk/render/CMakeLists.txt:89` gives it
    only `add_executable` (no `add_test`), so the entry runs it directly. **The `ctest`
    count is not the count of tests this directory ran.**
-3. **The three oracles run on every finishing run** (~30 s) — `R线-spec`〈判据必须在收尾
-   路径上，否则它是装饰〉; before R-76 none of them was on any path on this host.
+3. **The four oracles run on every finishing run** — `R线-spec`〈判据必须在收尾路径上，
+   否则它是装饰〉; before R-76 none of them was on any path on this host. Measured live
+   2026-09-15 (ccache-warm), the four oracle scripts add **~10 s** combined; the script
+   header quotes a higher `~35 s`. `oracle/run_text.sh` is deliberately **not** on the
+   entry — on this host it takes its honest SKIP path (`QFontEngineFT=0`), so listing it
+   would blur "ran" into "did not run".
 
 The symbol scan itself: `tests/run_tests.sh` runs the brief's blanket
 `nm -u -C ... | grep -i qt` command and reports its real exit code. That grep
