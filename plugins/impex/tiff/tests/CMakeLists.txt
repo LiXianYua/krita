@@ -1,6 +1,12 @@
-kis_add_test(
-    kis_tiff_test.cpp
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    kis_tiff_test
+    REGISTER_FILTERS
+        registerKisTIFFImportFilter
+        registerKisTIFFExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritatiffimport kritatiffexport
+        kritapsd
     )
 
 add_executable(tiff_validation_probe tiff_validation_probe.cpp)

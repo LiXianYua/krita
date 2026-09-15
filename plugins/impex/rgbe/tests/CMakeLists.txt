@@ -1,7 +1,11 @@
-kis_add_test(
-    kis_rgbe_test.cpp
-    TEST_NAME kis_rgbe_test
-    LINK_LIBRARIES kritametadata kritaimpex kritatestsdk kritargbeimportutils
+pk_add_test(
+    kis_rgbe_test
+    REGISTER_FILTERS
+        registerRGBEImportFilter
+        registerRGBEExportFilter
+    LINK_LIBRARIES
+        kritametadata kritaimpex kritargbeimportutils
+        kritargbeimport kritargbeexport
 )
 
 add_executable(rgbe_codec_probe rgbe_codec_probe.cpp ../rgbe_codec.cpp)

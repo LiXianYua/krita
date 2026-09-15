@@ -1,6 +1,11 @@
-krita_add_broken_unit_test(
-    kis_png_test.cpp
-    ../kis_dlg_png_import.cpp
-    TEST_NAME kis_png_test
-    LINK_LIBRARIES kritaimpex kritatestsdk pktest
-)
+pk_add_test(
+    kis_png_test
+    SOURCES ../kis_dlg_png_import.cpp
+    REGISTER_FILTERS
+        registerKisPNGImportFilter
+        registerKisPNGExportFilter
+    LINK_LIBRARIES
+        kritaimpex pktest
+        kritapngimport kritapngexport
+    BROKEN
+    )

@@ -1,8 +1,12 @@
-kis_add_test(
-    kis_exr_test.cpp
-    TEST_NAME kis_exr_test
-    LINK_LIBRARIES kritaimpex kritatestsdk
-)
+pk_add_test(
+    kis_exr_test
+    REGISTER_FILTERS
+        registerexrImportFilter
+        registerEXRExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritaexrimport kritaexrexport
+    )
 
 add_executable(KisExrImportPolicyTest
     KisExrImportPolicyTest.cpp

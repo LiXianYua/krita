@@ -1,7 +1,10 @@
-kis_add_test(
-    kis_xcf_test.cpp
-    TEST_NAME kis_xcf_test
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    kis_xcf_test
+    REGISTER_FILTERS
+        registerKisXCFImportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritaxcfimport
     )
 
 add_executable(KisXcfParserPolicyTest KisXcfParserPolicyTest.cpp)

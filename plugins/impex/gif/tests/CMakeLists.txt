@@ -1,7 +1,11 @@
-kis_add_test(
-    KisGifTest.cpp
-    TEST_NAME KisGifTest
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    KisGifTest
+    REGISTER_FILTERS
+        registerKisGIFImportFilter
+        registerKisGIFExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritagifimport kritagifexport
     )
 
 add_executable(gif_codec_probe gif_codec_probe.cpp ../qgiflibhandler.cpp)

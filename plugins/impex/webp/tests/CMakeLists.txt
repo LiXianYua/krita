@@ -1,7 +1,11 @@
-kis_add_test(
-    kis_webp_test.cpp
-    TEST_NAME kis_webp_test
-    LINK_LIBRARIES kritametadata kritaimpex kritatestsdk
+pk_add_test(
+    kis_webp_test
+    REGISTER_FILTERS
+        registerKisWebPImportFilter
+        registerKisWebPExportFilter
+    LINK_LIBRARIES
+        kritametadata kritaimpex
+        kritawebpimport kritawebpexport
 )
 
 add_executable(webp_validation_probe webp_validation_probe.cpp ../webp_validation.cpp)

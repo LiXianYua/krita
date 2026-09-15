@@ -1,7 +1,12 @@
-krita_add_broken_unit_test(
-    kis_csv_test.cpp
-    TEST_NAME kis_csv_test
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    kis_csv_test
+    REGISTER_FILTERS
+        registerKisCSVImportFilter
+        registerKisCSVExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritacsvimport kritacsvexport
+    BROKEN
     )
 
 add_executable(kis_csv_write_all_test csv_write_all_test.cpp)

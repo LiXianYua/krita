@@ -41,7 +41,11 @@ psd_add_pk_test_binder(psd_header_test psd_header_test.cpp
 psd_add_pk_test_binder(psd_colormode_block_test psd_colormode_block_test.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/psd_colormode_block_test.h")
 
-kis_add_test(kis_psd_test.cpp
-    TEST_NAME kis_psd_test
-    LINK_LIBRARIES ${PSD_TEST_LIBS} kritaimpex
+pk_add_test(kis_psd_test
+    REGISTER_FILTERS
+        registerpsdImportFilter
+        registerpsdExportFilter
+    LINK_LIBRARIES
+        kritapsd kritapsd_static kritaimpex
+        kritapsdimport kritapsdexport
     )

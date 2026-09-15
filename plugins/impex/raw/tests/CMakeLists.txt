@@ -1,5 +1,8 @@
-kis_add_test(
-    KisRawTest.cpp
-    TEST_NAME KisRawTest
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    KisRawTest
+    REGISTER_FILTERS
+        registerKisRawImportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        krita_raw_import
     )

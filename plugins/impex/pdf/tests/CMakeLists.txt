@@ -1,7 +1,10 @@
-kis_add_test(
-    KisPdfTest.cpp
-    TEST_NAME KisPdfTest
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    KisPdfTest
+    REGISTER_FILTERS
+        registerKisPDFImportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritapdfimport
     )
 
 add_executable(KisPdfImportPolicyTest KisPdfImportPolicyTest.cpp ../pdf_import_policy.cpp)

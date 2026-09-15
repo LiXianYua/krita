@@ -1,7 +1,11 @@
-kis_add_test(
-    kis_heightmap_test.cpp
-    TEST_NAME kis_heightmap_test
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    kis_heightmap_test
+    REGISTER_FILTERS
+        registerKisHeightMapImportFilter
+        registerKisHeightMapExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritaheightmapimport kritaheightmapexport
     )
 
 add_executable(heightmap_validation_probe

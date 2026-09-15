@@ -1,7 +1,10 @@
-kis_add_test(
-    KisQmlTest.cpp
-    TEST_NAME KisQmlTest
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    KisQmlTest
+    REGISTER_FILTERS
+        registerQMLExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritaqmlexport
     )
 
 add_executable(KisQmlFormatTest

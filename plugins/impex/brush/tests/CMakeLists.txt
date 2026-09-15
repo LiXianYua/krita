@@ -1,7 +1,11 @@
-kis_add_test(
-    KisBrushTest.cpp
-    TEST_NAME KisBrushTest
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    KisBrushTest
+    REGISTER_FILTERS
+        registerKisBrushImportFilter
+        registerKisBrushExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritabrushimport kritabrushexport
     )
 
 add_executable(KisAnimatedBrushAnnotationTest

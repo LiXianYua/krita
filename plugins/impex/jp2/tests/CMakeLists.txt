@@ -1,6 +1,9 @@
-kis_add_test(KisJP2Test.cpp
-    TEST_NAME KisJP2Test
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(KisJP2Test
+    REGISTER_FILTERS
+        registerjp2ImportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritajp2import
 )
 
 add_executable(jp2_validation_probe jp2_validation_probe.cpp ../jp2_validation.cpp)

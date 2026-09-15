@@ -1,7 +1,11 @@
-kis_add_test(
-    KisOraTest.cpp
-    TEST_NAME KisOraTest
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    KisOraTest
+    REGISTER_FILTERS
+        registerOraImportFilter
+        registerOraExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritaoraimport kritaoraexport
     )
 
 add_executable(KisOraSavePolicyTest

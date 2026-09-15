@@ -1,7 +1,14 @@
-krita_add_broken_unit_test(
-    kis_svg_test.cpp
+# R-82：本目录的测试源 basename 是 `kis_svg_test`（不是 `KisSvgTest`），
+# 原树用 TEST_NAME KisSvgTest 把 target/ctest 名保持成 KisSvgTest —— 逐字转发。
+pk_add_test(
+    kis_svg_test
     TEST_NAME KisSvgTest
-    LINK_LIBRARIES kritaimpex kritatestsdk
+    REGISTER_FILTERS
+        registerKisSVGImportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritasvgimport
+    BROKEN
     )
 
 add_executable(KisSvgImportPolicyTest KisSvgImportPolicyTest.cpp ../svg_import_policy.cpp)

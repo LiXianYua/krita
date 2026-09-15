@@ -1,7 +1,11 @@
-kis_add_test(
-    kis_jpeg_test.cpp
-    TEST_NAME kis_jpeg_test
-    LINK_LIBRARIES kritametadata kritaimpex kritatestsdk
+pk_add_test(
+    kis_jpeg_test
+    REGISTER_FILTERS
+        registerKisJPEGImportFilter
+        registerKisJPEGExportFilter
+    LINK_LIBRARIES
+        kritametadata kritaimpex
+        kritajpegimport kritajpegexport
     )
 
 add_executable(jpeg_validation_probe
