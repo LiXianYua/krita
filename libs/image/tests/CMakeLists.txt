@@ -89,9 +89,13 @@ endif()
 #     static DefaultPaintOpsRegistration s_defaultPaintOpsRegistration;
 # 自注册，而 kritadefaultpaintops 是只含那一个 .cc 的 STATIC 库 ——
 # 无符号引用时整份被链接器丢弃，注册对象不构造，注册表为空。
-# 实测（本 worktree）：修前 KisPaintOpPresetTest 5 failed
+# 实测（本 worktree）：修前 KisPaintOpPresetTest 2 passed / 5 failed
 # （preset->valid() 在 KisPaintOpPresetTest.cpp:163 逐行 FALSE），
-# 修后 7 passed / 0 failed。
+# 本段强制链入后 4 passed / 3 failed（×3 稳定）。
+# 该测试另有两条独立缺口：一条由下方 TESTBRUSH 处置，余下两条的根因在本目录
+# 之外（libs/pigment 与 libs/brush），详见
+# .superpowers/sdd/R-80/libs-image-report.md §KisPaintOpPresetTest。
+# 截至本注释最后一次修订，该测试整体为 5 passed / 2 failed。
 if(APPLE)
     set(KRITA_DEFAULTPAINTOPS_WHOLE_ARCHIVE "-Wl,-force_load,$<TARGET_FILE:kritadefaultpaintops>")
 else()
@@ -270,6 +274,28 @@ target_link_options(kis_selection_test PRIVATE ${KRITA_LCMS_WHOLE_ARCHIVE})
 # 拉进链接行，再用 -force_load 强制包含注册对象所在的那个成员。
 target_link_libraries(KisPaintOpPresetTest kritadefaultpaintops)
 target_link_options(KisPaintOpPresetTest PRIVATE ${KRITA_DEFAULTPAINTOPS_WHOLE_ARCHIVE})
+
+# R-80：KisPaintOpPresetTest 还缺 brush/pattern 之外的 brush 加载器注册。
+# 该测试 include 的是 <testimage.h>（只定义 TESTIMAGE），而 sdk/tests/kistest.h
+# 把 4 个 brush 加载器（KisGbrBrush/KisImagePipeBrush/KisSvgBrush/KisPngBrush）
+# 关在 `#if defined(TESTBRUSH) || defined(TESTUI)` 里。上游同一份 kistest.h
+# 守卫逐字相同（v6.0.3 已核对），所以这是上游测试 SDK 的既有形态，不是移植回归。
+# 后果：test-embedded-resources-5.0.kpp 内嵌两个资源
+#   type="brushes" filename="test_brush.png"
+#   type="patterns" filename="test_pattern.png"
+# 其中 patterns 加载器在第一个（含 TESTIMAGE）守卫块里，brushes 那个不在 ——
+# 于是 KisPaintOpPresetTest.cpp:325 的
+#   KisResourceLoaderRegistry::instance()->loader(signature.type, mime)
+# 对 type="brushes" 恒返回 nullptr（实测 lldb：signature.type 长 7 = "brushes"，
+# filename 长 14 = "test_brush.png"）。
+# 修法：只给这一个 target 追加 TESTBRUSH 编译定义，让 kistest.h 把 brush 加载器
+# 一并注册。守卫是 ||，TESTIMAGE 仍然生效，属纯增量，不改任何参考图/容差/断言。
+# 实测（本 worktree，各 ×3 稳定）：不加本行时 testSaveLoadRoundTrip 在
+# KisPaintOpPresetTest.cpp:325 的 QVERIFY(loader) 即 FALSE；加本行后该断言通过、
+# 失败点后移到 :332（另一条独立缺口，根因在 libs/brush，见报告）。
+# 用例计数两态相同（5 passed / 2 failed）——本行修的是 :325 这个真实缺口，
+# 不是「把红的改成绿的」。
+target_compile_definitions(KisPaintOpPresetTest PRIVATE TESTBRUSH)
 
 kis_add_test(
     kis_clone_layer_test.cpp

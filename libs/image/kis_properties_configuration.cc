@@ -269,9 +269,23 @@ bool KisPropertiesConfiguration::getBool(const PkString & name, bool def) const
 PkString KisPropertiesConfiguration::getString(const PkString & name, const PkString & def) const
 {
     PkVariant v = getProperty(name);
-    if (v.isValid())
+    if (v.isValid()) {
+        /**
+         * R-80: <param type="bytearray"> 的属性由 fromXML() 以
+         * PkVariant(PkByteArray) 存回（见本文件 fromXML()）。上游 Qt 的
+         * QVariant::toString() 对 QByteArray 会返回其字节的文本形式，而
+         * pk 的 PkVariant::toString() 对 ByteArray 落进 default 分支返回空串
+         * （pk/variant/PkVariant.cpp toString()）。上游依赖前一行为的读取点
+         * （如 Texture/Pattern/Pattern 存的是 base64 文本、Texture/Pattern/
+         * PatternMD5 存的是 base64 的 md5）在移植后会静默拿到空串，于是
+         * KisTextureOption 把"内嵌 pattern"误判成"外链 pattern"。
+         * 此处补回上游语义，只影响 ByteArray 这一种此前恒返回空串的情形。
+         */
+        if (v.type() == PkVariant::ByteArray) {
+            return PkString::fromUtf8(v.toByteArray());
+        }
         return v.toString();
-    else
+    } else
         return def;
 }
 
