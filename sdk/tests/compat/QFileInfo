@@ -24,7 +24,10 @@
 // R-77 增补 `absoluteFilePath()` 与 `permissions()`（见类内两处注释）。两者的真 Qt
 // 语义都由 pk/test/oracle/probe_file_shims.cpp 实测钉死，原始输出见 task1-report.md
 // §3.2。**impact-map §2 的用量表里没有这两项** —— 它们是从 filestest.h 的真实调用点
-// 反查出来的缺口，已在报告 §5「表外但真实存在」登记。
+// 反查出来的缺口，已在 task1-report.md **§11 第 5 条**（「缺口 / 取舍登记」）与
+// impact-map **§2.1**（表外实测新增）登记。
+// （修复轮 1 订正：旧稿写的「报告 §5」在该报告里是「判据⑤ 改动路径闭包」，
+//  指向不存在；Task 3b N-10。）
 #pragma once
 #include "PkString.h"
 #include "QFile"

@@ -2,12 +2,15 @@
 // ---------------------------------------------------------------------------
 // 为什么测试面需要它：`pk/` 树里没有 QTemporaryFile（`ls pk/*/compat/QTemporaryFile`
 // 实测无；`libs/image/tiles3` 的 QTemporaryDir 是**目录**版，不是这个）。
-// 唯一的真实调用点：plugins/impex/exr/tests/kis_exr_test.cpp:54-58
+// 唯一的真实调用点：plugins/impex/exr/tests/kis_exr_test.cpp:58-62 与 :93
+// （**行号 = HEAD 真实 `文件:行`**，修复轮 1 订正；旧稿的 54-58 是 impact-map §2 的
+//  「去注释计数」口径，Task 3b N-8）
 //     QTemporaryFile savedFile(QDir::tempPath() + QLatin1String("/krita_XXXXXX")
-//                              + QLatin1String(".exr"));   // :54
-//     savedFile.setAutoRemove(true);                       // :55
-//     KIS_ASSERT(savedFile.open());                        // :56
-//     … savedFile.fileName().toUtf8() …                    // :58
+//                              + QLatin1String(".exr"));   // :58
+//     savedFile.setAutoRemove(true);                       // :59
+//     KIS_ASSERT(savedFile.open());                        // :60
+//     … savedFile.fileName().toUtf8() …                    // :62
+//     savedFile.close();                                   // :93
 // 注：`sdk/tests/filestest.h:67` 也 include 了它，但**函数体零使用**——按 brief
 //     §3.3 那一行已从 pk 分支移除（见该文件的端口化注释）。
 //
@@ -29,8 +32,15 @@
 //
 // 实现用 `mkstemps()`：它一次做完「模板里 XXXXXX → 唯一随机名 + 保留后缀」，
 // 正是探针测到的行为；`mkstemp()` 不支持后缀，会错把 `.exr` 也当成 XXXXXX 的一部分。
-// 模板里没有 `XXXXXX` 时退化成 `mkstemp` 的等价形态（追加 `XXXXXX`）——用量表里
-// 没有这种调用点，保留它只是不让同一个类对合法输入崩掉。
+//
+// 模板里没有 `XXXXXX` 时的退化分支（**修复轮 1 补探针实测**，Task 3b N-6；
+// 此前是「按 Qt 文档口径」的推断）：真 Qt 5.15.7 追加的是 **`.XXXXXX`**（带点号），
+// 4/4 用例 —— `/tmp/x` → `/tmp/x.PuyfRY` · `/tmp/x.txt` → `/tmp/x.txt.FsyUmx` ·
+// `/tmp/x.` → `/tmp/x..atMXnd` · `/tmp/x.part.txt` → `/tmp/x.part.txt.nhwRWx`。
+// 本垫片此前追加的是**不带点号**的 `XXXXXX`（`/tmp/x` → `/tmp/xABCDEF`），与真 Qt
+// 差一个 `.` —— 已按上述探针改成追加 `.XXXXXX`。该分支在用量表里**没有调用点**
+// （唯一调用点 `kis_exr_test.cpp:58` 的模板带 `XXXXXX`），保留它只是不让同一个类
+// 对合法输入崩掉；但它现在的行为有实测支撑，不再是推断。
 // ---------------------------------------------------------------------------
 #pragma once
 #include "PkString.h"
@@ -71,7 +81,8 @@ public:
         std::string tmpl = m_template;
         std::size_t marker = tmpl.find("XXXXXX");
         if (marker == std::string::npos) {
-            tmpl += "XXXXXX";
+            // 真 Qt 追加 `.XXXXXX`（带点号）——探针实测 4/4，见文件头注（Task 3b N-6）。
+            tmpl += ".XXXXXX";
             marker = tmpl.size() - 6;
         }
 

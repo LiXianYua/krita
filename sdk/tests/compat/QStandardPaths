@@ -1,11 +1,12 @@
 // R-77 · sdk/tests/compat/QStandardPaths
 // ---------------------------------------------------------------------------
 // 为什么测试面需要它：`pk/` 树里没有 QStandardPaths（`ls pk/*/compat/QStandardPaths`
-// 实测无）。真实调用点两处：
-//   * sdk/tests/filestest.h:259（端口化后的 `impexTempFilesDir()`）
+// 实测无）。真实调用点两处（**行号 = HEAD 真实 `文件:行`**，修复轮 1 订正；旧稿用的是
+// impact-map §2 的「去注释计数」口径，Task 3b N-8）：
+//   * sdk/tests/filestest.h:262（端口化后的 `impexTempFilesDir()`）
 //       `QStandardPaths::writableLocation(QStandardPaths::CacheLocation)`
-//   * plugins/impex/libkra/tests/kis_kra_loader_test.cpp:206
-//     plugins/impex/libkra/tests/kis_kra_saver_test.cpp:631
+//   * plugins/impex/libkra/tests/kis_kra_loader_test.cpp:210
+//     plugins/impex/libkra/tests/kis_kra_saver_test.cpp:639
 //       `QStandardPaths::setTestModeEnabled(true)`
 //
 // **API 面 = 判据① 的用量表，一项不多一项不少**：只交付
@@ -36,6 +37,11 @@
 //         必须落在每次运行独立的目录里，否则并发跑的多个 test 会互相踩；
 //     (2) 没有任何消费者能观察到这个差异：`impexTempFilesDir()` 的返回值只用于
 //         mkpath + 存临时 PNG，测试不断言它的字面值。
+//   **两条分支未实测（修复轮 1 显式标注，Task 3b N-2(c)；不当已证结论）**：
+//     (a) `$HOME` 未设时 `cacheRoot()` 返回**空串**（本文件 :87-89）——真 Qt 不受影响、
+//         仍返回缓存目录；本机由 launchd 恒设 `HOME`，该分支在 pk 栈不可达（pk 栈零调用点）。
+//     (b) 非 Apple 分支（`XDG_CACHE_HOME` / `$HOME/.cache`，本文件 :92-98）在本机 macOS
+//         **从未被执行**——只在 Linux/其它平台生效，保留是让垫片不绑死 Darwin。
 //   同日，`QDir::tempPath()`（本 Task 同时交付）也是读 `$TMPDIR` 的——真 Qt 的
 //   `QDir::tempPath()` 探针实测**确实**跟着 `$TMPDIR` 走（§9d），两者行为一致。
 // ---------------------------------------------------------------------------

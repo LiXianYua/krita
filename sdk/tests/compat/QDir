@@ -14,11 +14,12 @@
 // 语义：`QDir::currentPath()` 是「进程 cwd 的绝对路径」，真 Qt 探针见报告（R-3）。
 // ---------------------------------------------------------------------------
 // R-77 增补 `tempPath()` 与 `cleanPath()`（见类内两处注释）：
+//   行号 = HEAD 真实 `文件:行`（修复轮 1 订正；旧稿是 impact-map §2 的「去注释计数」口径，Task 3b N-8）：
 //   * `tempPath()`  —— 使用量表的**连带**项：`QTemporaryFile` 的唯一真实调用点
-//     `plugins/impex/exr/tests/kis_exr_test.cpp:54` 同一行就用了 `QDir::tempPath()`
+//     `plugins/impex/exr/tests/kis_exr_test.cpp:58` 同一行就用了 `QDir::tempPath()`
 //     （`QDir::tempPath() + QLatin1String("/krita_XXXXXX") + QLatin1String(".exr")`），
 //     不补它那一行仍然编不过。
-//   * `cleanPath()` —— `sdk/tests/filestest.h:259`（端口化后的 `impexTempFilesDir()`）
+//   * `cleanPath()` —— `sdk/tests/filestest.h:261`（端口化后的 `impexTempFilesDir()`）
 //     与 `filestest.h:214,217,237,239,252,254` 一族 `absoluteFilePath()` 的落点。
 // 两者的真 Qt 语义都由 `pk/test/oracle/probe_file_shims.cpp` 实测钉死，原始输出见
 // task1-report.md §3.2。算法本体住在同目录 `PkPathClean.h`（`QFileInfo` 共用）。
@@ -72,8 +73,15 @@ public:
     //   QDir::tempPath() = '/private/var/folders/…/T'
     // 即真 Qt **去尾斜杠 + 走 realpath**（macOS 上 /var 是指向 /private/var 的符号
     // 链接，两者不同串——所以这里必须 realpath，不能只 cleanPath）。
-    // TMPDIR 未设时退化成 "/tmp"（真 Qt 同款；该分支本机探针覆盖不到，按 Qt 文档口径）。
-    // 调用点：plugins/impex/exr/tests/kis_exr_test.cpp:54。
+    // TMPDIR 未设时的退化分支（**修复轮 1 补探针实测**，Task 3b N-6）：
+    // `env -u TMPDIR` 下真 Qt 5.15.7 返回的是 Darwin 的 per-user 临时目录
+    // `/private/var/folders/…/T`，**不是 `/tmp`** —— 旧稿「退化成 /tmp（真 Qt 同款）」
+    // 这句是**错的**（无探针支持的推断）。本垫片仍退化成 `/tmp`，属**已知的行为分歧**，
+    // 保留理由：(a) 本机 TMPDIR 由 launchd 恒设，该分支在 pk 栈上不可达（pk 栈零个
+    // `QDir::tempPath()` 调用点，唯一调用点 `kis_exr_test.cpp:58` 走真 Qt）；
+    // (b) `/tmp` 是 POSIX 的通用临时目录，作垫片回退足够，且比 confstr(_CS_DARWIN_USER_TEMP_DIR)
+    // 少一处平台耦合。分歧本身已按纪律登记（不是未实测的分支了）。
+    // 调用点：plugins/impex/exr/tests/kis_exr_test.cpp:58（修复轮 1 订正，Task 3b N-8）。
     static PkString tempPath() {
         const char *tmp = std::getenv("TMPDIR");
         std::string base = (tmp && *tmp) ? tmp : "/tmp";
@@ -90,7 +98,7 @@ public:
     // R-77 增补。真 Qt 5.15.7 的 18 个边角用例逐条对齐（task1-report.md §3.2 的
     // §9e），算法本体在 PkPathClean.h（与 QFileInfo::absoluteFilePath 共用，
     // 唯一的差别是这里**不保留**尾斜杠：`/a/b/` → `/a/b`）。
-    // 调用点：sdk/tests/filestest.h:259（端口化后的 impexTempFilesDir()）。
+    // 调用点：sdk/tests/filestest.h:261（端口化后的 impexTempFilesDir() 函数体内；函数自 :259 起）。
     static PkString cleanPath(const PkString &path) {
         return PkString(pkCleanPath(path.PkToUtf8(), false).c_str());
     }

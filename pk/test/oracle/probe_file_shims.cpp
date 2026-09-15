@@ -224,7 +224,7 @@ int main()
     // ---------------------------------------------------------------- 8. QTemporaryFile    // ---------------------------------------------------------------- 8. QTemporaryFile
     hdr("8. QTemporaryFile 模板展开语义");
     {
-        // 与 plugins/impex/exr/tests/kis_exr_test.cpp:54 同一形态
+        // 与 plugins/impex/exr/tests/kis_exr_test.cpp:58 同一形态（修复轮 1 订正，Task 3b N-8）
         QString tmpl = QDir::tempPath() + QLatin1String("/krita_XXXXXX") + QLatin1String(".exr");
         std::printf("模板字符串 = '%s'\n", tmpl.toUtf8().constData());
         QTemporaryFile tf(tmpl);

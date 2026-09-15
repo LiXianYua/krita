@@ -51,12 +51,15 @@
 //   * `error()`：open 失败 = `QFileDevice::OpenError`(5)——ENOENT 与 EEXIST
 //     **都是 5**（§6、§6b）；未出错 = NoError(0)（§3）。
 //
-//   * `errorString()`：**刻意不逐字对齐真 Qt**。真 Qt 的文本是
-//     `strerror(errno)`（§6：'No such file or directory'），但那是**面向人的消息**、
-//     不是判据里的可观察行为（没有任何调用点断言它，filestest.h 只把它 qDebug 出去）。
-//     本垫片返回 `strerror(errno)`，未出错时返回 "Unknown error"——后者与真 Qt
-//     逐字相同（§3 实测 `f.errorString() = 'Unknown error'`）。**登记为已声明差异**：
-//     差异面只可能出现在 POSIX 各平台 strerror 的措辞上，而真 Qt 自己也是这么来的。
+//   * `errorString()`：**与真 Qt 同源，不是「刻意偏离」**（修复轮 1 订正，Task 3b N-1）。
+//     垫片返回 `strerror(errno)`，未出错时返回 `"Unknown error"`。探针里**唯一**一条
+//     错误路径的输出（§6）真 Qt 给的正是 `strerror(ENOENT)` 的串 `'No such file or
+//     directory'`，与本垫片逐字相同；`NoError` 时真 Qt = `'Unknown error'`（§3 实测），
+//     也逐字相同。⇒ 两条已实测路径上**零差异**，此前头注写的「刻意不逐字对齐」是
+//     没有探针支持的推断（spec〈不许推断〉），已撤掉。
+//     残留不确定性只有一个、且**未实测**：POSIX 其它 errno 上真 Qt 的措辞是否也等于
+//     `strerror`。本机 （Qt 5.15.7 / macOS）无该路径的探针，故**不写进结论**；唯一
+//     调用点 `filestest.h:220` 只把它 `qDebug` 出去、从不断言，无判据依赖它。
 // ---------------------------------------------------------------------------
 #pragma once
 #include "PkString.h"
@@ -77,6 +80,15 @@ public:
         : m_name(name.PkToUtf8())
     {
     }
+
+    // R-77 修复轮 1（Task 3b N-7）：真 Qt 的 `~QFile()` 会关闭底层设备，垫片此前没有
+    // 析构——这是一处**契约面缺项**。当前唯一构造调用点 `sdk/tests/filestest.h:217-223`
+    // 显式调了 `file.close()`，所以今天没有 fd 泄漏；但任何将来「构造后忘 close」的
+    // 调用点会静默漏 fd，而真 Qt 不会。
+    // **判：补**（不是登记）。理由：语义与真 Qt 一致；`close()` 自身幂等
+    // （`if (m_isOpen)` 守卫，见上），所以对**所有**现有调用点都是 no-op——不会改变
+    // 任何既有行为，只是把「谁负责关 fd」补成真 Qt 的约定。
+    ~QFile() { close(); }
 
     bool open(PkStream::OpenMode mode)
     {

@@ -135,7 +135,8 @@ void PkTestSupportSelfTest::testFilestestPortedHelpersAreRunnable()
 }
 
 // ---------------------------------------------------------------------------
-// R-77：QTemporaryFile 垫片。唯一真实调用点 plugins/impex/exr/tests/kis_exr_test.cpp:54
+// R-77：QTemporaryFile 垫片。唯一真实调用点 plugins/impex/exr/tests/kis_exr_test.cpp:58
+// （修复轮 1 订正，Task 3b N-8；旧稿的 :54 是「去注释计数」口径）
 // 走的是 **Qt 栈**，pk 栈里没有别的消费者 ⇒ 不在这里跑就完全没被执行过。
 // 三条语义全部探针实测（报告 §3.2 §8）：
 //   * open() **之前** fileName() 是空串；

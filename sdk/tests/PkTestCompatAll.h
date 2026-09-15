@@ -248,10 +248,12 @@
 // R-77：文件 I/O 垫片族。sdk/tests/filestest.h（25 个 impex/metadata 消费者的
 // 公共头）在真 Qt 下靠 QtCore 传递拿到这几个名字；pk 栈下 compat 头不复制那条链，
 // 所以在这里预激活。垫片全在 sdk/tests/compat/。
-//   * QFileDevice：`QFileDevice::Permissions` / `FileError`（filestest.h:154,167,188）
-//   * QFile：filestest.h:156,159,179,194,260,320,423 与 plugins/metadata 的构造
-//   * QStandardPaths：filestest.h:204 与 libkra 两个测试的 setTestModeEnabled(true)
-//   * QTemporaryFile：plugins/impex/exr/tests/kis_exr_test.cpp:54
+// 行号 = HEAD 真实 `文件:行`（修复轮 1 订正；旧稿是 impact-map §2 的「去注释计数」
+// 口径，搬进代码注释会被当成真实行号，Task 3b N-8）：
+//   * QFileDevice：`QFileDevice::Permissions` / `FileError`（filestest.h:212,225,246）
+//   * QFile：filestest.h:214,217,237,252,324,384,487 与 plugins/metadata 的构造
+//   * QStandardPaths：filestest.h:262 与 libkra 两个测试的 setTestModeEnabled(true)
+//   * QTemporaryFile：plugins/impex/exr/tests/kis_exr_test.cpp:58
 // 顺序：QFile 依赖 QFileDevice（返回类型），QFileInfo 依赖 QFile（permissions 委托），
 // QDir 依赖 QFileInfo（R-65 的传递面）——按依赖序排列，不靠 include 顺序碰运气。
 #if PKC_HAS(<QFileDevice>)
