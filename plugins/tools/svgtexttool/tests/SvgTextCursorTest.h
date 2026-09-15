@@ -26,6 +26,7 @@ private Q_SLOTS:
     void hostTextTypeRetriggerKeepsCurrentActionChecked();
     void hostMappedTextTypeShortcutDispatches();
     void hostMappedMovementShortcutDispatchesWhenEnabled();
+    void hostToggleActionShortcutFlipsProperty();
     void hostActionBoundaryReadsIdentitiesAndWritesEnabledState();
     void nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery();
     void nativeRegistrationPreservesFactoryAndResources();

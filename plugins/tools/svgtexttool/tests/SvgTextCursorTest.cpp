@@ -32,7 +32,6 @@
 #include <KoViewConverter.h>
 #include <kis_coordinates_converter.h>
 #include <QCryptographicHash>
-#include <QAction>
 #include <QImage>
 #include <QInputMethod>
 #include <QInputMethodEvent>
@@ -902,6 +901,75 @@ void SvgTextCursorTest::hostActionBoundaryReadsIdentitiesAndWritesEnabledState()
         QVERIFY(controller.hostActionEnabledWrites.contains(name));
         QVERIFY(!controller.hostActionEnabledWrites.value(name));
     }
+}
+
+// 兜底派发把 **Toggle** 类动作送进内核处理器时，属性必须**真的翻转**。
+//
+// 这条用例是 B1 的回归网：本文件原有 4 个 hostActionDispatch* 用例只覆盖
+// （a）Set 类动作（`svg_align_right`，且断言的是「**没有**被触发」）与
+// （b）`addMappedAction` 那一族（`text_type_*` / `svg_type_setting_move_*`，
+//     它们的 binding 丢弃实参），**没有任何一条把 Toggle 送进这条派发**
+// —— B1 正是从这个缺口溜过去的。
+//
+// B1 的症状是「属性被设成它**现在**的值、不翻转」；本用例的断言刻意只认
+// 「翻转后的值」，所以能区分「翻转」与「设成原值」。
+void SvgTextCursorTest::hostToggleActionShortcutFlipsProperty()
+{
+    using namespace std::chrono_literals;
+    PkThreadCallQueue::warmUpCurrentThread();
+
+    MockShapeController shapeController;
+    HostToolCanvas canvas(&shapeController);
+    CursorController controller;
+    controller.setCanvas(&canvas);
+    canvas.setCanvasController(&controller);
+
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\" font-weight=\"400\">abcd</text>", {},
+                                     PkRectF(0, 0, 300, 300), 72.0));
+    canvas.shapeManager()->selection()->select(&shape);
+
+    SvgTextTool tool(&canvas);
+    tool.activate({&shape});
+
+    // 观测值取字内一格（`posForIndex(1)` 落在 'b' 上），避开末端插入点那类边界。
+    const auto boldAtChar = [&shape]() {
+        return shape.propertiesForPos(shape.posForIndex(1), true)
+                    .propertyOrDefault(KoSvgTextProperties::FontWeightId).toInt() >= 500;
+    };
+    QVERIFY(!boldAtChar());
+
+    // 输入端：宿主把「加粗」这条 Toggle 动作绑在 Ctrl+B 上。
+    canvas.actionShortcuts.insert(PkString("svg_weight_bold"),
+                                  PkKeySequence{QKeySequence(Qt::CTRL | Qt::Key_B)[0]});
+
+    // 回程（旧路径里由宿主动作自己的 isChecked 承担的那份「当前态」）：内核侧的
+    // `binding.active` 只在**游标无选区**时回写 —— `updateCanvasResources()` 以
+    // `pos == anchor` 为闸门，经 10ms 的字符选区压缩器送达。这里照
+    // nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery 的泵法把它送达，
+    // 让下一次派发拿到的是**当前**态。
+    const auto syncCurrentState = [&tool]() {
+        tool.deselect();
+        std::this_thread::sleep_for(25ms);
+        PkThreadCallQueue::processPendingCalls();
+    };
+
+    syncCurrentState();
+    tool.selectAll();
+
+    PkToolKeyEvent boldOnEvent(Pk::Key_B, Pk::ControlModifier, false);
+    tool.pkKeyPressEvent(&boldOnEvent);
+    QVERIFY(boldOnEvent.isAccepted());
+    QVERIFY(boldAtChar());          // 400 → 700：真的翻转了
+
+    syncCurrentState();
+    tool.selectAll();
+
+    PkToolKeyEvent boldOffEvent(Pk::Key_B, Pk::ControlModifier, false);
+    tool.pkKeyPressEvent(&boldOffEvent);
+    QVERIFY(boldOffEvent.isAccepted());
+    QVERIFY(!boldAtChar());         // 700 → 400：翻回去
 }
 
 void SvgTextCursorTest::nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery()

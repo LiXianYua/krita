@@ -11,9 +11,7 @@
 
 class PkToolInputMethodEvent;
 
-
 KisDocumentApplicationServices::InputMethodEvent
 svgTextNativeInputMethodEvent(const PkToolInputMethodEvent &event);
-
 
 #endif

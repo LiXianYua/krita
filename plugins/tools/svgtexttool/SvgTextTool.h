@@ -199,7 +199,13 @@ private:
      * `trigger` 直接调内核操作（`m_textCursor.triggerAction` /
      * `slotMoveTextSelection` / `slotConvertType`）；`active` 承接旧路径上
      * 宿主动作 isChecked 的那个回程（游标 `actionStateChangedCallback` 写回），
-     * 派发时作为实参交给 `trigger`。
+     * 记的是**当前**态 —— 「这个属性今天成立吗」。
+     *
+     * **派发时不能把 `active` 原样交出去**：旧路径是宿主自己触发动作、内核处理器
+     * 挂在它的 triggered 信号上，而那条信号携带的是**翻转后**的值（动作触发时先翻转
+     * 勾选态再发信号 —— 实测见 `SvgTextTool.cpp` 兜底派发处的注释）。所以旧路径交给
+     * 内核处理器的实参本来就是翻转后的状态，新路径要还原同一个语义 ⇒ 派发取 `!active`。
+     * 把 `active` 原样交出去会把属性设成它现在的值（Toggle 动作退化成 no-op）。
      */
     struct HostActionBinding {
         std::function<void(bool active)> trigger;

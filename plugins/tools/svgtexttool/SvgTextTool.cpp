@@ -1094,9 +1094,22 @@ void SvgTextTool::pkKeyPressEvent(PkToolKeyEvent *event)
                 }
                 const PkKeySequence shortcut = bindingHost->actionShortcut(it.key());
                 if (shortcut.size() == 1 && shortcut[0] == chord) {
-                    // active 承接旧路径上宿主动作 isChecked 的回程（见
-                    // HostActionBinding 的注释与 impact-map §4）。
-                    binding.trigger(binding.active);
+                    // 派发实参是**翻转后**的态，故取 `!binding.active`。
+                    // 旧路径把内核处理器挂在宿主动作的 triggered 信号上，而那条信号
+                    // 携带的是**翻转后**的值：checkable 动作的 trigger() 先把勾选态
+                    // 翻过去，再把翻过去的值交给 triggered（本机 Qt 5.15 独立小程序
+                    // 实测：勾选态 0 的动作，triggered 实参=1；Qt 源码 qaction.cpp 里
+                    // `setChecked(!d->checked)` 也排在 `emit triggered(d->checked)` 之前）。
+                    // `active` 存的是**当前**态（宿主回程写回的「这个属性今天成立吗」），
+                    // 所以派发时取反 —— 直接用 `active` 会把属性设成它现在的值，不翻转。
+                    // 对 Set / Increase / Decrease 类动作，下游取不取 checked 无影响。
+                    //
+                    // [登记] 旧路径的这条路还兼着「宿主**不经按键**直接触发动作」
+                    // （菜单 / 工具栏点击 / 宿主自己的快捷键系统，都经那条 triggered
+                    // 信号进来）—— 动作面改挂内核物化边界后，宿主手里不再有可连的动作
+                    // 对象，这条通道只剩 chord 派发一条路。属 (a) 裁决下的结构性后果，
+                    // 与 impact-map §4 登记的另外两条同级；见 task-A-B-report.md 的登记表。
+                    binding.trigger(!binding.active);
                     return true;
                 }
             }
