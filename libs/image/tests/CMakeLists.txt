@@ -110,7 +110,8 @@ endif()
 # `Q_ASSERT` 空转 ⇒ 空指针解引用）。
 #
 # **为什么单独立一节**：上面的 bloc 只服务 `kis_add_tests`（QTest 栈）与几个
-# 点名 target；`pk_add_tests` 块（下方 :190 起，46 个 target）的公共
+# 点名 target；`pk_add_tests` 块（下方那个块，46 个 target；**不写行号**——
+# 本文件的注释改动会让它立刻失效）的公共
 # `LINK_LIBRARIES` 里**一个 provider 插件都没有**，于是该块里所有真正去取滤镜的
 # 用例都是「跑起来才炸」。R-86 实测的 5 条 SegFault 全部落在这一块（映射见下）。
 #
@@ -128,11 +129,13 @@ endif()
 # 测试二进制，**链接根本不成立**。聚合器的消费者是产品侧（M5 合拢时的 app/pk
 # 消费者，今天不存在），那件事不在本文件。
 #
-# provider ↔ 滤镜 id 的来源（逐个在源码里核过 `KisFilter::id()`）：
-#   "invert"           ← plugins/filters/example/example.h:23
-#   "colorbalance"     ← plugins/filters/colorsfilters/kis_color_balance_filter.h:34
-#   "resettransparent" ← plugins/filters/resettransparent/KisResetTransparentFilter.h:20
-#   "blur"             ← plugins/filters/blur/kis_blur_filter.h:25（变量已在上方）
+# provider ↔ 滤镜 id 的来源（逐个在源码里核过 `KisFilter::id()`；
+# **行号一律给 `id()` 的声明行**，id 字面量在其下一行）：
+#   "invert"           ← plugins/filters/example/example.h:23（字面量 :24）
+#   "colorbalance"     ← plugins/filters/colorsfilters/kis_color_balance_filter.h:33（:34）
+#   "resettransparent" ← plugins/filters/resettransparent/KisResetTransparentFilter.h:19（:20）
+#   "blur"             ← plugins/filters/blur/kis_blur_filter.h:25（:26；变量已在上方）
+# 这 4 个 id 全树唯一（各自只有这一个提供者）。
 if(APPLE)
     set(KRITA_EXAMPLEFILTER_WHOLE_ARCHIVE "-Wl,-force_load,$<TARGET_FILE:kritaexample>")
 else()
@@ -400,8 +403,9 @@ target_compile_definitions(KisPaintOpPresetTest PRIVATE TESTBRUSH)
 # 实测口径：`HOME=<新目录>` · `QT_QPA_PLATFORM=offscreen` ·
 # `DYLD_LIBRARY_PATH=<build>/bin`；与 `ctest -R '^<name>$'` 结果一致。
 #
-# ① kis_filter_test —— `kis_filter_test.cpp:68` `value("invert")` +
-#    `:220` `value("blur")`。只补 invert 时首错从 :68 后移到 :220
+# ① kis_filter_test —— 取 `value("invert")`（:65）与 `value("blur")`（:218）；
+#    **首错落在其后的解引用行** `f->defaultConfiguration(...)`，即
+#    `kis_filter_test.cpp:68:40` 与 `:220:40`。只补 invert 时首错从 :68 后移到 :220
 #    （这条「后移」本身就是「两个 provider 都缺」的证据）。
 target_link_options(kis_filter_test PRIVATE
     ${KRITA_EXAMPLEFILTER_WHOLE_ARCHIVE} ${KRITA_BLURFILTER_WHOLE_ARCHIVE})
