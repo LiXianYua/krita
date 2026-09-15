@@ -137,7 +137,7 @@ function(pk_add_test testbase)
     # 测试数会从 378 涨到 383（改变测试面），那是判据之外的变化。
     # kis_add_test 本来就是 KRITA_ADD_UNIT_TEST 的别名，而后者 parse 了 BROKEN
     # 选项 ⇒ 直接透传即可，不需要另写一条注册路径。
-    cmake_parse_arguments(ARG "HEADERLESS;BENCHMARK;BROKEN" "SRCDIR;TEST_NAME;NAME_PREFIX;BENCHMARK_TARGET" "SOURCES;LINK_LIBRARIES;REGISTER_FILTERS" ${ARGN})
+    cmake_parse_arguments(ARG "HEADERLESS;BENCHMARK;BROKEN" "SRCDIR;TEST_NAME;NAME_PREFIX;BENCHMARK_TARGET" "SOURCES;LINK_LIBRARIES;REGISTER_FILTERS;REGISTER_ENGINES" ${ARGN})
 
     if(ARG_SRCDIR)
         set(_srcdir "${ARG_SRCDIR}")
@@ -233,7 +233,28 @@ function(pk_add_test testbase)
     # `-force_load <整档>`（整档形态在「同一个 .cpp 同时编进 import 与 export 两个
     # 归档」的 6 个格式上会撞 `duplicate symbol`，实测 tga）。
     # -----------------------------------------------------------------------
+    # REGISTER_ENGINES 与 REGISTER_FILTERS 同形，只差签名：这些入口是
+    # **C++ 链接的 `void f()`**（不是 `extern "C" bool f()`），典型是
+    # `plugins/color/lcms2engine/LcmsEnginePlugin.cpp:70` 的 `registerLcmsEngine()`。
+    #
+    # 为什么 impex 测试需要它（R-82 实测的第二个 L2 实例）：D-12 之前配色引擎是
+    # 运行时插件，每个测试都"自动"拿得到；静态化之后没人链它 ⇒
+    # `KoColorSpaceRegistry::colorSpace(...)` 返回 **nullptr** ⇒ exr/rgbe/heightmap/jxl
+    # 四条测试在导出路径上空指针解引用 SIGSEGV、psd 的 import 直接失败。
+    # 它们**不是**接线错，是 pk 测试壳没把配色引擎拉起来 —— 与本文件顶部
+    # REGISTER_FILTERS 那段是**同一个机理**（静态注册入口存在、没人链）。
+    # `registerLcmsEngine()` 自带 `static bool registered` 幂等保护，且
+    # `LcmsEnginePlugin.cpp:311-316` 另有一个匿名命名空间的静态对象做同样的事
+    # ⇒ 拉进那个 .o 之后，显式调用与静态初始化**都不会重复生效**。
     set(_register_src)
+    if(ARG_REGISTER_FILTERS OR ARG_REGISTER_ENGINES)
+        set(_engine_decls "")
+        set(_engine_calls "")
+        foreach(_sym IN LISTS ARG_REGISTER_ENGINES)
+            string(APPEND _engine_decls "void ${_sym}();\n")
+            string(APPEND _engine_calls "        ${_sym}();\n")
+        endforeach()
+    endif()
     if(ARG_REGISTER_FILTERS)
         set(_register_src "${CMAKE_CURRENT_BINARY_DIR}/pk_register_${_tgt}.cpp")
         set(_pk_decls "")
@@ -250,12 +271,12 @@ function(pk_add_test testbase)
 //   2) 在静态初始化期**调用**它们 ⇒ KisImportExportManager 的注册表真的被填充。
 // 顺序无关：注册表是函数内静态表（libs/impex/KisImportExportManager.cpp:121），
 // 任何静态初始化期写入都安全；filter 本体由各入口的 lambda 惰性构造。
-${_pk_decls}
+${_engine_decls}${_pk_decls}
 namespace {
 struct PkImportExportRegistration {
     PkImportExportRegistration()
     {
-${_pk_calls}    }
+${_engine_calls}${_pk_calls}    }
 };
 const PkImportExportRegistration pkImportExportRegistration;
 } // namespace

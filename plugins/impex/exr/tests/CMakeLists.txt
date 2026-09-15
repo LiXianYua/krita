@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerexrImportFilter
         registerEXRExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritaexrimport kritaexrexport
+        kritalcmsengine
     )
 
 add_executable(KisExrImportPolicyTest

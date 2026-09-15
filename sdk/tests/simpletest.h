@@ -6,6 +6,11 @@
 #include <PkThreadCallQueue.h>
 
 #ifdef KRITA_TESTSDK_PK_NATIVE
+// R-82：pk 栈也要 `KRITA_RESOURCE_DIRS_FOR_TESTS`（见下面
+// KRITA_SIMPLE_TEST_RESOURCE_DIRS_SETUP 的说明）。
+#include <KoTestConfig.h>
+#include <cstdlib>
+
 class QObject;
 namespace QTest
 {
@@ -32,6 +37,42 @@ int qExec(QObject *testObject, int argc, char **argv);
 #define KRITA_SIMPLE_TEST_PLUGIN_PATH_SETUP \
     qputenv("KRITA_PLUGIN_PATH", QByteArray(KRITA_PLUGINS_DIR_FOR_TESTS));
 #endif
+
+// ---------------------------------------------------------------------------
+// R-82 · 资源目录环境变量（**这是 R-77 误删的一条**，与本文件上面的
+// KRITA_PLUGIN_PATH 完全是两回事）。
+//
+// `libs/resources/KoResourcePaths.cpp:1384` 读的就是 `EXTRA_RESOURCE_DIRS`；
+// Qt 栈的两个 `KISTEST_MAIN`（sdk/tests/kistest.h:381,400）都在建 QApplication 之前
+// `qputenv("EXTRA_RESOURCE_DIRS", KRITA_RESOURCE_DIRS_FOR_TESTS)`。
+// R-77 在 pk 分支把 `EXTRA_RESOURCE_DIRS` 与 `KRITA_PLUGIN_PATH` **一起**空掉了，
+// 理由写的是「D-12 之后插件层是静态注册……该环境变量在**任何**栈上都不再生效」
+// ——**那句话只对 `KRITA_PLUGIN_PATH` 成立**：`EXTRA_RESOURCE_DIRS` 与插件加载
+// 毫无关系，它是 KoResourcePaths 的资源根目录清单（ICC 配色剖面就在
+// `<KRITA_RESOURCE_DIRS_FOR_TESTS>` 的 `data/profiles/` 下）。
+//
+// 后果实测（R-82 Task 2 之后、本宏加入之前）：pk 栈的 impex 测试里
+//   * `KoColorSpaceRegistry::rgb8()` 退化成 unmanaged 空间
+//     （`KoSimpleColorSpace.h:110` 的 "Undefined operation … unmanaged"），
+//     其 profile csId 为空 ⇒ `colorSpace(…, Float16, 该 profile)` 返回 **nullptr**
+//     ⇒ exr / rgbe / heightmap / jxl / png / heif **6 条测试在导出路径上空指针解引用 SIGSEGV**；
+//   * `kis_exr_test` 修好配色引擎后仍 `testFiles()` 失败 —— 逐像素比对
+//     **98.34%（386686/393216 像素）不同**（512×768，真 Qt 探针实测），
+//     与「参考图是 M0 的、今天的渲染不同」一致。
+//
+// **这与资源"注册"（registerResources()/KisTestUiResource 一族）不是一回事**，
+// R-77 拒绝给后者一个空实现是对的（那会让资源测试静默跑绿）；本宏只声明
+// **数据目录在哪**，不注册任何资源类型、不加载任何东西，不会制造假绿。
+// ---------------------------------------------------------------------------
+#ifdef KRITA_TESTSDK_PK_NATIVE
+#define KRITA_SIMPLE_TEST_RESOURCE_DIRS_SETUP \
+    setenv("EXTRA_RESOURCE_DIRS", KRITA_RESOURCE_DIRS_FOR_TESTS, 1);
+#else
+// Qt 栈的两个 KISTEST_MAIN 已经在建 QApplication 之前设过它（kistest.h:381,400），
+// 这里再设一次等价、无副作用；留空以保持 Qt 栈行为逐字不变。
+#define KRITA_SIMPLE_TEST_RESOURCE_DIRS_SETUP
+#endif
+
 
 // SIMPLE_TEST_MAIN/SIMPLE_MAIN_IMPL：过渡期双 Pk/Qt 测试入口。
 // 默认分支保留 QtTest 给未迁移的 QObject fixture；只有
@@ -118,6 +159,7 @@ inline void qWait(int ms)
 
 #define SIMPLE_MAIN_IMPL(TestObject) \
     KRITA_SIMPLE_TEST_PLUGIN_PATH_SETUP \
+    KRITA_SIMPLE_TEST_RESOURCE_DIRS_SETUP \
     PkThread::registerMainThread(); \
     PkThreadCallQueue::warmUpCurrentThread(); \
     TestObject tc; \
