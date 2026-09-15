@@ -55,7 +55,9 @@ public:
     PkPoint documentOffset;
     qreal preferredCenterFractionX;
     qreal preferredCenterFractionY;
-    QObject *actionCollection;
+    // R-62 裁决 (a)：句柄恒为 PkObject（native 桶里 `QObject` 本来就是它的宏别名，
+    // 这里写显，与 `KoToolFactoryBase::createActions(PkObject *)` 同型）。
+    PkObject *actionCollection;
 };
 
 KoCanvasController::KoCanvasController(PkObject *actionCollection)

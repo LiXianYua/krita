@@ -500,9 +500,14 @@ private Q_SLOTS:
     // 物化边界 `KoToolFactoryBase::createActions(PkObject *)` 产生（qt 桶里唯一的
     // 造动作入口）。能保住的原断言逐条对应：枚举整个集合 / objectName 正确 /
     // !carriesToolAction（激活动作）/ carriesToolAction（spec 动作，净增）/
-    // 空 chord 丢弃（shortcut==0 的 spec）/ 逐和弦取 int（与既有 oracle 相等）。
-    // 「一条动作挂 2 个 chord」这一档在 (a) 下无可达构造路径，已登记（见
-    // KoCanvasController.h 的 hostActions() 注释），指名归 R-70。
+    // 「无快捷键的动作贡献零 chord」/ 逐和弦取 int（与既有 oracle 相等）。
+    //
+    // **不要把这最后一条读成「空 chord 丢弃」覆盖**：`encodeHostActionShortcuts()` 的
+    // `continue` 只在 `action.shortcuts()` **非空**时才求值，而 `createActions()` 只在
+    // `spec.shortcut != 0` 时调 `setShortcut` ⇒ shortcut==0 的 spec 让 `shortcuts()`
+    // 返回空表，循环体一次都不执行。`if (hostShortcut.toString().isEmpty()) continue;`
+    // 这条支路与「一条动作挂 2 个 chord」同属**没有可达构造路径**的一档，两条一起登记在
+    // KoCanvasController.h 的 hostActions() 注释里，**不指给任何现有任务**。
     void hostActionIdentitiesCarryNativeChordEncoding()
     {
         PkObject actionCollection;
