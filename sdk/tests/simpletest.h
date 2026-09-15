@@ -68,8 +68,9 @@ int qExec(QObject *testObject, int argc, char **argv);
 #define KRITA_SIMPLE_TEST_RESOURCE_DIRS_SETUP \
     setenv("EXTRA_RESOURCE_DIRS", KRITA_RESOURCE_DIRS_FOR_TESTS, 1);
 
-// 引擎注册（R-82）：`pk_add_test(... REGISTER_ENGINES <符号…>)` 会为该 target
-// 生成一个 `void pkRegisterTestEngines()`，这里**弱符号**调它。
+// 引擎注册（R-82）：`pk_add_test` 会为该 target 无条件生成一个
+// `extern "C" void pkRegisterTestEngines()`（选了 `REGISTER_ENGINES` 时函数体
+// 调那些入口；没选时是空体），这里**强符号**调它。
 //
 // **必须在这里调、不能在静态初始化期调**：`registerLcmsEngine()` 经
 // `KoResourcePaths::findAllAssets("icc_profiles", …)` 扫 ICC 剖面，而资源目录
@@ -78,8 +79,6 @@ int qExec(QObject *testObject, int argc, char **argv);
 // （实测：`rgb8()` 退化成 fallback/线性剖面 ⇒ `testFiles()` 的渲染比参考图
 // gamma 2.2 次幂偏暗、98.34% 像素不同）。对照 `sdk/smoke/paint_smoke.cpp:102-106,133,137`。
 //
-// **弱符号**是有意的：没选 `REGISTER_ENGINES` 的 target（例如零 Krita 库依赖的
-// `PkTestSupportSelfTest`）不产生任何链接依赖，`if (…)` 判空即跳过。
 // **强符号**调用，不是弱符号：实测 **Mach-O 上 `__attribute__((weak))` 声明不产生
 // 弱引用**（ld 报强 undefined `_pkRegisterTestEngines`），要弱引用得用 Mach-O 的
 // `weak_import`，那就要按平台分叉。改用「`pk_add_test` **无条件**生成一个定义
@@ -94,6 +93,9 @@ extern "C" void pkRegisterTestEngines();
 // Qt 栈的两个 KISTEST_MAIN 已经在建 QApplication 之前设过它（kistest.h:381,400），
 // 这里再设一次等价、无副作用；留空以保持 Qt 栈行为逐字不变。
 #define KRITA_SIMPLE_TEST_RESOURCE_DIRS_SETUP
+// 引擎注册的两个宏在 Qt 栈上**必须是空宏**：`SIMPLE_MAIN_IMPL` 无条件展开它们，
+// 少一个就会把宏名当成标识符、Qt 栈直接编不过（R-82 修复轮自查抓到的一处）。
+#define KRITA_SIMPLE_TEST_ENGINE_SETUP
 #endif
 
 
