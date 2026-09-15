@@ -47,8 +47,13 @@
 #include <QDir>
 
 #ifdef KRITA_TESTSDK_PK_NATIVE
-// R-82：`QTest::qWait` 在 pk 栈上没有对应物（`pk/test/README.md:77` 把 qWait 登记为
-// **S0 缺口**，`PkTestCompatAll.h` 拉的 `PkTestSleepShim.h` 只补了 `qSleep`）。
+// R-82：`pk/test/README.md:77` 把 `qWait` 登记为 **S0 缺口**，
+// `PkTestCompatAll.h` 拉的 `PkTestSleepShim.h` 只补了 `qSleep`。
+// **订正（全分支评审 §4）**：pk 栈上并非完全没有对应物 —— `sdk/tests/simpletest.h`
+// 里已有 `PkTest::qWait`。但它在 `testutil.h` 的 include 顺序里**声明得太晚**
+// （本头先被包含，`simpletest.h` 在其后）⇒ 在本文件里直接写 `QTest::qWait` 会报
+// `no member named qWait in namespace PkTest`（实测）。所以这里用同目录、自足的
+// `KritaTestSdk::waitFor`（其类头注释即写明「替代 QTest::qWait」）。
 // pk 的等价物**已经在本目录里**：`KritaTestSdk::waitFor()` 的类头注释明写它
 // 「**替代** Qt 的 `QTest::qWait()`，因为 Qt 的事件循环不驱动 pk 队列」——
 // 它按 5 ms 分片 sleep、每片后 `PkThreadCallQueue::processPendingCalls()`。

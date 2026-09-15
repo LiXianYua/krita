@@ -36,7 +36,9 @@
 // 语义（**真 Qt 5.15.7 探针实测**，原始输出见
 // `.superpowers/sdd/R-82/evidence/qt-probe-qfileinfo-qdir-qbuffer.txt`）：
 //   * 默认 filters（NoFilter ⇒ AllEntries）**会返回 `.` 与 `..`**
-//     （探针：/tmp/r82probe 得 7 项，头两项是 '.' 与 '..'）
+//     （探针 probe2 在 /tmp/r82probe 上实测；该目录后来又被探针追加了文件，落盘输出里是
+//      `count=10` —— **项数随目录内容变，要钉的是两条性质**：头两项是 '.' 与 '..'，
+//      且点开头与 UF_HIDDEN 的条目被排除。不是那个数。）
 //     —— 调用点正是靠 `isHidden()`/`isDir()` 把这两项滤掉，本垫片不得替它滤；
 //   * 点开头的名字**被排除**（探针：.hidden.txt 不在结果里）；
 //   * **UF_HIDDEN 的条目也被排除**（probe2：chflags hidden 的 ufhidden.txt 不在

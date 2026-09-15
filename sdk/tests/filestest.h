@@ -236,9 +236,9 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
 
 
 // ---------------------------------------------------------------------------
-// R-77：从此处到 namespace 收尾的四个 testXxx() 全部依赖 KisDocument /
-// KisImportExportManager / KoColorSpace / KoColorSpaceRegistry（壳闭包外），
-// **整段留 Qt 栈**。段内断言、容差、`#ifdef Q_OS_WIN` 分支一律未动。
+// R-82：从此处到 namespace 收尾的四个 testXxx() 与上面几个一样**两栈同源**
+// （R-77 原本把整段判给 Qt 栈，理由「依赖 KisDocument 一族、壳闭包外」已被实测证伪 ——
+//  见本文件开头 R-82 段的说明）。段内断言、容差、`#ifdef Q_OS_WIN` 分支一律未动。
 // ---------------------------------------------------------------------------
 void testImportFromWriteonly(const ImpexTestString &mimetype)
 {

@@ -275,7 +275,7 @@ function(pk_add_test testbase)
 // 再 registerLcmsEngine、再断言 sRGB-elle-V2-srgbtrc.icc 已注册」的正确顺序。
 // 所以这里只**导出**一个函数，由 SIMPLE_MAIN_IMPL 在设好资源目录之后
 // **强符号**调用它。没有引擎时函数体为空 ⇒ 空体函数不引入任何依赖，
-// 「零 Krita 库依赖」的目标（PkTestSupportSelfSelfTest）照样成立。
+// 「零 Krita 库依赖」的目标（PkTestSupportSelfTest）照样成立。
 extern \"C\" void pkRegisterTestEngines()
 {
 ${_engine_body}}
@@ -327,7 +327,15 @@ const PkImportExportRegistration pkImportExportRegistration;
     # 而不是 kis_add_test（后者会注册 ctest 测试，改变测试计数）。其余步骤（wrap TU /
     # binder / 编译定义 / AUTOMOC OFF）与测试分支完全同源，机制不重复实现。
     if(ARG_BENCHMARK)
-        add_executable("${_tgt}" "${_wrap}" ${ARG_SOURCES})
+        # R-82：**必须也带上 ${_register_src}** —— `PK_TEST_HAS_ENGINE_HOOK` 在下面的
+        # if/else 之外无条件定义，而 `SIMPLE_MAIN_IMPL` 会据此展开
+        # `pkRegisterTestEngines()`。本分支走 add_executable、不经过 `kis_add_test`，
+        # 漏了它就会引用一个**从不编译**的符号 ⇒ 链接期
+        # `undefined _pkRegisterTestEngines`（实测：`ninja -t commands
+        # KisLowMemoryBenchmark | grep -c PK_TEST_HAS_ENGINE_HOOK` = 1 而
+        # `grep -c pk_register_KisLowMemoryBenchmark` = 0；对照 `KisTgaTest` = 2）。
+        # 全分支评审 §3 的阻塞级发现。
+        add_executable("${_tgt}" "${_wrap}" ${_register_src} ${ARG_SOURCES})
         target_link_libraries("${_tgt}" PRIVATE ${ARG_LINK_LIBRARIES} kritatestsdk_pk)
         ecm_mark_nongui_executable("${_tgt}")
         # 与 cmake/modules/KritaTestSuite.cmake 的 set_test_sdk_compile_definitions 同源：

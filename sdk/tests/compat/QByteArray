@@ -43,8 +43,11 @@ public:
     //   * **返回 `*this`**（探针：`&r == &a` → 1）；
     //   * `resize(n+1)` + `data()[n]=c` 与真 Qt 的 append **结果逐字节相同**
     //     （探针：`b == a` → 1）—— 本垫片就走这条（PkByteArray 只有 resize/data()）。
-    // 只给 `append(char)`：`append(const QByteArray&)` / `append(const char*)` /
-    // `append(int,char)` 在测试面**零调用点**，不加。
+    // 上面两个 `append` 就是测试面全部用量（判据① 一项不多一项不少）。**不再多给**：
+    // `append(const char*)` / `append(int,char)` / `operator+=` 在测试面零调用点。
+    // （全分支评审 §4 订正：本注释初稿写的是「只给 append(char)、append(const QByteArray&)
+    //   零调用点、不加」—— 与实现自相矛盾，而且那句「零调用点」本身就是错的：
+    //   `plugins/impex/rgbe/tests/kis_rgbe_test.cpp:103,132` 正是它的两个调用点。）
     QByteArray& append(char ch)
     {
         const int n = size();
