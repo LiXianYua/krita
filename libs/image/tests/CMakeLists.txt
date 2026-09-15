@@ -103,6 +103,55 @@ else()
         "-Wl,--whole-archive" "$<TARGET_FILE:kritadefaultpaintops>" "-Wl,--no-whole-archive")
 endif()
 
+# --- R-86：`pk_add_tests` 块的滤镜 provider 强制链入 -------------------------
+# 与上面 KRITA_BLURFILTER_WHOLE_ARCHIVE 完全同一个机理（D-12 静态注册 ⇒
+# 自注册静态对象所在的那个 .o 无人引用就被链接器整份丢掉 ⇒ 构造函数不运行 ⇒
+# `KisFilterRegistry::instance()->value("<id>")` 返回 null ⇒ NDEBUG 下
+# `Q_ASSERT` 空转 ⇒ 空指针解引用）。
+#
+# **为什么单独立一节**：上面的 bloc 只服务 `kis_add_tests`（QTest 栈）与几个
+# 点名 target；`pk_add_tests` 块（下方 :190 起，46 个 target）的公共
+# `LINK_LIBRARIES` 里**一个 provider 插件都没有**，于是该块里所有真正去取滤镜的
+# 用例都是「跑起来才炸」。R-86 实测的 5 条 SegFault 全部落在这一块（映射见下）。
+#
+# **不铺开**：R-86 有意**不**把这几个变量塞进 `pk_add_tests` 的公共
+# `LINK_LIBRARIES`（那会让 46 个 target 都拉 4 个滤镜库，且掩盖「谁需要谁」），
+# 而是逐 target 用 `target_link_options` 点名（形制同下方 kis_selection_test /
+# KisPaintOpPresetTest 那几段）。
+#
+# **为什么不再走「链 `plugins/kritaplugin_registry` 聚合器」那条路**（R-86 判定
+# 阶段的实测，写在这里免得下一个人重试）：把聚合器 + `KRITAPLUGIN_REGISTRY_LIBS`
+# 全部 118 个插件归档 `-force_load` 到 `kis_filter_test` 的真实链接行上 ⇒
+# **link exit=1，230 个未定义符号**，全部落在 impex/产品闭包
+# （`_TIFF*`/`_DGif*`/`_heif_*`/`Exiv2::*`/`KisDocument::setErrorMessage`/
+# `KisImportExportErrorCode::*` …）⇒ 聚合器进测试 = 把整个产品闭包拖进每一个
+# 测试二进制，**链接根本不成立**。聚合器的消费者是产品侧（M5 合拢时的 app/pk
+# 消费者，今天不存在），那件事不在本文件。
+#
+# provider ↔ 滤镜 id 的来源（逐个在源码里核过 `KisFilter::id()`）：
+#   "invert"           ← plugins/filters/example/example.h:23
+#   "colorbalance"     ← plugins/filters/colorsfilters/kis_color_balance_filter.h:34
+#   "resettransparent" ← plugins/filters/resettransparent/KisResetTransparentFilter.h:20
+#   "blur"             ← plugins/filters/blur/kis_blur_filter.h:25（变量已在上方）
+if(APPLE)
+    set(KRITA_EXAMPLEFILTER_WHOLE_ARCHIVE "-Wl,-force_load,$<TARGET_FILE:kritaexample>")
+else()
+    set(KRITA_EXAMPLEFILTER_WHOLE_ARCHIVE
+        "-Wl,--whole-archive" "$<TARGET_FILE:kritaexample>" "-Wl,--no-whole-archive")
+endif()
+if(APPLE)
+    set(KRITA_COLORSFILTERS_WHOLE_ARCHIVE "-Wl,-force_load,$<TARGET_FILE:kritacolorsfilters>")
+else()
+    set(KRITA_COLORSFILTERS_WHOLE_ARCHIVE
+        "-Wl,--whole-archive" "$<TARGET_FILE:kritacolorsfilters>" "-Wl,--no-whole-archive")
+endif()
+if(APPLE)
+    set(KRITA_RESETTRANSPARENT_WHOLE_ARCHIVE "-Wl,-force_load,$<TARGET_FILE:kritaresettransparent>")
+else()
+    set(KRITA_RESETTRANSPARENT_WHOLE_ARCHIVE
+        "-Wl,--whole-archive" "$<TARGET_FILE:kritaresettransparent>" "-Wl,--no-whole-archive")
+endif()
+
 kis_add_test(
     KisPathCoverageMaskTest.cpp
     LINK_LIBRARIES kritatestsdk
@@ -340,6 +389,48 @@ target_link_options(KisPaintOpPresetTest PRIVATE ${KRITA_DEFAULTPAINTOPS_WHOLE_A
 # 用例计数两态相同（5 passed / 2 failed）——本行修的是 :325 这个真实缺口，
 # 不是「把红的改成绿的」。
 target_compile_definitions(KisPaintOpPresetTest PRIVATE TESTBRUSH)
+
+# R-86：`pk_add_tests` 块里 5 个取滤镜的 target —— 逐 target 窄链 provider。
+# 变量定义与机理说明见文件上方「R-86：`pk_add_tests` 块的滤镜 provider 强制链入」。
+#
+# 每一条的「哪个用例、取哪个 id、修前怎么炸」都跑出来核过（不是按测试名猜的）：
+# 修前 5 个 target 全部 `exit=139`（SegFault），`lldb` 首错落在
+# `f->defaultConfiguration(...)`（`-DNDEBUG` 下 `Q_ASSERT(f)` 空转）。
+# 修后 5 个 target 全部 `exit=0`，Totals 依次 8/5/12/6/8 passed、0 failed。
+# 实测口径：`HOME=<新目录>` · `QT_QPA_PLATFORM=offscreen` ·
+# `DYLD_LIBRARY_PATH=<build>/bin`；与 `ctest -R '^<name>$'` 结果一致。
+#
+# ① kis_filter_test —— `kis_filter_test.cpp:68` `value("invert")` +
+#    `:220` `value("blur")`。只补 invert 时首错从 :68 后移到 :220
+#    （这条「后移」本身就是「两个 provider 都缺」的证据）。
+target_link_options(kis_filter_test PRIVATE
+    ${KRITA_EXAMPLEFILTER_WHOLE_ARCHIVE} ${KRITA_BLURFILTER_WHOLE_ARCHIVE})
+
+# ② kis_filter_mask_test —— `kis_filter_mask_test.cpp:111` `value("resettransparent")`
+#    + `value("invert")`。
+target_link_options(kis_filter_mask_test PRIVATE
+    ${KRITA_EXAMPLEFILTER_WHOLE_ARCHIVE} ${KRITA_RESETTRANSPARENT_WHOLE_ARCHIVE})
+
+# ③ kis_async_merger_test —— `kis_async_merger_test.cpp:477` `value("colorbalance")`
+#    + `value("blur")` + `value("invert")`。
+target_link_options(kis_async_merger_test PRIVATE
+    ${KRITA_EXAMPLEFILTER_WHOLE_ARCHIVE} ${KRITA_BLURFILTER_WHOLE_ARCHIVE}
+    ${KRITA_COLORSFILTERS_WHOLE_ARCHIVE})
+
+# ④ kis_adjustment_layer_test —— 只取 `value("invert")`。
+target_link_options(kis_adjustment_layer_test PRIVATE ${KRITA_EXAMPLEFILTER_WHOLE_ARCHIVE})
+
+# ⑤ kis_layer_test —— 只取 `value("blur")`。
+target_link_options(kis_layer_test PRIVATE ${KRITA_BLURFILTER_WHOLE_ARCHIVE})
+#
+# **同一个坑还在等着的地方（R-86 判定阶段实测，别以为只有这 5 条）**：
+# `pk_add_tests` 块里另有 `kis_walkers_test`（blur + invert）、`kis_clone_layer_test`（blur）、
+# `kis_image_test`（blur）、`kis_paint_layer_test`（blur 族）；块外还有
+# `plugins/impex/libkra/tests/util.h:119`（pixelize ← `kritapixelizefilter`）与
+# `plugins/filters/unsharp/tests`（unsharp ← `kritaunsharpfilter`）。
+# 它们**今天全部编不出来（ctest 报 `Not Run`）**，所以给它们接线**一条都验证不了** ——
+# 按流水线「不收零证据改动」的规矩，本任务只收能验证的这 5 条，其余登记在
+# `.superpowers/sdd/R-86/impact-map.md` §4，交后续任务在它们编得过之后照本段形制补。
 
 kis_add_test(
     kis_clone_layer_test.cpp
