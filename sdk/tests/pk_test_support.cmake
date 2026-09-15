@@ -246,16 +246,42 @@ function(pk_add_test testbase)
     # `registerLcmsEngine()` 自带 `static bool registered` 幂等保护，且
     # `LcmsEnginePlugin.cpp:311-316` 另有一个匿名命名空间的静态对象做同样的事
     # ⇒ 拉进那个 .o 之后，显式调用与静态初始化**都不会重复生效**。
+    # **无条件生成**（R-82）：即使既没有 REGISTER_FILTERS 也没有 REGISTER_ENGINES，
+    # 也要产出一个定义 `pkRegisterTestEngines()`（空体）的 TU —— 因为
+    # `SIMPLE_MAIN_IMPL` 会**强符号**调用它。
+    # 为什么不用弱符号：实测 **Mach-O 上 `__attribute__((weak))` 声明不产生弱引用**
+    # （ld 报强 undefined `_pkRegisterTestEngines`），`weak_import` 才是 Mach-O 的拼法，
+    # 但那样又得按平台分叉；而「pk_add_test 无条件提供该函数」既没有平台分叉，
+    # 又保住了零 Krita 库依赖的目标（空体函数，无任何外部依赖）。
     set(_register_src)
-    if(ARG_REGISTER_FILTERS OR ARG_REGISTER_ENGINES)
+    if(TRUE)
         set(_engine_decls "")
-        set(_engine_calls "")
+        set(_engine_body "")
         foreach(_sym IN LISTS ARG_REGISTER_ENGINES)
             string(APPEND _engine_decls "void ${_sym}();\n")
-            string(APPEND _engine_calls "        ${_sym}();\n")
+            string(APPEND _engine_body "    ${_sym}();\n")
         endforeach()
+        # R-82：**无条件**导出 `pkRegisterTestEngines()`（没有引擎时函数体为空）——
+        # SIMPLE_MAIN_IMPL 是强符号调用它，所以每个 pk_add_test 目标都必须有定义。
+            set(_engine_fn
+"// R-82：引擎注册入口**刻意不在这里（静态初始化期）调用**。
+// 它们依赖 KoResourcePaths 的资源目录（`registerLcmsEngine()` 经
+// `KoResourcePaths::findAllAssets(\"icc_profiles\", …)` 扫 ICC 剖面），
+// 而 `EXTRA_RESOURCE_DIRS` 是 SIMPLE_MAIN_IMPL 在 **main 里** 才设的
+// ⇒ 静态初始化期调用会**赶在资源目录存在之前**跑完，而
+// `registerLcmsEngine()` 自带 `static bool registered` 幂等保护，
+// 后续正确时机的调用会被它挡掉 ⇒ 剖面扫不到、`rgb0()` 退化成 fallback 剖面。
+// 实测对照：sdk/smoke/paint_smoke.cpp:102-106,133,137 就是「先 setenv、
+// 再 registerLcmsEngine、再断言 sRGB-elle-V2-srgbtrc.icc 已注册」的正确顺序。
+// 所以这里只**导出**一个函数，由 SIMPLE_MAIN_IMPL 在设好资源目录之后
+// **强符号**调用它。没有引擎时函数体为空 ⇒ 空体函数不引入任何依赖，
+// 「零 Krita 库依赖」的目标（PkTestSupportSelfSelfTest）照样成立。
+extern \"C\" void pkRegisterTestEngines()
+{
+${_engine_body}}
+")
     endif()
-    if(ARG_REGISTER_FILTERS)
+    if(TRUE)  # R-82：无条件生成（pkRegisterTestEngines 即使为空体也要有定义）
         set(_register_src "${CMAKE_CURRENT_BINARY_DIR}/pk_register_${_tgt}.cpp")
         set(_pk_decls "")
         set(_pk_calls "")
@@ -272,11 +298,12 @@ function(pk_add_test testbase)
 // 顺序无关：注册表是函数内静态表（libs/impex/KisImportExportManager.cpp:121），
 // 任何静态初始化期写入都安全；filter 本体由各入口的 lambda 惰性构造。
 ${_engine_decls}${_pk_decls}
+${_engine_fn}
 namespace {
 struct PkImportExportRegistration {
     PkImportExportRegistration()
     {
-${_engine_calls}${_pk_calls}    }
+${_pk_calls}    }
 };
 const PkImportExportRegistration pkImportExportRegistration;
 } // namespace
