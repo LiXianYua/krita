@@ -36,3 +36,15 @@ target_link_libraries(pkfont PUBLIC pkimage pkstring Freetype::Freetype Fontconf
 add_executable(test_pkfont tests/test_font.cpp)
 target_link_libraries(test_pkfont PRIVATE pkfont Threads::Threads)
 add_test(NAME test_pkfont COMMAND test_pkfont)
+
+# R-76：把 fontconfig 配置烘进 ctest 环境 —— 与 pk/render 给 test_text 做的是同一件事、
+# 同一个理由。本测试 pin 的是 "DejaVu Sans" 24px 的逐像素值（:80 的 hash），它经
+# fontconfig 解析字体文件：宿主默认配置下那句 `Cannot load default config file` 在本机
+# 是日志噪音（解析到同一个文件），但换个宿主就可能解析到别的字体 —— 那时它就是**环境
+# 假红**，而 R-76 已把它拉进收尾入口，红的是整条入口。
+# 探测逻辑只有一份（父工程的 PK_RENDER_FONTCONFIG_PATH）；pk/font 单独 configure 时它
+# 为空，此时行为与加这段之前**逐字相同**。
+if(PK_RENDER_FONTCONFIG_PATH)
+    set_tests_properties(test_pkfont PROPERTIES
+        ENVIRONMENT "FONTCONFIG_PATH=${PK_RENDER_FONTCONFIG_PATH}")
+endif()

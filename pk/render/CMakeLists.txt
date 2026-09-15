@@ -7,6 +7,71 @@ include(FeatureSummary)
 find_package(libunibreak 5.0 REQUIRED)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+# ⚠ 这段探测必须**早于**下面两个 add_subdirectory(pk/font, pk/xml)：子工程要用
+# PK_RENDER_FONTCONFIG_PATH 给 test_pkfont 的 ctest 环境 pin 同一个值（R-76）。
+# 变量作用域是「父目录 → 子目录」单向可见，放在后面子工程读不到。
+# 文字用例的期望值与 **fontconfig 的配置**有关（plan §6 第 5 条）：不给
+# FONTCONFIG_PATH，fontconfig 退回宿主默认配置，字体回退与字形栅格随之改变，
+# 同一个二进制在「没说清环境」的 shell 里就会假红——实测过一次（source 了 env
+# 但没有 export FONTCONFIG_PATH 时 ctest 红、导出了就绿）。ctest **不继承**我们
+# source 过的 env 脚本，所以把值烘进测试环境：优先用现成的 FONTCONFIG_PATH，
+# 否则从 CMAKE_PREFIX_PATH 推 <prefix>/etc/fonts。
+# 定位顺序（2026-09-12 全分支评审后订正：原先只看 $ENV{FONTCONFIG_PATH} 与
+# CMAKE_PREFIX_PATH，两者都靠「配置时那个 shell 恰好 export 过」——换一个 shell
+# 重新 configure 就会静默退化成宿主默认配置，症状是 test_text 假红。而
+# CMAKE_PREFIX_PATH 根本不是 CMakeCache 条目，实测重新 configure 后它为空）：
+#   1. $ENV{FONTCONFIG_PATH}          —— 显式覆盖，最优先
+#   2. 从本文件逐级向上找 `<父目录>/krita-ci-env/etc/fonts`
+#      —— 与 oracle/run_shape_primitive.sh 的 find_env_script 同一约定
+#      （R-51 踩过「数层数」的坑，所以这里也是向上搜索而不是写死相对层级）
+#   3. CMAKE_PREFIX_PATH 里的 <prefix>/etc/fonts
+set(PK_RENDER_FONTCONFIG_PATH "$ENV{FONTCONFIG_PATH}")
+if(NOT PK_RENDER_FONTCONFIG_PATH)
+    set(_pk_probe "${CMAKE_CURRENT_SOURCE_DIR}")
+    while(TRUE)
+        # 两个候选都要试：依赖前缀的实际路径是 <工作空间>/../krita-ci-env/_install，
+        # 而 `run_shape_primitive.sh` 的 find_env_script 找的是 `<X>/krita-ci-env/env`
+        # ——找的是 env 脚本，不是 fonts 目录，所以两处层级并不一样（2026-09-12 实测：
+        # 只写 `krita-ci-env/etc/fonts` 找不到，configure 静默退化成宿主默认配置）。
+        foreach(_pk_try "${_pk_probe}/krita-ci-env/_install/etc/fonts"
+                        "${_pk_probe}/krita-ci-env/etc/fonts")
+            if(EXISTS "${_pk_try}")
+                set(PK_RENDER_FONTCONFIG_PATH "${_pk_try}")
+                break()
+            endif()
+        endforeach()
+        if(PK_RENDER_FONTCONFIG_PATH)
+            break()
+        endif()
+        # 到根就停：`get_filename_component("/" DIRECTORY)` 返回 "/"，用
+        # `MATCHES "/"` 当条件会死循环（2026-09-12 实测踩到一次，configure 卡死）。
+        # 判据取「父目录 == 自己」这个不动点。
+        get_filename_component(_pk_parent "${_pk_probe}" DIRECTORY)
+        if(_pk_parent STREQUAL _pk_probe)
+            break()
+        endif()
+        set(_pk_probe "${_pk_parent}")
+    endwhile()
+endif()
+if(NOT PK_RENDER_FONTCONFIG_PATH)
+    foreach(_pk_prefix IN LISTS CMAKE_PREFIX_PATH)
+        if(EXISTS "${_pk_prefix}/etc/fonts")
+            set(PK_RENDER_FONTCONFIG_PATH "${_pk_prefix}/etc/fonts")
+            break()
+        endif()
+    endforeach()
+endif()
+
+set(PK_RENDER_TEXT_ENV "PK_RENDER_TEXT_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/text_golden.txt")
+if(PK_RENDER_FONTCONFIG_PATH)
+    list(APPEND PK_RENDER_TEXT_ENV "FONTCONFIG_PATH=${PK_RENDER_FONTCONFIG_PATH}")
+else()
+    message(WARNING "pk/render: no <prefix>/etc/fonts under CMAKE_PREFIX_PATH and no "
+                    "FONTCONFIG_PATH; test_text will fall back to the host fontconfig config "
+                    "and may fail for environment reasons (plan §6 item 5)")
+endif()
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../font ${CMAKE_CURRENT_BINARY_DIR}/pkfont EXCLUDE_FROM_ALL)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../xml ${CMAKE_CURRENT_BINARY_DIR}/pkxml EXCLUDE_FROM_ALL)
 add_library(pkrender STATIC PkPainter.cpp PkStrokeOutline.cpp PkSvgRasterizer.cpp ../color/PkColor.cpp
@@ -133,67 +198,6 @@ target_include_directories(text_oracle_pk PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/or
 add_executable(test_text tests/test_text.cpp)
 target_link_libraries(test_text PRIVATE pkrender)
 target_include_directories(test_text PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/oracle)
-
-# 文字用例的期望值与 **fontconfig 的配置**有关（plan §6 第 5 条）：不给
-# FONTCONFIG_PATH，fontconfig 退回宿主默认配置，字体回退与字形栅格随之改变，
-# 同一个二进制在「没说清环境」的 shell 里就会假红——实测过一次（source 了 env
-# 但没有 export FONTCONFIG_PATH 时 ctest 红、导出了就绿）。ctest **不继承**我们
-# source 过的 env 脚本，所以把值烘进测试环境：优先用现成的 FONTCONFIG_PATH，
-# 否则从 CMAKE_PREFIX_PATH 推 <prefix>/etc/fonts。
-# 定位顺序（2026-09-12 全分支评审后订正：原先只看 $ENV{FONTCONFIG_PATH} 与
-# CMAKE_PREFIX_PATH，两者都靠「配置时那个 shell 恰好 export 过」——换一个 shell
-# 重新 configure 就会静默退化成宿主默认配置，症状是 test_text 假红。而
-# CMAKE_PREFIX_PATH 根本不是 CMakeCache 条目，实测重新 configure 后它为空）：
-#   1. $ENV{FONTCONFIG_PATH}          —— 显式覆盖，最优先
-#   2. 从本文件逐级向上找 `<父目录>/krita-ci-env/etc/fonts`
-#      —— 与 oracle/run_shape_primitive.sh 的 find_env_script 同一约定
-#      （R-51 踩过「数层数」的坑，所以这里也是向上搜索而不是写死相对层级）
-#   3. CMAKE_PREFIX_PATH 里的 <prefix>/etc/fonts
-set(PK_RENDER_FONTCONFIG_PATH "$ENV{FONTCONFIG_PATH}")
-if(NOT PK_RENDER_FONTCONFIG_PATH)
-    set(_pk_probe "${CMAKE_CURRENT_SOURCE_DIR}")
-    while(TRUE)
-        # 两个候选都要试：依赖前缀的实际路径是 <工作空间>/../krita-ci-env/_install，
-        # 而 `run_shape_primitive.sh` 的 find_env_script 找的是 `<X>/krita-ci-env/env`
-        # ——找的是 env 脚本，不是 fonts 目录，所以两处层级并不一样（2026-09-12 实测：
-        # 只写 `krita-ci-env/etc/fonts` 找不到，configure 静默退化成宿主默认配置）。
-        foreach(_pk_try "${_pk_probe}/krita-ci-env/_install/etc/fonts"
-                        "${_pk_probe}/krita-ci-env/etc/fonts")
-            if(EXISTS "${_pk_try}")
-                set(PK_RENDER_FONTCONFIG_PATH "${_pk_try}")
-                break()
-            endif()
-        endforeach()
-        if(PK_RENDER_FONTCONFIG_PATH)
-            break()
-        endif()
-        # 到根就停：`get_filename_component("/" DIRECTORY)` 返回 "/"，用
-        # `MATCHES "/"` 当条件会死循环（2026-09-12 实测踩到一次，configure 卡死）。
-        # 判据取「父目录 == 自己」这个不动点。
-        get_filename_component(_pk_parent "${_pk_probe}" DIRECTORY)
-        if(_pk_parent STREQUAL _pk_probe)
-            break()
-        endif()
-        set(_pk_probe "${_pk_parent}")
-    endwhile()
-endif()
-if(NOT PK_RENDER_FONTCONFIG_PATH)
-    foreach(_pk_prefix IN LISTS CMAKE_PREFIX_PATH)
-        if(EXISTS "${_pk_prefix}/etc/fonts")
-            set(PK_RENDER_FONTCONFIG_PATH "${_pk_prefix}/etc/fonts")
-            break()
-        endif()
-    endforeach()
-endif()
-
-set(PK_RENDER_TEXT_ENV "PK_RENDER_TEXT_GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/oracle/text_golden.txt")
-if(PK_RENDER_FONTCONFIG_PATH)
-    list(APPEND PK_RENDER_TEXT_ENV "FONTCONFIG_PATH=${PK_RENDER_FONTCONFIG_PATH}")
-else()
-    message(WARNING "pk/render: no <prefix>/etc/fonts under CMAKE_PREFIX_PATH and no "
-                    "FONTCONFIG_PATH; test_text will fall back to the host fontconfig config "
-                    "and may fail for environment reasons (plan §6 item 5)")
-endif()
 
 add_test(NAME test_text COMMAND test_text)
 set_tests_properties(test_text PROPERTIES ENVIRONMENT "${PK_RENDER_TEXT_ENV}")
