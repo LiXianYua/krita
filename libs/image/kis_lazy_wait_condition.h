@@ -8,8 +8,9 @@
 #define __KIS_LAZY_WAIT_CONDITION_H
 
 #include <PkMutex.h>
-#include <PkWaitCondition.h>
+#include <chrono>
 #include <climits>
+#include <condition_variable>
 
 /**
  * This class is used for catching a particular condition met.
@@ -74,12 +75,25 @@ public:
         PkMutexLocker locker(&m_mutex);
         bool result = true;
         if(!m_wakeupCounter) {
-            // PkWaitCondition 只有一参 wait（永久等待）。壳内唯一消费方
-            // kis_update_scheduler.cpp 只以默认 ULONG_MAX 调用，永不超时，
-            // 行为与壳垫片对超时参数的既有降级语义一致；带真实超时的
-            // 消费方（libs/image/tests）在壳闭包外。
-            (void)time;
-            m_condition.wait(&m_mutex); // PkWaitCondition::wait(PkMutex*) 返回 void；永久等待仅被唤醒返回
+            // R-80 修复：此前的写法把带超时的 wait 降级成了 PkWaitCondition 的
+            // 单参 wait（永久等待），理由是「带真实超时的消费方在壳闭包外」——
+            // 该前提是错的：libs/image/tests/kis_update_scheduler_test.cpp:278-315
+            // 有 5 处 wait(50)，全部落在本 target 内。后果是 testLazyWaitCondition
+            // 真死等，ctest 200 s 超时（R-3）。
+            //
+            // 语义按上游 Krita 原样恢复：time == ULONG_MAX 时不设期限（唯一
+            // 生产消费者 kis_update_scheduler.cpp:56 走这条），否则到点返回 false。
+            // 上游是 QWaitCondition::wait(QMutex*, unsigned long)，其对超时的
+            // 返回值 = 「被唤醒 true / 超时 false」，这里用谓词版 wait_for 对齐。
+            if (time == ULONG_MAX) {
+                m_condition.wait(*locker.mutex());
+            } else {
+                std::unique_lock<PkMutex> lock(*locker.mutex(), std::adopt_lock);
+                result = m_condition.wait_for(lock,
+                                              std::chrono::milliseconds(time),
+                                              [this] { return m_wakeupCounter > 0; });
+                lock.release();
+            }
         }
         if(result) {
             m_wakeupCounter--;
@@ -93,7 +107,7 @@ public:
         PkMutexLocker locker(&m_mutex);
         if(m_waitCounter) {
             m_wakeupCounter += m_waitCounter;
-            m_condition.wakeAll();
+            m_condition.notify_all();
         }
     }
 
@@ -103,7 +117,7 @@ public:
 
 private:
     PkMutex m_mutex;
-    PkWaitCondition m_condition;
+    std::condition_variable_any m_condition;
     volatile int m_waitCounter;
     int m_wakeupCounter;
 };

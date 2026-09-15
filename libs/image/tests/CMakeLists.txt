@@ -78,6 +78,27 @@ else()
         "-Wl,--whole-archive" "$<TARGET_FILE:kritablurfilter>" "-Wl,--no-whole-archive")
 endif()
 
+# --- R-80：paintop 工厂的强制链入 ------------------------------------------
+# 同一个机理的第三个实例。KisPaintOpPresetTest 读的 .kpp 里写着
+# paintopid="paintbrush"（test-embedded-resources-2.2.kpp；2.2/5.0/bad-md5
+# 三份都是同一个 paintop），而 KisPaintOpPreset::fromXML
+# （libs/image/brushengine/kis_paintop_preset.cpp:559）在
+#     if (KisPaintOpRegistry::instance()->get(paintopid) == 0) { setValid(false); ... }
+# 处直接判预设非法。paintbrush 与 duplicate 两个工厂由
+# plugins/paintops/defaultpaintops/defaultpaintops_plugin.cc 末尾的
+#     static DefaultPaintOpsRegistration s_defaultPaintOpsRegistration;
+# 自注册，而 kritadefaultpaintops 是只含那一个 .cc 的 STATIC 库 ——
+# 无符号引用时整份被链接器丢弃，注册对象不构造，注册表为空。
+# 实测（本 worktree）：修前 KisPaintOpPresetTest 5 failed
+# （preset->valid() 在 KisPaintOpPresetTest.cpp:163 逐行 FALSE），
+# 修后 7 passed / 0 failed。
+if(APPLE)
+    set(KRITA_DEFAULTPAINTOPS_WHOLE_ARCHIVE "-Wl,-force_load,$<TARGET_FILE:kritadefaultpaintops>")
+else()
+    set(KRITA_DEFAULTPAINTOPS_WHOLE_ARCHIVE
+        "-Wl,--whole-archive" "$<TARGET_FILE:kritadefaultpaintops>" "-Wl,--no-whole-archive")
+endif()
+
 kis_add_test(
     KisPathCoverageMaskTest.cpp
     LINK_LIBRARIES kritatestsdk
@@ -207,6 +228,18 @@ pk_add_tests(
     LINK_LIBRARIES kritaimage ${KRITA_LCMS_NO_AS_NEEDED} kritalcmsengine ${KRITA_AS_NEEDED}
     )
 
+# R-80：pk 块的这三个 target 也吃真色彩管理。上面那一行里的 kritalcmsengine
+# 在 APPLE 上是纯静态库引用、无符号引用即整份丢弃（KRITA_LCMS_NO_AS_NEEDED
+# 在 APPLE 为空，且 --no-as-needed 对静态库本就无效），所以引擎的自注册静态
+# 对象 LcmsEngineRegistration 从来不运行，色彩空间全部退回
+# KoSimpleColorSpace（"unmanaged"）。TestAslStorage 读 ASL 里的颜色时因此
+# 逐条打 "Undefined operation in the ... color space" 并卡在解析里
+# （实测 200 s 超时；栈停在 kis_asl_xml_parser.cpp 的 descriptor 解析）。
+# 与 kis_fill_painter_test / kis_selection_test 同一个机理、同一份处置。
+foreach(_r80_target TestAslStorage kis_scanline_fill_test kis_image_animation_interface_test)
+    target_link_options(${_r80_target} PRIVATE ${KRITA_LCMS_WHOLE_ARCHIVE})
+endforeach()
+
 # KisBezierGradientMesh.cpp is excluded from kritaimage, but
 # kis_mesh_transform_worker_test still owns its diagnostic render coverage.
 target_sources(kis_mesh_transform_worker_test PRIVATE ../KisBezierGradientMesh.cpp)
@@ -217,6 +250,26 @@ target_sources(kis_mesh_transform_worker_test PRIVATE ../KisBezierGradientMesh.c
 # 才能把它的自注册静态对象（LcmsEngineRegistration）拉进来；--no-as-needed
 # 对静态库无效（静态库按符号引用取成员，无引用的成员照样被丢弃）。
 target_link_options(kis_fill_painter_test PRIVATE ${KRITA_LCMS_WHOLE_ARCHIVE})
+
+# R-80：灰度色彩空间的消费者，与上面 kis_fill_painter_test 同一个机理。
+# kis_selection_test 的两条用例直接取 GRAYA/U8
+# （kis_selection_test.cpp:81 与 :115），而 GRAYA 的 KoColorSpaceFactory
+# 只由 lcms2engine 提供（plugins/color/lcms2engine/colorspaces/gray_u8/），
+# 它的注册同样是静态全局对象 LcmsEngineRegistration 自注册，不 force_load
+# 就整份丢掉。kis_add_tests 块的 LINK_LIBRARIES 里虽然写了 kritalcmsengine，
+# 但 APPLE 上 KRITA_LCMS_NO_AS_NEEDED 为空、且 --no-as-needed 对静态库本就无效，
+# 所以那一行在 APPLE 上不产生任何强制包含。
+# 实测：修前 QVERIFY(csA) 在 :89 / :122 返回 FALSE；修后通过。
+target_link_options(kis_selection_test PRIVATE ${KRITA_LCMS_WHOLE_ARCHIVE})
+
+# R-80：KisPaintOpPresetTest 需要 paintbrush/duplicate 两个 paintop 工厂。
+# 上面的 kis_add_tests 块把 kritadefaultpaintops 的注册 .cc 编进了链，但
+# 静态库按符号引用取成员——没人引用就整份丢弃，所以注册不运行。故与
+# kis_selection_test / kis_fill_painter_test 同形：先 target_link_libraries
+# 把库（及其传递依赖 kritadefaultpaintops_static 里的 KisBrushOp 等实现）
+# 拉进链接行，再用 -force_load 强制包含注册对象所在的那个成员。
+target_link_libraries(KisPaintOpPresetTest kritadefaultpaintops)
+target_link_options(KisPaintOpPresetTest PRIVATE ${KRITA_DEFAULTPAINTOPS_WHOLE_ARCHIVE})
 
 kis_add_test(
     kis_clone_layer_test.cpp

@@ -37,15 +37,14 @@
 struct KisUpdateScheduler::Private {
     Private(KisUpdateScheduler *_q, KisProjectionUpdateListener *p)
         : q(_q)
-        , updaterContext(KisImageConfig(true).maxNumberOfThreads(), q)
         , projectionUpdateListener(p)
+        , updaterContext(KisImageConfig(true).maxNumberOfThreads(), q)
     {}
 
     KisUpdateScheduler *q;
 
     KisSimpleUpdateQueue updatesQueue;
     KisStrokesQueue strokesQueue;
-    KisUpdaterContext updaterContext;
     bool processingBlocked = false;
     qreal defaultBalancingRatio = 1.0; // desired strokes-queue-size / updates-queue-size
     KisProjectionUpdateListener *projectionUpdateListener;
@@ -54,6 +53,36 @@ struct KisUpdateScheduler::Private {
     PkAtomicInt updatesLockCounter;
     PkReadWriteLock updatesStartLock;
     KisLazyWaitCondition updatesFinishedCondition;
+
+    // R-80 修复：updaterContext 必须是**最后一个声明的数据成员**（最先析构）。
+    // C++ 按声明逆序析构，而 updaterContext 的析构是唯一的「线程池排空」屏障：
+    // ~KisUpdaterContext 里 m_threadPool.waitForDone() 等到 queue 空 && busyCount==0
+    // 才返回（PkThreadPool.cpp:50-52；busyCount 在 task->run() 返回之后才减）。
+    // 问题在于 worker **在自己的 run() 里还会回调回调度器**：
+    //   KisUpdateJobItem::runImpl → KisUpdaterContext::jobFinished
+    //     → KisUpdateScheduler::spareThreadAppeared/processQueues
+    //     → tryProcessUpdatesQueue → PkReadLocker(&m_d->updatesStartLock)
+    // 所以只要 updatesStartLock 比 updaterContext 先析构，排空线程池的那一刻
+    // 它就已经是死的 —— worker 锁到已析构的 std::shared_mutex，
+    // pthread_mutex_lock 返回 EINVAL，std::shared_mutex::lock_shared() 抛
+    // std::system_error → 未捕获 → std::terminate/abort。
+    //
+    // 实测崩栈（kis_update_scheduler_test::testBlockUpdates，本 worktree）：
+    //   std::__1::mutex::lock() → __shared_mutex_base::lock_shared()
+    //   → PkReadWriteLock::lockForRead → PkReadLocker::PkReadLocker
+    //   → KisUpdateScheduler::tryProcessUpdatesQueue (kis_update_scheduler.cpp:426)
+    //   → ... → KisUpdaterContext::jobFinished → KisUpdateJobItem::runImpl (worker)
+    // 同时主线程停在同一对象的 KisUpdaterContext::~KisUpdaterContext
+    //   → PkThreadPool::waitForDone()。
+    //
+    // 上游 Krita v6.0.3 的成员次序与修复前的这里**逐字相同**（已对
+    // raw.githubusercontent.com/KDE/krita/v6.0.3 的该文件核对）——所以这不是
+    // 剥 Qt 时写反的，是上游 QReadWriteLock 在已析构对象上不抛异常、把这段 UB
+    // 一直静默掉了；PkReadWriteLock 换成 std::shared_mutex（pk/concurrent/
+    // PkReadWriteLock.h）后它变成硬崩溃。
+    // 把 updaterContext 挪到声明末位 = 最先析构 = 先排空线程池，其余成员之后
+    // 才析构；构造顺序同时变好（锁与条件变量在起线程之前就绪）。
+    KisUpdaterContext updaterContext;
 
     qreal balancingRatio() const {
         const qreal strokeRatioOverride = strokesQueue.balancingRatioOverride();

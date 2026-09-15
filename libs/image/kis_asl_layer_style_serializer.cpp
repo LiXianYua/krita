@@ -1269,12 +1269,20 @@ void KisAslLayerStyleSerializer::newStyleStarted(bool isPsdStructure)
 bool KisAslLayerStyleSerializer::readFromFile(const PkString& filename)
 {
     PkFileStream file(filename);
-    if (file.size() == 0) return false;
 
+    // R-80 修复：先 open 再问 size()。PkFileStream 的构造函数**不打开**文件
+    // （libs/store/PkFileStream.cpp 里 m_fd 初始为 -1），而 size() 在
+    // m_fd < 0 时直接 return 0 —— 所以原来这一行在任何输入上都是 0，
+    // 这个函数在 open 之前就返回 false，readFromDevice 永远不执行，
+    // 序列化器永远读不到任何东西（TestAslStorage 的 hasNext() 全部 FALSE）。
+    // 上游 Krita 对应物是 QFile：QFile 的构造函数同样不打开，但上游这段代码
+    // 的顺序是先 open 再判 size，本行是在剥 Qt 时被写反的。
     if (!file.open(PkStream::ReadOnly)) {
         dbgKrita << "Can't open file " << filename;
         return false;
     }
+
+    if (file.size() == 0) return false;
 
     readFromDevice(file);
     file.close();
