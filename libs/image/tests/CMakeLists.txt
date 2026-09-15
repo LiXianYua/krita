@@ -57,6 +57,27 @@ else()
         "-Wl,--whole-archive" "$<TARGET_FILE:kritalcmsengine>" "-Wl,--no-whole-archive")
 endif()
 
+# --- R-80：插件「静态全局对象自注册」的强制链入 -----------------------------
+# D-12 之后插件是 STATIC 库，多数靠翻译单元里的静态全局对象完成注册
+# （例：plugins/filters/blur/blur.cpp 末尾的 s_blurFilterPluginFilterRegistration）。
+# 链接器只按**符号引用**从归档里取成员，没有引用的那个 .o 会被整份丢掉，
+# 于是全局构造函数不运行、注册不发生。这与上面 kritalcmsengine 是同一件事
+# （kis_fill_painter_test 的注释已写明），处置方式也一样：-force_load /
+# --whole-archive 强制包含。
+#
+# 为什么必须收：sdk/tests/qimage_based_test.h:90-92 是
+#     KisFilterSP filter = KisFilterRegistry::instance()->value("blur");
+#     Q_ASSERT(filter);
+#     ... = filter->defaultConfiguration(...);
+# Q_ASSERT 在 RelWithDebInfo（NDEBUG）下是空转的，filter 为 null 时直接空指针
+# 解引用 —— 实测 SIGSEGV，backtrace 停在 qimage_based_test.h:92:58。
+if(APPLE)
+    set(KRITA_BLURFILTER_WHOLE_ARCHIVE "-Wl,-force_load,$<TARGET_FILE:kritablurfilter>")
+else()
+    set(KRITA_BLURFILTER_WHOLE_ARCHIVE
+        "-Wl,--whole-archive" "$<TARGET_FILE:kritablurfilter>" "-Wl,--no-whole-archive")
+endif()
+
 kis_add_test(
     KisPathCoverageMaskTest.cpp
     LINK_LIBRARIES kritatestsdk
@@ -129,7 +150,7 @@ kis_add_tests(
     KisOverlayPaintDeviceWrapperTest.cpp
     KisPaintOpPresetTest.cpp
     KisGridInterpolationToolsTest.cpp
-    LINK_LIBRARIES kritaimage kritatestsdk ${KRITA_LCMS_NO_AS_NEEDED} kritalcmsengine ${KRITA_AS_NEEDED}
+    LINK_LIBRARIES kritaimage kritatestsdk ${KRITA_LCMS_NO_AS_NEEDED} kritalcmsengine ${KRITA_AS_NEEDED} kritablurfilter ${KRITA_BLURFILTER_WHOLE_ARCHIVE}
     )
 
 # R-65 Task 3：以下 46 个 target 走 pk 测试栈（pk_add_tests）。它们都在可达面
