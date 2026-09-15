@@ -45,7 +45,10 @@ pk_add_test(kis_psd_test
     REGISTER_FILTERS
         registerpsdImportFilter
         registerpsdExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritapsd kritapsd_static kritaimpex
         kritapsdimport kritapsdexport
+        kritalcmsengine
     )

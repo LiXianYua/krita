@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerKisCSVImportFilter
         registerKisCSVExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritacsvimport kritacsvexport
+        kritalcmsengine
     BROKEN
     )
 

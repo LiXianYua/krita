@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerKisGIFImportFilter
         registerKisGIFExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritagifimport kritagifexport
+        kritalcmsengine
     )
 
 add_executable(gif_codec_probe gif_codec_probe.cpp ../qgiflibhandler.cpp)

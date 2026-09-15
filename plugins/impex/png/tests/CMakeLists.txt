@@ -4,8 +4,11 @@ pk_add_test(
     REGISTER_FILTERS
         registerKisPNGImportFilter
         registerKisPNGExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex pktest
         kritapngimport kritapngexport
+        kritalcmsengine
     BROKEN
     )

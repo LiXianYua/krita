@@ -3,10 +3,13 @@ pk_add_test(
     REGISTER_FILTERS
         registerKisTIFFImportFilter
         registerKisTIFFExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritatiffimport kritatiffexport
         kritapsd
+        kritalcmsengine
     )
 
 add_executable(tiff_validation_probe tiff_validation_probe.cpp)

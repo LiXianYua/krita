@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerKisWebPImportFilter
         registerKisWebPExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritametadata kritaimpex
         kritawebpimport kritawebpexport
+        kritalcmsengine
 )
 
 add_executable(webp_validation_probe webp_validation_probe.cpp ../webp_validation.cpp)

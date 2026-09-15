@@ -4,9 +4,12 @@ if(APPLE)
         REGISTER_FILTERS
             registerHeifImportFilter
             registerHeifExportFilter
+        REGISTER_ENGINES
+            registerLcmsEngine
         LINK_LIBRARIES
             kritaimpex
             kritaheifimport kritaheifexport
+            kritalcmsengine
         BROKEN
     )
 
@@ -17,9 +20,12 @@ else(APPLE)
         REGISTER_FILTERS
             registerHeifImportFilter
             registerHeifExportFilter
+        REGISTER_ENGINES
+            registerLcmsEngine
         LINK_LIBRARIES
             kritaimpex
             kritaheifimport kritaheifexport
+            kritalcmsengine
     )
 
 

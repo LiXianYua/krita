@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerRGBEImportFilter
         registerRGBEExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritametadata kritaimpex kritargbeimportutils
         kritargbeimport kritargbeexport
+        kritalcmsengine
 )
 
 add_executable(rgbe_codec_probe rgbe_codec_probe.cpp ../rgbe_codec.cpp)

@@ -2,9 +2,12 @@ pk_add_test(
     KisQmlTest
     REGISTER_FILTERS
         registerQMLExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritaqmlexport
+        kritalcmsengine
     )
 
 add_executable(KisQmlFormatTest

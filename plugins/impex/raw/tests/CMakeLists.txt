@@ -2,7 +2,10 @@ pk_add_test(
     KisRawTest
     REGISTER_FILTERS
         registerKisRawImportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         krita_raw_import
+        kritalcmsengine
     )

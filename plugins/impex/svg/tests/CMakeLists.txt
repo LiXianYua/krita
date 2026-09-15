@@ -5,9 +5,12 @@ pk_add_test(
     TEST_NAME KisSvgTest
     REGISTER_FILTERS
         registerKisSVGImportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritasvgimport
+        kritalcmsengine
     BROKEN
     )
 

@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerKisJPEGImportFilter
         registerKisJPEGExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritametadata kritaimpex
         kritajpegimport kritajpegexport
+        kritalcmsengine
     )
 
 add_executable(jpeg_validation_probe

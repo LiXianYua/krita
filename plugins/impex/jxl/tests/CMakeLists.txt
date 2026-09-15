@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerJPEGXLImportFilter
         registerJPEGXLExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritametadata kritaimpex
         kritajxlimport kritajxlexport
+        kritalcmsengine
     )
 
 add_executable(jxl_validation_probe jxl_validation_probe.cpp)

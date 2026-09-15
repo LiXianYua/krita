@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerKisHeightMapImportFilter
         registerKisHeightMapExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritaheightmapimport kritaheightmapexport
+        kritalcmsengine
     )
 
 add_executable(heightmap_validation_probe

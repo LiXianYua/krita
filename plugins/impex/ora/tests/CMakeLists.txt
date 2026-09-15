@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerOraImportFilter
         registerOraExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritaoraimport kritaoraexport
+        kritalcmsengine
     )
 
 add_executable(KisOraSavePolicyTest

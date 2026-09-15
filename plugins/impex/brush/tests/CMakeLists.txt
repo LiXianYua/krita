@@ -3,9 +3,12 @@ pk_add_test(
     REGISTER_FILTERS
         registerKisBrushImportFilter
         registerKisBrushExportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritabrushimport kritabrushexport
+        kritalcmsengine
     )
 
 add_executable(KisAnimatedBrushAnnotationTest

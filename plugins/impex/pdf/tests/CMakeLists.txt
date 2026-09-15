@@ -2,9 +2,12 @@ pk_add_test(
     KisPdfTest
     REGISTER_FILTERS
         registerKisPDFImportFilter
+    REGISTER_ENGINES
+        registerLcmsEngine
     LINK_LIBRARIES
         kritaimpex
         kritapdfimport
+        kritalcmsengine
     )
 
 add_executable(KisPdfImportPolicyTest KisPdfImportPolicyTest.cpp ../pdf_import_policy.cpp)
