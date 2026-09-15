@@ -1,0 +1,114 @@
+// R-82 · sdk/tests/compat/QBuffer
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：全树无 `QBuffer` 垫片（`find . -name QBuffer` 实测 0 命中，
+// 排除 build/）。而 pk 栈上 `QIODevice` 是 `#define QIODevice PkStream`
+// （pk/port/compat/QIODevice），所以这里的 `QBuffer` 必须是 **`PkStream` 的子类**，
+// 才能被 `QDataStream(&buffer)` / `loadFrom(store, &buffer)` 这类按 `PkStream*`
+// 取用的调用点直接吃下。
+//
+// 用量表（判据①，一项不多一项不少）—— 真实调用点只有两处：
+//   plugins/impex/rgbe/tests/kis_rgbe_test.cpp:293
+//       `QBuffer buffer(&srcData); buffer.open(QIODevice::ReadOnly); QDataStream stream(&buffer);`
+//   plugins/metadata/tests/kis_exif_test.cpp:42
+//       `QBuffer exifBuffer(&exifBytes);`  → `exifIO->loadFrom(store, &exifBuffer)`
+// 两处都只做「把已有字节包进一个**只读**流」，没有写入、没有回写数组。故本垫片
+// 只给：包装构造、`setData`、`data`、`isSequential`、`size`、`readData`、`writeData`。
+//
+// 语义（**真 Qt 5.15.7 探针实测**，原始输出见
+// `.superpowers/sdd/R-82/evidence/qt-probe-qfileinfo-qdir-qbuffer.txt`）：
+//   * 未 open 时 `isOpen()==false`、但 `size()` **已经是数组长度**（探针：
+//     `before open: isOpen=0 size=5`）；`pos()==0`；
+//   * `open(ReadOnly)` 返回 true，`openMode()==0x21`（ReadOnly|Unbuffered —— Qt 的
+//     QBuffer 是 unbuffered 设备；本垫片不改写基类的 openMode 位，调用点不读它）；
+//   * `isSequential()==false` ⇒ 基类维护 `pos()`，`readData()` 用 `pos()` 索引即可
+//     （与 libs/store/PkMemoryStream.cpp 同一套契约）；
+//   * `read(5)` 读满 5 字节后 `pos()==5`、`atEnd()==true`；
+//   * 默认构造 + `setData()` 可用（探针：`setData 后 size=2`）。
+//
+// **与真 Qt 的一处已知偏离（登记）**：真 Qt 的 `QBuffer(&ba)` 是**别名**该数组
+// （经由它写入会改到原数组）。本垫片**拷贝**一份字节（pk 的 `PkByteArray` 没有
+// 共享-可写视图）。当前两个调用点都是只读，无可观察差异；将来若出现「通过 QBuffer
+// 回写原数组」的调用点，本垫片必须重做，不能直接沿用。
+// ---------------------------------------------------------------------------
+#pragma once
+
+#include "PkStream.h"
+#include "PkByteArray.h"
+
+#include <cstring>
+#include <vector>
+
+class QBuffer : public PkStream
+{
+public:
+    QBuffer() = default;
+
+    // 真 Qt：`QBuffer(QByteArray *buf)`。取自 `PK 面 QByteArray`（sdk/tests/compat/
+    // QByteArray 派生自 PkByteArray）的指针可以直接传进来（派生→基类指针）。
+    explicit QBuffer(PkByteArray *buf)
+    {
+        setBuffer(buf);
+    }
+
+    void setBuffer(PkByteArray *buf)
+    {
+        if (buf == nullptr) {
+            m_buffer.clear();
+            return;
+        }
+        setData(*buf);
+    }
+
+    void setData(const PkByteArray &data)
+    {
+        m_buffer.assign(data.constData(), data.constData() + data.size());
+    }
+
+    PkByteArray data() const
+    {
+        return PkByteArray(m_buffer.data(), static_cast<int>(m_buffer.size()));
+    }
+
+    // 探针实测：QBuffer 不是顺序设备（`isSequential()==0`）。
+    bool isSequential() const override { return false; }
+
+    // 探针实测：未 open 时 size() 已经是数组长度。
+    pk_int64 size() const override { return static_cast<pk_int64>(m_buffer.size()); }
+
+protected:
+    pk_int64 readData(char *data, pk_int64 maxSize) override
+    {
+        const pk_int64 p = pos();
+        if (p < 0) {
+            return -1;
+        }
+        // 游标在末尾或之后 = EOF；契约第 1 条「EOF 不是错误」⇒ 返回 0，不补零。
+        if (static_cast<size_t>(p) >= m_buffer.size()) {
+            return 0;
+        }
+        const pk_int64 avail = static_cast<pk_int64>(m_buffer.size()) - p;
+        const pk_int64 n = maxSize < avail ? maxSize : avail;
+        if (n > 0) {
+            std::memcpy(data, m_buffer.data() + p, static_cast<size_t>(n));
+        }
+        return n;
+    }
+
+    pk_int64 writeData(const char *data, pk_int64 maxSize) override
+    {
+        const pk_int64 p = pos();
+        if (p < 0) {
+            return -1;
+        }
+        // 与 libs/store/PkMemoryStream.cpp 同款：写到当前游标位置，越界补零扩展。
+        const size_t need = static_cast<size_t>(p + maxSize);
+        if (m_buffer.size() < need) {
+            m_buffer.resize(need, '\0');
+        }
+        std::memcpy(m_buffer.data() + p, data, static_cast<size_t>(maxSize));
+        return maxSize;
+    }
+
+private:
+    std::vector<char> m_buffer;
+};

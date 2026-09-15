@@ -24,6 +24,26 @@
 // 两者的真 Qt 语义都由 `pk/test/oracle/probe_file_shims.cpp` 实测钉死，原始输出见
 // task1-report.md §3.2。算法本体住在同目录 `PkPathClean.h`（`QFileInfo` 共用）。
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// R-82 增补 `entryInfoList()`（**仅无参形式**）。
+// 用量表口径（判据①，一项不多一项不少）：真实调用点只有两处，都是无参形式 ——
+//   sdk/tests/filestest.h 的 testFiles() 循环（`dirSources.entryInfoList()`）
+//   plugins/impex/psd/tests/kis_psd_test.cpp:592,636 的同款循环
+// ⇒ **不加名字过滤器/过滤器/排序参数**（真 Qt 的 1/2/3 参形式在本任务的调用面
+//   零命中；libs/image/tests/kis_asl_parser_test.cpp:284 用的 2 参形式不在本任务
+//   判定范围，见 R-82 plan §5「登记不硬凑」）。
+//
+// 语义（**真 Qt 5.15.7 探针实测**，原始输出见
+// `.superpowers/sdd/R-82/evidence/qt-probe-qfileinfo-qdir-qbuffer.txt`）：
+//   * 默认 filters（NoFilter ⇒ AllEntries）**会返回 `.` 与 `..`**
+//     （探针：/tmp/r82probe 得 7 项，头两项是 '.' 与 '..'）
+//     —— 调用点正是靠 `isHidden()`/`isDir()` 把这两项滤掉，本垫片不得替它滤；
+//   * 点开头的名字**被排除**（探针：.hidden.txt 不在结果里）；
+//   * **UF_HIDDEN 的条目也被排除**（probe2：chflags hidden 的 ufhidden.txt 不在
+//     结果里；列 `/` 时 UF_HIDDEN 的 `tmp` 不出现，count=6/sawTmp=0）；
+//   * 顺序 = readdir 顺序（真 Qt 的 NoSort 就是 OS 顺序），本垫片照 walked 顺序返回；
+//   * 每一项是 `QFileInfo(<QDir 的路径> + "/" + name)`（Qt 就是这么构造的）。
+// ---------------------------------------------------------------------------
 #pragma once
 // ---------------------------------------------------------------------------
 // R-65 T2+4 增补：真 Qt 5.15 的 <QDir> **传递**声明 QFileInfo（qdir.h 里
@@ -47,6 +67,8 @@
 #include <climits>
 #include <cstdlib>
 #include <string>
+#include <dirent.h>
+#include "PkList.h"
 
 class QDir {
 public:
@@ -149,6 +171,39 @@ public:
         mkdir(p.c_str(), 0777);
         return true;
     }
+    // R-82 增补。语义与口径见本文件头注的 R-82 段（真 Qt 5.15.7 探针实测）。
+    // 返回 `.`、`..` 与全部**非隐藏**条目，顺序 = readdir 顺序。
+    PkList<QFileInfo> entryInfoList() const
+    {
+        PkList<QFileInfo> result;
+        const std::string dirPath = m_path.empty() ? std::string(".") : m_path;
+        DIR *dir = opendir(dirPath.c_str());
+        if (dir == nullptr) {
+            return result;
+        }
+        while (struct dirent *entry = readdir(dir)) {
+            const char *name = entry->d_name;
+            const bool isDotOrDotDot =
+                    name[0] == '.' && (name[1] == '\0' || (name[1] == '.' && name[2] == '\0'));
+            if (name[0] == '.' && !isDotOrDotDot) {
+                continue; // 点开头 = hidden（探针：.hidden.txt 不出现）
+            }
+            const std::string full = dirPath + "/" + name;
+#ifdef UF_HIDDEN
+            // 探针 probe2：UF_HIDDEN 的条目同样被排除（列 `/` 时 `tmp` 不出现）。
+            if (!isDotOrDotDot) {
+                struct stat st;
+                if (lstat(full.c_str(), &st) == 0 && (st.st_flags & UF_HIDDEN)) {
+                    continue;
+                }
+            }
+#endif
+            result.append(QFileInfo(PkString(full.c_str())));
+        }
+        closedir(dir);
+        return result;
+    }
+
 private:
     std::string m_path;
 };

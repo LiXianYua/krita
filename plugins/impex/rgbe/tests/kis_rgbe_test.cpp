@@ -294,7 +294,12 @@ void KisRGBETest::testRLEOverflow()
     buffer.open(QIODevice::ReadOnly);
 
     QDataStream stream(&buffer);
-    bool result = RGBEIMPORT::LoadHDR(stream, width, 1, it);
+    // R-82：补上 `device` 实参。pk 化的 `RGBEIMPORT::LoadHDR` 是两个形参
+    // （`PkDataStream &s, PkStream *device, …`，见 RGBEImportUtils.h:16），
+    // 因为它在 :107 用 `device->ungetChar(...)` 回推一个字节；生产侧调用点
+    // RGBEImport.cpp:214 传的就是同一个 `io`。本测试的流/设备对就是
+    // 上面那个 QBuffer（`stream` 由 `&buffer` 构造，`buffer` 就是设备）。
+    bool result = RGBEIMPORT::LoadHDR(stream, &buffer, width, 1, it);
 
     QCOMPARE(result, expectedSuccess);
 }

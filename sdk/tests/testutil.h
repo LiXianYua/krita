@@ -46,6 +46,17 @@
 #include <QTime>
 #include <QDir>
 
+#ifdef KRITA_TESTSDK_PK_NATIVE
+// R-82：`QTest::qWait` 在 pk 栈上没有对应物（`pk/test/README.md:77` 把 qWait 登记为
+// **S0 缺口**，`PkTestCompatAll.h` 拉的 `PkTestSleepShim.h` 只补了 `qSleep`）。
+// pk 的等价物**已经在本目录里**：`KritaTestSdk::waitFor()` 的类头注释明写它
+// 「**替代** Qt 的 `QTest::qWait()`，因为 Qt 的事件循环不驱动 pk 队列」——
+// 它按 5 ms 分片 sleep、每片后 `PkThreadCallQueue::processPendingCalls()`。
+// 所以这里**不新增垫片、也不动 pk/test**（那会把 S0 的正家实现提前做掉）。
+// 唯一调用点是下面 `MaskParent::waitForImageAndShapeLayers()`（:590）。
+#include <PkThreadCallQueuePumpHost.h>
+#endif
+
 #include <PkImage.h>
 #include <PkRect.h>
 #include <PkString.h>
@@ -152,6 +163,39 @@ inline QImage diagnosticQImage(const PkImage &image)
     return source.convertToFormat(QImage::Format_ARGB32).copy();
 }
 #endif // !KRITA_TESTSDK_PK_NATIVE
+
+// ---------------------------------------------------------------------------
+// R-82 · pk 栈分支：同上两个符号的 pk 版。
+//
+// **这是 R-77 留下的一个真缺陷**（R-82 判定阶段发现、主会话复核属实）：
+// R-77 把 `sdk/tests/filestest.h` 的 pk 活跃体打开时，那两个函数体里调了
+// `pkStringFromQString(...)`（filestest.h:109/149/301/367/410/457/461）与
+// `diagnosticQImage(...)`（filestest.h:170），**而这两个符号正好被上面那个
+// `#ifndef` 守卫掉** ⇒ pk 栈上「守卫打开了、函数却不存在」，两处互相矛盾。
+//
+// 守卫它们的理由（上面 R-65 段的注释）在 pk 栈上并不成立：
+//   * `pkStringFromQString` 的难点是 `QByteArray` + `PkString::toUtf8()`；
+//     但在 pk 栈上 `QString` 就是 `PkString`（`#define QString PkString`），
+//     这个转换**退化成恒等**，根本不需要 QByteArray；
+//   * `diagnosticQImage` 的难点是 `QImage` 的**缓冲区构造**；但在 pk 栈上
+//     `QImage` 就是 `PkImage`，参数与返回同型 ⇒ 直接 `convertToFormat` 即可
+//     （真 Qt 版做的就是「转 ARGB32 + copy」，pk 版保留格式归一那一步，
+//      省略 `.copy()`：`convertToFormat` 已返回值语义的新对象，调用点随后
+//      还会 `convertTo(Format_ARGB32)`，无可观察差异）。
+// 两栈的**可观察语义一致**：Qt 栈仍走上面那份原始实现，一个字节未动。
+// ---------------------------------------------------------------------------
+#ifdef KRITA_TESTSDK_PK_NATIVE
+inline PkString pkStringFromQString(const PkString &text)
+{
+    return text;
+}
+
+inline PkImage diagnosticQImage(const PkImage &image)
+{
+    if (image.isNull()) return PkImage();
+    return image.convertToFormat(PkImage::Format_ARGB32);
+}
+#endif // KRITA_TESTSDK_PK_NATIVE
 
 inline PkImage pkImageFromQImage(const QImage &image)
 {
@@ -587,7 +631,11 @@ struct MaskParent
             // 等待 KoShapeManager/KisShapeLayerCanvas 的 100ms QTimer 去抖，
             // 需要 S-08 交付显式同步 flush 方法后才能去掉这个轮询，不能
             // 简单换成 sleep（不会让挂起的 QTimer 触发，语义假绿）。
+#ifdef KRITA_TESTSDK_PK_NATIVE
+            KritaTestSdk::waitFor(500);
+#else
             QTest::qWait(500);
+#endif
         } while (!image->tryBarrierLock(true));
         image->unlock();
     }

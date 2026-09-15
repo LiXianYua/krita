@@ -34,6 +34,44 @@ public:
     // 跨转换：已有 PkByteArray → 包装类（PkByteArray 本体不反向需要）。
     QByteArray(const PkByteArray& other) : PkByteArray(other) {}
 
+    // R-82 增补 `append(char)`。用量表（判据①）：全测试面 `<QByteArray>::append`
+    // 只有一处真实调用点，形态**全是 `append(char)`**（52 次调用，全在
+    // plugins/impex/rgbe/tests/kis_rgbe_test.cpp:98-140 造 HDR RLE 测试数据）。
+    // 语义（**真 Qt 5.15.7 探针实测**，原始输出见
+    // `.superpowers/sdd/R-82/evidence/qt-probe-qfileinfo-qdir-qbuffer.txt` 的 probe4 段）：
+    //   * 空数组 append 后 size==1、`[0]` == 该字节；
+    //   * **返回 `*this`**（探针：`&r == &a` → 1）；
+    //   * `resize(n+1)` + `data()[n]=c` 与真 Qt 的 append **结果逐字节相同**
+    //     （探针：`b == a` → 1）—— 本垫片就走这条（PkByteArray 只有 resize/data()）。
+    // 只给 `append(char)`：`append(const QByteArray&)` / `append(const char*)` /
+    // `append(int,char)` 在测试面**零调用点**，不加。
+    QByteArray& append(char ch)
+    {
+        const int n = size();
+        resize(n + 1);
+        data()[n] = ch;
+        return *this;
+    }
+
+    // R-82 增补。语义（**真 Qt 5.15.7 探针实测**，probe4 段）：
+    //   * 逐字节追加；**返回 `*this`**（探针 `&r2 == &dst` → 1）；
+    //   * 追加**空** QByteArray 时 size 不变（探针：`append(空)` 后 size=3，无副作用）；
+    //   * `resize(size+len)` + `memcpy` 与真 Qt 的 append 结果**逐字节相同**
+    //     （探针：`dst == resize+memcpy 版` → 1）—— 本垫片走这条。
+    QByteArray& append(const QByteArray &other)
+    {
+        const int n = size();
+        const int m = other.size();
+        if (m <= 0) {
+            return *this;
+        }
+        resize(n + m);
+        for (int i = 0; i < m; ++i) {
+            data()[n + i] = other.constData()[i];
+        }
+        return *this;
+    }
+
     // Qt 语义：构造 size 字节、每字节为 fill 的数组（KisColorSelectionPolicies.h
     // 用 0 建全零缓冲）。PkByteArray::resize(n) 尾补 0，再整体覆写为 fill。
     QByteArray(int size, char fill) : QByteArray()

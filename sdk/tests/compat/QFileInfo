@@ -16,6 +16,10 @@
 // R-75 增补 `path()`（见下）：打开 sdk/tests/qimage_test_util.h 的 checkQImage 族
 // 后，`QFileInfo pathInfo(path); directory.mkpath(pathInfo.path());` 成为新调用点。
 //
+// R-82 再增补 `fileName()` / `isDir()` / `isHidden()`（见类内注释；三者的真 Qt
+// 语义都由真 Qt 5.15.7 探针实测钉死，原始输出见
+// `.superpowers/sdd/R-82/evidence/qt-probe-qfileinfo-qdir-qbuffer.txt`）。
+//
 // 归属：QFileInfo 属 PkImage 文件 I/O（R-15）那一族；`sdk/tests/qimage_test_util.h`
 // 已是登记的 [GAP]（关闭条件 = R-15 交付 PkImage 文件 I/O —— **R-75 已满足**）。
 // 本垫片只覆盖上述唯一调用点所需的最小 API（构造/exists/absolutePath/path()），
@@ -138,6 +142,70 @@ public:
     QFileDevice::Permissions permissions() const
     {
         return QFile::permissions(PkString(m_path.c_str()));
+    }
+
+    // -----------------------------------------------------------------------
+    // R-82 增补 `fileName()` / `isDir()` / `isHidden()`。三个语义全部由
+    // **真 Qt 5.15.7 探针实测**钉死（原始输出见
+    // `.superpowers/sdd/R-82/evidence/qt-probe-qfileinfo-qdir-qbuffer.txt`；
+    // 探针源码同目录 probe.cpp，Qt 5.15.7 / macOS arm64，CI 前缀）。
+    //
+    // 真实调用点（三处，都是 ports/impex 测试源的 `testFiles()` 循环）：
+    //   sdk/tests/filestest.h 的 testFiles() 循环内（`entryInfoList()` 之后）
+    //   plugins/impex/psd/tests/kis_psd_test.cpp:592-672 的同款循环
+    // 原文写法是 `!sourceFileInfo.isHidden() && !sourceFileInfo.isDir()` ——
+    // 因为 Qt 的默认 `entryInfoList()` **会**返回 `.` 与 `..`。
+    // -----------------------------------------------------------------------
+
+    // 探针逐条实测（左＝构造参数，右＝fileName()）：
+    //   "/a/b/c.png"→"c.png" · "c.png"→"c.png" · "/a/b/"→""（**尾斜杠 ⇒ 空**）
+    //   "/"→"" · ""→"" · "."→"." · ".."→".." · "/a/b//c.png"→"c.png" · "/a/b/.."→".."
+    // 即：路径以 '/' 结尾 ⇒ 空串；否则取最后一个 '/' 之后的部分（无 '/' 则整串）。
+    PkString fileName() const
+    {
+        if (m_path.empty() || m_path[m_path.size() - 1] == '/') {
+            return PkString();
+        }
+        const std::size_t slash = m_path.find_last_of('/');
+        if (slash == std::string::npos) {
+            return PkString(m_path.c_str());
+        }
+        return PkString(m_path.substr(slash + 1).c_str());
+    }
+
+    // 探针逐条实测："/"→1 · "."→1 · ".."→1 · "/tmp"→1 · "/tmp/"→1
+    //   "/a/b/c.png"→0 · "c.png"→0 · ""→0 · "/a/b/"→0 · "/a/b/.."→0
+    // 即：stat 成功且是目录（与 exists() 同一套 stat 语义）。
+    bool isDir() const
+    {
+        struct stat st;
+        if (stat(m_path.c_str(), &st) != 0) {
+            return false;
+        }
+        return S_ISDIR(st.st_mode);
+    }
+
+    // 探针逐条实测（macOS）：".hidden.txt"→1 · "a.txt"→0 · "/tmp"→**1** · "/"→0
+    //   "/tmp/."→1 · "/tmp/.."→1 · "."→1 · ".."→1 · "/a/.b"→1
+    // ⇒ 两条规则取或：
+    //   ① `fileName()` 以 '.' 开头（覆盖 .hidden.txt / . / .. / .b）；
+    //   ② **Darwin 的 UF_HIDDEN 标志位**（`/tmp` 就是这么被判成 hidden 的；
+    //      fileName()=="tmp" 不含点，只靠 ① 会漏）。非 Darwin 平台该分支不参与
+    //      编译（UF_HIDDEN 是 Darwin 的 <sys/stat.h> 常量）。
+    // 注意 `"/"` → fileName()=="" ⇒ ①不成立、`/` 无 UF_HIDDEN ⇒ 0，与探针一致。
+    bool isHidden() const
+    {
+        const PkString name = fileName();
+        if (name.size() > 0 && name.PkToUtf8()[0] == '.') {
+            return true;
+        }
+#ifdef UF_HIDDEN
+        struct stat st;
+        if (lstat(m_path.c_str(), &st) == 0 && (st.st_flags & UF_HIDDEN)) {
+            return true;
+        }
+#endif
+        return false;
     }
 
 private:

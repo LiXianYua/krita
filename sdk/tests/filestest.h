@@ -40,20 +40,18 @@
 // `Q_OS_UNIX` 全树未定义（实测），所以两栈都会跳过它，端口化后的三个函数也不
 // 直接用 POSIX 调用（它们走 QFile/QDir/QStandardPaths 垫片）。
 // ---------------------------------------------------------------------------
-#ifndef KRITA_TESTSDK_PK_NATIVE
 #include <testutil.h>
 #include "testui.h"
-#endif
 
 #include <QDir>
 
 #ifndef KRITA_TESTSDK_PK_NATIVE
 #include <kaboutdata.h>
 #include <klocalizedstring.h>
-#include <kis_debug.h>
 #endif
 
-#ifndef KRITA_TESTSDK_PK_NATIVE
+#include <kis_debug.h>
+
 #include <KisImportExportManager.h>
 
 #include <KisDocument.h>
@@ -61,7 +59,6 @@
 #include <kis_image.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
-#endif
 
 #ifndef KRITA_TESTSDK_PK_NATIVE
 #include <QTemporaryFile>
@@ -111,15 +108,27 @@ inline PkString impexApiString(const QString &text)
 #endif
 
 // ===========================================================================
-// R-77 函数级守卫：下面三处 `#ifndef KRITA_TESTSDK_PK_NATIVE` 包住的函数体全部
-// 依赖 KisDocument / KisImportExportManager / KoColorSpace（壳闭包外），pk 栈编不了。
-// **留在两个栈里编译的是中间那三个函数**：`prepareFile()` /
-// `restorePermissionsToReadAndWrite()` / `impexTempFilesDir()` —— 它们只依赖
-// sdk/tests/compat/ 的文件 I/O 垫片面（brief §3.4 的原话：「这三个只依赖垫片面，
-// 不需要 KisDocument」），所以 `PkTestSupportSelfTest` 的零 Krita 库依赖里也能跑。
-// 三个函数的**源文本两栈一字不差**——那正是垫片存在的意义。
+// R-82 · 函数级守卫已全部撤除（本文件现在**两栈同源**，一个字节不差）。
+//
+// R-77 当初把这五个函数整段判给 Qt 栈，理由是「它们依赖 KisDocument /
+// KisImportExportManager / KoColorSpace，**壳闭包外**」。R-82 判定阶段实测：
+// **那个前提不成立** —— `libs/impex` 的 KisDocument/KisImportExportManager/
+// KisDocumentRegistry 已经是 pk 类型（Qt 只在 `$<LINK_ONLY:>` 里），
+// Qt-free 的编译面 `kritaimpex_noqt_compile_interface` 今天已被一个非 GUI 程序
+// 用着并跑绿：`sdk/smoke/paint_smoke`（S-14 VERIFIED）实测
+//   构建 exit=0 · 运行 `RESULT=done failures=0` ·
+//   强判据 `nm -u -C paint_smoke | grep -E '\bQ[A-Z][A-Za-z0-9_]*\b'` = **0 命中 / 分母 555**。
+// 同一份 include 清单（`<KisDocument.h>` `<KisDocumentRegistry.h>` `<kis_image.h>`
+// `<KoColorSpaceRegistry.h>`）正是本文件要的那一族。原始输出见
+// `WT/.superpowers/sdd/R-82/evidence/paint-smoke-run.log` 与
+// `…/evidence/qt-probe-qfileinfo-qdir-qbuffer.txt` 一族。
+//
+// 端口化所需的垫片（都在 sdk/tests/，逐条有真 Qt 5.15.7 探针原始输出）：
+//   `QDir::entryInfoList()` · `QFileInfo::{fileName,isDir,isHidden}()` ·
+//   `QBuffer` · `QStandardPaths`/`QFile`/`QFileDevice`（R-77 交付）·
+//   `TestUtil::{pkStringFromQString,diagnosticQImage}`（R-82 补的 pk 分支）
+// **断言、容差、跳过条件一律未改**——只换了类型面。
 // ===========================================================================
-#ifndef KRITA_TESTSDK_PK_NATIVE
 void testFiles(const QString& _dirname, const QStringList& exclusions, const QString &resultSuffix = QString(), int fuzzy = 0, int maxNumFailingPixels = 0, bool showDebug = true)
 {
     QDir dirSources(_dirname);
@@ -179,7 +188,13 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
             QPoint pt;
 
             if (!TestUtil::compareQImages(pt, resultImage, sourceImage, fuzzy, fuzzy, maxNumFailingPixels, showDebug)) {
-                failuresCompare << sourceFileInfo.fileName() + ": " + QString("Pixel (%1,%2) has different values").arg(pt.x()).arg(pt.y()).toLatin1();
+                // R-82：去掉原式末尾的 `.toLatin1()`。真 Qt 5.15.7 探针实测
+                // （evidence/qt-probe-qfileinfo-qdir-qbuffer.txt 的 probe3 段）：
+                //   `QString + QByteArray` 走的正是 latin1 隐式转换，去掉 `.toLatin1()`
+                //   后拼出的串与保留它**逐字节相同**（探针 `s == t` → 1，且两者打印一致）。
+                // pk 栈上 `PkString` 没有 `operator+(const PkByteArray&)`（编不过），
+                // 去掉后两栈**同源**、行为不变。
+                failuresCompare << sourceFileInfo.fileName() + ": " + QString("Pixel (%1,%2) has different values").arg(pt.x()).arg(pt.y());
                 sourceImage.save(sourceFileInfo.fileName() + ".png");
                 resultImage.save(resultFileInfo.fileName() + ".expected.png");
                 continue;
@@ -197,7 +212,6 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
 
     FILESTEST_FAIL("Failed testing files");
 }
-#endif // !KRITA_TESTSDK_PK_NATIVE  （testFiles：需要 KisDocument）
 
 
 // ---------------------------------------------------------------------------
@@ -272,7 +286,6 @@ const QString &impexTempFilesDir() {
 // KisImportExportManager / KoColorSpace / KoColorSpaceRegistry（壳闭包外），
 // **整段留 Qt 栈**。段内断言、容差、`#ifdef Q_OS_WIN` 分支一律未动。
 // ---------------------------------------------------------------------------
-#ifndef KRITA_TESTSDK_PK_NATIVE
 void testImportFromWriteonly(const ImpexTestString &mimetype)
 {
 #ifdef Q_OS_WIN
@@ -493,8 +506,6 @@ void testExportToColorSpace(const ImpexTestString &mimetype, const KoColorSpace*
     FILESTEST_VERIFY(statusExport.isOk());
     FILESTEST_VERIFY(statusExport == expected);
 }
-#endif // !KRITA_TESTSDK_PK_NATIVE  （testImportFromWriteonly / testExportToReadonly /
-       //  testImportIncorrectFormat / testExportToColorSpace：需要 KisDocument）
 
 #undef FILESTEST_VERIFY
 #undef FILESTEST_FAIL

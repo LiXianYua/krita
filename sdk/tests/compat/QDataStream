@@ -1,0 +1,32 @@
+// R-82 · sdk/tests/compat/QDataStream
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：全树无 `QDataStream` 垫片（`find . -name 'QDataStream*'`
+// 实测 0 命中，排除 build/ 与 `pk/variant/PkDataStream.h` 这个 Pk 名本体）。
+// 但 `pk/variant/PkDataStream.h` 就是它的 Pk 对应物——**两者是同一个东西的两种
+// 名字**，不是两份实现，所以这里用 `#define` 别名，不重写一个类。
+//
+// 用量表（判据①，一项不多一项不少）——`<QDataStream>` 的 include 只有一处真实
+// 调用点，且它**只用到构造**：
+//   plugins/impex/rgbe/tests/kis_rgbe_test.cpp:15  `#include <QDataStream>`
+//   plugins/impex/rgbe/tests/kis_rgbe_test.cpp:296 `QDataStream stream(&buffer);`
+//   之后整份对象直接交给 `RGBEIMPORT::LoadHDR(PkDataStream &s, …)`
+//   （plugins/impex/rgbe/RGBEImportUtils.h:16）——**形参类型本来就是 PkDataStream**。
+// 被包装的设备是上面 compat/QBuffer 的 `QBuffer`（`PkStream` 子类），对应
+// `PkDataStream(PkStream *device)` 这个 ctor（pk/variant/PkDataStream.h:33）。
+//
+// 所以本垫片只做别名，**不给任何 `<<`/`>>` 重载**：那些住在 PkDataStream 本体里，
+// 测试面零直接调用点。将来若出现测试直接读写的调用点，加进 PkDataStream 本体
+// （pk/variant 的家），不要在本垫片里另开一份。
+//
+// 用宏而不是 `using QDataStream = PkDataStream;`：kis_types.h 一族里可能有
+// `class QDataStream;` 这类前置声明，类型别名遇到它会报 "redeclared as different
+// kind of entity"；宏则把那行原样改写成 `class PkDataStream;`，前置声明照样成立。
+// 成因与 pk/port/compat/QIODevice 对 `class QIODevice;` 的处理完全相同。
+// ---------------------------------------------------------------------------
+#pragma once
+
+#include "PkDataStream.h"
+
+#ifndef QDataStream
+#define QDataStream PkDataStream
+#endif

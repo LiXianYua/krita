@@ -1,4 +1,6 @@
 // R-65（Task 2+4）· sdk/tests/compat/QtGlobalColorAliases.h
+// R-82 扩为「`Qt::` 枚举别名」之家：GlobalColor 族（R-65）+ PenCapStyle/
+// PenJoinStyle 族（R-82，见文件尾的 R-82 段）。
 // ---------------------------------------------------------------------------
 // 为什么测试面需要它（impact-map.md §3.7.2）：`Qt::<GlobalColor 枚举名>` 在 pk 栈上
 // **没有解析目标** —— PkGlobal.h:296 的 GlobalColor 20 个枚举量定义在 `namespace Pk`
@@ -31,6 +33,7 @@
 
 #if !defined(QNAMESPACE_H)
 #include "PkGlobal.h"
+#include "PkNamespace.h"
 
 namespace Qt {
 using Pk::black;
@@ -39,5 +42,28 @@ using Pk::red;
 using Pk::green;
 using Pk::blue;
 using Pk::transparent;
+
+// ---------------------------------------------------------------------------
+// R-82 增补：PenCapStyle / PenJoinStyle 两族各 3 个枚举量。
+// 用量表（判据①，一项不多一项不少）：全测试面 `Qt::[A-Za-z_]+` 里，这两族只出现
+// 这 6 个名字，且只有一处真实调用点 ——
+//   plugins/impex/psd/tests/kis_psd_test.cpp:387,388,402,403,418,419
+//     `shapeStroke->capStyle() == Qt::FlatCap` / `joinStyle() == Qt::MiterJoin` …
+// 被比较的 `KoShapeStroke::capStyle()` 返回 **`Pk::PenCapStyle`**
+// （libs/flake/KoShapeStroke.cpp:329,339），所以 `using Pk::FlatCap;` 之后
+// `Qt::FlatCap` 与它**是同一个枚举量**（同一实体，不是新常量）—— 与上面 GlobalColor
+// 族的做法完全同源，也仍然满足 R-28「删重复」。
+// 枚举值由 PkNamespace.h:307-322 钉死（其注释记着真 Qt 探针：Flat=0 Square=0x10
+// Round=0x20 / Miter=0 Bevel=0x40 Round=0x80 SvgMiter=0x100），本头不重复定义值。
+// SvgMiterJoin 不别名：测试面零调用点（`grep -rhoE 'Qt::SvgMiterJoin'` 全树 0）。
+// `PkNamespace.h` 的 include 是显式补的：本头可以不经 PkTestCompatAll.h 被单独
+// include，而 `Pk::FlatCap` 一族住在 PkNamespace.h（PkGlobal.h 不含它）。
+// ---------------------------------------------------------------------------
+using Pk::FlatCap;
+using Pk::SquareCap;
+using Pk::RoundCap;
+using Pk::MiterJoin;
+using Pk::BevelJoin;
+using Pk::RoundJoin;
 } // namespace Qt
 #endif
