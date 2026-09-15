@@ -4,16 +4,21 @@
 #   1) 建薄壳工程（libpkrender.a / test_* / 三个 Qt-free 的 oracle 输出体）；
 #   2) ctest 全量 —— **Not Run 必须为 0**（两个 EXCLUDE_FROM_ALL 的 target 点名构建）；
 #   3) test_pkrender —— 它不在 ctest 里（CMakeLists 只给了 add_executable），自己跑；
-#   4) 三条 oracle 闸门（真 Qt 侧对拍）：
+#   4) 四条 oracle 闸门（真 Qt 侧对拍）：
 #        oracle/run_shape_primitive.sh · oracle/run_svg_primitive.sh ·
-#        oracle/probes/run_probes.sh
+#        oracle/probes/run_probes.sh · oracle/run_blur_kernel.sh
 #   5) 判据③：libpkrender.a 的 Qt 符号面 + **现场挑的判别力对照物**（分母与命中都打出来）。
 #
-# 为什么这三条 oracle 必须在这里：R线-spec〈判据必须在收尾路径上，否则它是装饰〉
+# 为什么这些 oracle 必须在这里：R线-spec〈判据必须在收尾路径上，否则它是装饰〉
 # （规矩是 R-63 在 pk/geometry 撞出来的）。同一形态在 pk/render 又出现一次 —— 本脚本
-# 当时**本机根本跑不起来**（第 4 行写死 Linux 路径 /mnt/ssd-disk/...），于是三条 oracle
-# 一条都不在任何路径上。代价是每次收尾变慢（三条合计约 30 s）：那是判据的正常价格，
+# 当时**本机根本跑不起来**（第 4 行写死 Linux 路径 /mnt/ssd-disk/...），于是本目录的
+# oracle 一条都不在任何路径上。代价是每次收尾变慢（四条合计约 35 s）：那是判据的正常价格，
 # 真嫌慢就把对拍做快，别把它从路径上摘掉。
+#
+# 第四条 run_blur_kernel.sh 是 R-76 **现场实测后**补进来的（原任务行只数了三条）：它与另外三条
+# 同形、本机 3 s 跑绿（identical (138 cases)），却一条路径都不在 —— 那正是这条规矩说的「装饰」。
+# 它守的是 ctest test_blur_kernel 消费的 oracle/blur_kernel_golden.txt 的 **Qt 出生证明**：
+# 不跑它，金标就只是一份没人复核过的历史断言，而 test_blur_kernel 照样绿（它只比 Pk 侧没漂）。
 set -eo pipefail
 
 render_root=$(cd "$(dirname "$0")/.." && pwd)
@@ -67,7 +72,9 @@ cmake -S "$render_root" -B "$build_dir" -G Ninja \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 ninja -C "$build_dir"
 
-# pk/render/CMakeLists.txt:10-11 用 EXCLUDE_FROM_ALL 把 pk/font、pk/xml 加进来 ⇒ 默认
+# pk/render/CMakeLists.txt:75-76 用 EXCLUDE_FROM_ALL 把 pk/font、pk/xml 加进来 ⇒ 默认
+# （行号是 R-76 Task 2 之后的现行值：Task 2 把 fontconfig 探测块搬到文件头部，这两行从
+#  10-11 顺移到 75-76。**引用行号前先 `grep -n add_subdirectory` 现场核**。）
 # `all` 不含它们的测试可执行文件 ⇒ ctest 报 2 条 Not Run（**未跑到 ≠ 跑绿了**）。
 # 点名构建这两个 target —— 本脚本就是「把闸门串进收尾路径」的那个地方。
 ninja -C "$build_dir" test_pkfont test_pkxml
@@ -86,6 +93,13 @@ ctest_rc=${PIPESTATUS[0]}
 set -e
 
 total=$(ctest --test-dir "$build_dir" -N | grep -cE '^ *Test +#[0-9]+:' || true)
+# `ctest -N` 自己失败（或列出 0 条）时，下面的 `ran -ne total` 会把**工具的红**报成
+# 「有未跑到的用例」—— 红对了、原因说错了。先单独拦住这一档（全分支终审的新发现）。
+if [ -z "$total" ] || [ "$total" -eq 0 ]; then
+    printf 'run_tests.sh: ctest -N 没列出任何用例（%s）—— 先查构建目录，别当成闸门的红\n' \
+           "$build_dir" >&2
+    exit 1
+fi
 ran=$(grep -cE '^ *[0-9]+/[0-9]+ Test +#[0-9]+:' "$ctest_log" || true)
 not_run=$(grep -cE '\*\*\*(Not Run|Disabled)' "$ctest_log" || true)
 printf 'ctest: total=%s ran=%s not_run=%s exit=%s\n' "$total" "$ran" "$not_run" "$ctest_rc"
@@ -101,10 +115,12 @@ if [ "$ctest_rc" -ne 0 ]; then
     exit 1
 fi
 
-# ── 判据④：三条 oracle 闸门（真 Qt 侧对拍）───────────────────────────────────
+# ── 判据④：四条 oracle 闸门（真 Qt 侧对拍）───────────────────────────────────
 bash "$render_root/oracle/run_shape_primitive.sh"
 bash "$render_root/oracle/run_svg_primitive.sh"
 bash "$render_root/oracle/probes/run_probes.sh"
+# 第四条的由来见文件头：本机实测 3 s 跑绿却不在任何路径上（R-76 现场补入）。
+bash "$render_root/oracle/run_blur_kernel.sh"
 
 # 前两条 oracle 会在源码树里重写 golden —— 幂等：两侧一致时逐字节相同、`git status` 干净。
 # 这里**只报不断言**（任务合法地更新 golden 时它本来就该非空）。
@@ -153,7 +169,7 @@ matcher_probe=$(printf '%s\n' \
     '                 U qsrand(unsigned int)' \
     '                 U qstrcmp(char const*, char const*)' \
     '                 U qtHookData' \
-    | filter_real_qt_symbols)
+    | filter_real_qt_symbols || true)
 expected_matcher_probe=$(printf '%s\n' \
     '                 U QPainter::drawImage(QRectF const&, QImage const&)' \
     '                 U operator<<(QDebug&, PkThing const&)' \
