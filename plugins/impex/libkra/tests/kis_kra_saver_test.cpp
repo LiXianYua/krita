@@ -631,20 +631,27 @@ void KisKraSaverTest::testExportToReadonly()
 #include "pk_binder_kis_kra_saver_test.inc"
 #endif
 
+// R-82：本 main 从 Qt 测试栈切到 pk 测试栈（pk_add_test）。删掉的三族都已在
+// `sdk/tests/kistest.h` 的 pk 分支里逐条登记过，**不是本任务的新判断**：
+//   * `qputenv("LANGUAGE"/"QT_LOGGING_RULES"/"EXTRA_RESOURCE_DIRS"/
+//     "KRITA_PLUGIN_PATH")`：决策 D-12 之后插件是静态注册、没有可加载的插件
+//     DSO，这些环境变量在任何栈上都不再生效（kistest.h pk 分支同样不给；
+//     本测试要的 kra filter 改由 `REGISTER_FILTERS` 静态拉入 —— 见本目录
+//     CMakeLists.txt 的 `pk_add_test(... REGISTER_FILTERS registerKra*Filter ...)`）；
+//   * `QLocale::setDefault` / `QStandardPaths::setTestModeEnabled` /
+//     `QApplication` + `setAttribute(Qt::AA_Use96Dpi)`：D-30 明写要删；pk 侧没有
+//     GUI 应用对象，「界定主线程 + 驱动事件循环」由下面的
+//     `PkThread::registerMainThread()` + `PkThreadCallQueue::warmUpCurrentThread()`
+//     承接（与 `SIMPLE_MAIN_IMPL` 同形）；
+//   * `registerResources()`：R-77 已在 kistest.h 里裁定**不给空实现**
+//     （空实现会让资源测试静默假绿），本处正是它点名的两个调用点之一。
+// **断言、容差、测试用例一个未动**；保留的 `registerLcmsEngine()`、两个注册入口
+// 调用与 `PkTest::qExec` 是原样带过来的。
 int main(int argc, char *argv[])
 {
-    qputenv("LANGUAGE", "en");
-    QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
-    qputenv("QT_LOGGING_RULES", "");
-    QStandardPaths::setTestModeEnabled(true);
-    qputenv("EXTRA_RESOURCE_DIRS", QByteArray(KRITA_RESOURCE_DIRS_FOR_TESTS));
-    qputenv("KRITA_PLUGIN_PATH", QByteArray(KRITA_PLUGINS_DIR_FOR_TESTS));
-    QApplication app(argc, argv);
-    app.setAttribute(Qt::AA_Use96Dpi, true);
     registerLcmsEngine();
     (void)registerKraExportFilter();
     (void)registerKraImportFilter();
-    registerResources();
     PkThread::registerMainThread();
     PkThreadCallQueue::warmUpCurrentThread();
     KisKraSaverTest tc;

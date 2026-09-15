@@ -14,10 +14,13 @@ else()
     set(KRA_TESTS_WHOLE_ARCHIVE_END "-Wl,--no-whole-archive")
 endif()
 
-kis_add_tests(
-    kis_kra_loader_test.cpp
+pk_add_test(
+    kis_kra_loader_test
+    REGISTER_FILTERS
+        registerKraImportFilter
+        registerKraExportFilter
     LINK_LIBRARIES
-        kritaimpex kritalibkra kritatestsdk
+        kritaimpex kritalibkra
         kritakraimport kritakraexport kritalcmsengine
         ${KRA_TESTS_WHOLE_ARCHIVE_BEGIN} kritaexample ${KRA_TESTS_WHOLE_ARCHIVE_END}
     )
@@ -32,14 +35,17 @@ kis_add_test(
     )
 
 
-kis_add_test(
-    kis_kra_saver_test.cpp
+pk_add_test(
+    kis_kra_saver_test
+    REGISTER_FILTERS
+        registerKraImportFilter
+        registerKraExportFilter
     LINK_LIBRARIES
-        kritaimpex kritalibkra kritatransformmaskstubs
+        kritaimpex kritalibkra $<LINK_ONLY:kritatransformmaskstubs>
         kritakraimport kritakraexport kritalcmsengine
         ${KRA_TESTS_WHOLE_ARCHIVE_BEGIN}
-            kritaexample kritapixelizefilter
-            kritacolorgenerator kritapatterngenerator
+            $<LINK_ONLY:kritaexample> $<LINK_ONLY:kritapixelizefilter>
+            $<LINK_ONLY:kritacolorgenerator> $<LINK_ONLY:kritapatterngenerator>
         ${KRA_TESTS_WHOLE_ARCHIVE_END}
     )
 if(APPLE)
@@ -50,29 +56,21 @@ if(APPLE)
         "-Wl,-force_load,$<TARGET_FILE:kritapatterngenerator>")
 endif()
 
-function(libkra_add_pk_test_binder target source header)
-    get_filename_component(header_base "${header}" NAME_WE)
-    set(binder "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_${header_base}.inc")
-    add_custom_command(
-        OUTPUT "${binder}"
-        COMMAND ${Python3_EXECUTABLE}
-                "${CMAKE_SOURCE_DIR}/pk/test/pk_test_moc.py"
-                "${header}"
-                -o "${binder}"
-        DEPENDS
-            "${header}"
-            "${CMAKE_SOURCE_DIR}/pk/test/pk_test_moc.py"
-        COMMENT "pk_test_moc ${header}"
-        VERBATIM)
-    set_source_files_properties("${source}" PROPERTIES OBJECT_DEPENDS "${binder}")
-    set_target_properties(${target} PROPERTIES AUTOMOC OFF)
-    target_compile_definitions(${target} PRIVATE
-        KRITA_TESTSDK_PK_NATIVE
-        PK_SHELL_MOC_BINDER)
-    target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-endfunction()
+# R-82：`SYSTEM_RESOURCES_DATA_DIR` 原本由 `kritatestsdk`（Qt 测试栈）的 INTERFACE
+# 编译定义提供（`sdk/tests/CMakeLists.txt:10-13`），切到 `kritatestsdk_pk` 之后就没有了
+# ——而 `kis_kra_saver_test.cpp:79`（`initTestCase()`，函数体一字未动）要用它去
+# `KoResourcePaths::addAssetDir(ResourceType::Patterns, …)` 挂 Patterns 资源目录。
+# 这里按**同一个值、同一个口径**补回来（Qt 栈的定义就是 `${CMAKE_SOURCE_DIR}/data/`），
+# 只补给这一条 target，不动 `kritatestsdk_pk` 的共享面。
+target_compile_definitions(kis_kra_saver_test PRIVATE
+    SYSTEM_RESOURCES_DATA_DIR="${CMAKE_SOURCE_DIR}/data/"
+)
 
-libkra_add_pk_test_binder(kis_kra_loader_test kis_kra_loader_test.cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/kis_kra_loader_test.h")
-libkra_add_pk_test_binder(kis_kra_saver_test kis_kra_saver_test.cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/kis_kra_saver_test.h")
+# R-82：原来这里有一套手写的 `libkra_add_pk_test_binder()`（add_custom_command +
+# OBJECT_DEPENDS + 手动 KRITA_TESTSDK_PK_NATIVE/PK_SHELL_MOC_BINDER）。两条 target
+# 现在都改由 `pk_add_test` 注册，**它自带等价的 binder 机制**（生成
+# `pk_binder_<target>.inc` 并作为 wrap TU 的 OBJECT_DEPENDS；测试源里
+# `#ifdef PK_SHELL_MOC_BINDER` 那段因此不再激活 —— 若同时生效会把同一份
+# `PkTestBinder<T>` 特化编两遍、撞重复特化）。故整套删除。
+# 四个额外 `-force_load`（kritaexample / kritapixelizefilter /
+# kritacolorgenerator / kritapatterngenerator）**保留**，见上面的 target_link_options。
