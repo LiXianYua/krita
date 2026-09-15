@@ -14,7 +14,7 @@
 #include "kritapaintop_export.h"
 
 #include <KisSensorPackInterface.h>
-#include "PkSharedDataPointer.h"
+#include "LibPaintopSharedDataPointer.h"
 
 
 struct PAINTOP_EXPORT KisCurveOptionDataCommon : boost::equality_comparable<KisCurveOptionDataCommon>
@@ -65,7 +65,7 @@ struct PAINTOP_EXPORT KisCurveOptionDataCommon : boost::equality_comparable<KisC
     PkString commonCurve = DEFAULT_CURVE_STRING;
     qreal strengthValue = 1.0;
 
-    PkSharedDataPointer<KisSensorPackInterface> sensorData;
+    LibPaintopSharedDataPointer<KisSensorPackInterface> sensorData;
 
     std::vector<const KisSensorData *> sensors() const;
     std::vector<KisSensorData*> sensors();

@@ -12,7 +12,7 @@
 #include <PkString.h>
 
 #include "kritapaintop_export.h"
-#include "PkSharedDataPointer.h"
+#include "LibPaintopSharedDataPointer.h"
 
 struct KisSensorData;
 struct KisCurveOptionDataCommon;
@@ -35,7 +35,7 @@ public:
 };
 
 template<>
-inline KisSensorPackInterface* PkSharedDataPointer<KisSensorPackInterface>::clone()
+inline KisSensorPackInterface* LibPaintopSharedDataPointer<KisSensorPackInterface>::clone()
 {
     return d->clone();
 }
