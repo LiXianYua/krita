@@ -240,14 +240,28 @@ pk_add_tests(
 # "Undefined operation in the ... color space"（本段就是消这条告警的：
 # 与 kis_fill_painter_test / kis_selection_test 同一个机理、同一份处置）。
 #
-# ⚠ 订正（R-80，实测）：本段**不是** TestAslStorage 200 s 超时的解药。加上本段
-# 之后该测试仍然 Timeout 200 s，栈仍停在 libs/psdutils/asl/kis_asl_xml_parser.cpp
-# 的 descriptor 解析。真正的死循环根因在 libs/psdutils：pkToBase64
-# （asl/kis_asl_byte_utils.cpp:51）对 len%3!=0 的输入少发一个字符 →
-# pkFromBase64+pkQUncompress 拿到坏流 → 返回空 → 解析器那条不推进游标的
-# `continue`（kis_asl_xml_parser.cpp:455/465）原地空转。详见
-# .superpowers/sdd/R-80/libs-image-report.md §TestAslStorage。
-# 本段保留：它确实把 unmanaged 色彩空间换成真色彩管理，只是不解超时。
+# ⚠ 订正（R-80，实测两次）：本段**不是** TestAslStorage 的解药，它只消上面那条
+# unmanaged 告警。本段保留，理由就是那一句。
+#
+# 而 TestAslStorage 的**真根因不在本文件能修的地方**，记录如下（R-80 实测，避免
+# 下一个人重走）：
+#   ① 该测试在 `pk_add_tests` 块（pk 栈）。pk 栈**没有** `FILES_DEFAULT_DATA_DIR`
+#      （`sdk/tests/pk_test_support.cmake:230` 只设了 `FILES_DATA_DIR`），于是
+#      `TestUtil::fetchDataFileLazy` 的第二条回退退化成 `testutil.h:72` 的默认值
+#      `"."`，永远命不中 `sdk/tests/data/`。上游 v6.0.3 **没有**
+#      `libs/image/tests/data/asl/`（GitHub API 实测 404），`.asl` 只在
+#      `sdk/tests/data/asl/` —— 上游正是靠这条回退找到它们的。
+#   ② R-80 曾把 5 个 `.asl` 复制进 `libs/image/tests/data/asl/` 让解析真正跑起来，
+#      **结果是把一个更坏的状态引进来**：`libs/psdutils/asl/kis_asl_xml_parser.cpp`
+#      的 descriptor 循环里两条 `continue`（:455 / :465）跳过了循环末尾的
+#      `child = child.nextSibling()`（上游 v6.0.3 同一段同形，是上游潜伏 bug），
+#      一旦那条数据真的被解析就**原地死循环** ⇒ 该测试从 `Failed 0.04 s` 变成
+#      `Timeout 200 s`。**那是行为回归，所以 R-80 已把复制回退掉**，该测试恢复成
+#      与 BASE 一致的快速失败。
+#   ⇒ 真修法两处都在 R-80 锁外：① `sdk/tests/`（给 pk 栈补 `FILES_DEFAULT_DATA_DIR`）；
+#      ② `libs/psdutils/asl/kis_asl_xml_parser.cpp`（**已被 R-42 / R-43 显式锁定**）。
+#      逐条证据见 `.superpowers/sdd/R-80/libs-image-report.md` 与
+#      `.superpowers/sdd/R-80/evidence/structural-gaps.md`。
 foreach(_r80_target TestAslStorage kis_scanline_fill_test kis_image_animation_interface_test)
     target_link_options(${_r80_target} PRIVATE ${KRITA_LCMS_WHOLE_ARCHIVE})
 endforeach()
