@@ -552,6 +552,19 @@ void KoSvgTextShape::Private::relayout()
         raqm_glyph_t currentGlyph = glyphs[i];
         KIS_ASSERT(currentGlyph.cluster <= INT32_MAX);
         const int cluster = static_cast<int>(currentGlyph.cluster);
+        // raqm can report a glyph cluster that lies past the end of the
+        // laid-out text: clusters are utf-16 offsets into `text`, and for
+        // runs whose codepoints occupy more than one utf-16 unit (surrogate
+        // pairs, e.g. the musical symbols in KoWritingSystemUtils::samples())
+        // the trailing glyphs of a run carry an absolute offset that can
+        // exceed text.size().  `result` only has text.size() slots, so such a
+        // glyph has no CharacterResult to attach to; it is a .notdef filler
+        // produced by the run splitting, and skipping it is the correct
+        // rendering (upstream krita indexes it blindly and reads/writes one
+        // past the end of the vector).
+        if (cluster < 0 || cluster >= static_cast<int>(result.size())) {
+            continue;
+        }
         if (!result[cluster].addressable) {
             continue;
         }
