@@ -84,11 +84,19 @@ int qExec(QObject *testObject, int argc, char **argv);
 // `weak_import`，那就要按平台分叉。改用「`pk_add_test` **无条件**生成一个定义
 // `pkRegisterTestEngines()` 的 TU（没选 REGISTER_ENGINES 时函数体为空）」——
 // 没有平台分叉，也不给任何一个 pk 目标引入 Krita 库依赖。
-// 前提：pk 栈上的测试 target **都**由 pk_add_test 建（那是 pk 栈唯一的注册路径，
-// `pk_add_tests` / `pk_add_benchmark` 都转调它）。
+// **触发条件不能只看 KRITA_TESTSDK_PK_NATIVE**：pk 栈上还有不走 pk_add_test 的
+// 手写 target（实测 libs/pigment/tests 与 libs/psdutils/tests 的几个
+// `KRITA_TESTSDK_PK_NATIVE` 目标），它们没有这个定义。所以由 `pk_add_test` 另外
+// 定义 `PK_TEST_HAS_ENGINE_HOOK`，这里只在它也在场时才展开调用
+// —— 否则那些 target 会以 `undefined _pkRegisterTestEngines` 挂掉
+// （R-82 全量闸门现场抓到：TestKoColorSpaceRegistry / PkSimpleTestBridgeTest）。
+#if defined(PK_TEST_HAS_ENGINE_HOOK)
 extern "C" void pkRegisterTestEngines();
 #define KRITA_SIMPLE_TEST_ENGINE_SETUP \
     pkRegisterTestEngines();
+#else
+#define KRITA_SIMPLE_TEST_ENGINE_SETUP
+#endif
 #else
 // Qt 栈的两个 KISTEST_MAIN 已经在建 QApplication 之前设过它（kistest.h:381,400），
 // 这里再设一次等价、无副作用；留空以保持 Qt 栈行为逐字不变。

@@ -363,6 +363,14 @@ const PkImportExportRegistration pkImportExportRegistration;
     # pk 的 compat/QObject 没有元对象，AUTOMOC 生成的 moc_*.cpp 必然编不过。
     set_target_properties(${_tgt} PROPERTIES AUTOMOC OFF)
     target_compile_definitions(${_tgt} PRIVATE KRITA_TESTSDK_PK_NATIVE)
+    # R-82：告诉 SIMPLE_MAIN_IMPL「本 target 有 pkRegisterTestEngines() 的定义」。
+    # **不能只靠 KRITA_TESTSDK_PK_NATIVE 判**：pk 栈上还有**不走 pk_add_test** 的
+    # 手写 target（实测：libs/pigment/tests、libs/psdutils/tests 的几个
+    # `KRITA_TESTSDK_PK_NATIVE` 目标），它们没有这个定义 ⇒
+    # 只按 KRITA_TESTSDK_PK_NATIVE 展开会得到 `undefined _pkRegisterTestEngines`
+    # （全量闸门现场抓到，见 gate-ninja-full.log 的 TestKoColorSpaceRegistry /
+    #  PkSimpleTestBridgeTest）。
+    target_compile_definitions(${_tgt} PRIVATE PK_TEST_HAS_ENGINE_HOOK)
     # binder 所在处（build 目录）与测试源目录（<simpletest.h> 等依赖由 kritatestsdk_pk
     # 提供，这里补测试源自身的同级头 include）。
     target_include_directories(${_tgt} PRIVATE
