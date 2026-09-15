@@ -92,13 +92,13 @@ void KisHeifTest::testLoadMonochrome(int bitDepth)
 
                 QVERIFY2(pngColor.colorSpace()->differenceA(pngColor.data(), heifColor.data()) < error,
                          PkString("Heif %5 gray color doesn't match PNG color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(KoColor::toQString(pngColor)).arg(KoColor::toQString(heifColor)).arg(bitDepth).toLatin1());
+                         .arg(x).arg(y).arg(KoColor::toQString(pngColor)).arg(KoColor::toQString(heifColor)).arg(bitDepth).toLatin1().constData());
                 QVERIFY2(pngColor.colorSpace()->differenceA(pngColor.data(), avifColor.data()) < error,
                          PkString("Avif %5 gray color doesn't match PNG color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(pngColor.toXML()).arg(avifColor.toXML()).arg(bitDepth).toLatin1());
+                         .arg(x).arg(y).arg(pngColor.toXML()).arg(avifColor.toXML()).arg(bitDepth).toLatin1().constData());
                 QVERIFY2(avifColor.colorSpace()->differenceA(avifColor.data(), heifColor.data()) < error,
                          PkString("Heif %5 gray color doesn't match Avif color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(heifColor.toXML()).arg(heifColor.toXML()).arg(bitDepth).toLatin1());
+                         .arg(x).arg(y).arg(heifColor.toXML()).arg(heifColor.toXML()).arg(bitDepth).toLatin1().constData());
             }
         }
     }
@@ -148,16 +148,16 @@ void KisHeifTest::testLoadRGB(int bitDepth)
                 heif_image->projection()->pixel(x, y, &heifColor);
                 avif_image->projection()->pixel(x, y, &avifColor);
 
-                QVERIFY2(pngColor.colorSpace() == heifColor.colorSpace(), PkString("%1 RGBA colorspace mismatch between png and heif").toLatin1());
-                QVERIFY2(pngColor.colorSpace() == avifColor.colorSpace(), PkString("%1 RGBA colorspace mismatch between png and avif").toLatin1());
-                QVERIFY2(avifColor.colorSpace() == heifColor.colorSpace(), PkString("%1 RGBA colorspace mismatch between avif and heif").toLatin1());
+                QVERIFY2(pngColor.colorSpace() == heifColor.colorSpace(), PkString("%1 RGBA colorspace mismatch between png and heif").toLatin1().constData());
+                QVERIFY2(pngColor.colorSpace() == avifColor.colorSpace(), PkString("%1 RGBA colorspace mismatch between png and avif").toLatin1().constData());
+                QVERIFY2(avifColor.colorSpace() == heifColor.colorSpace(), PkString("%1 RGBA colorspace mismatch between avif and heif").toLatin1().constData());
 
                 QVERIFY2(pngColor.colorSpace()->differenceA(pngColor.data(), heifColor.data()) < error, PkString("%5 RGBA Heif color doesn't match PNG color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(pngColor.toXML()).arg(heifColor.toXML()).arg(bitDepth).toLatin1());
+                         .arg(x).arg(y).arg(pngColor.toXML()).arg(heifColor.toXML()).arg(bitDepth).toLatin1().constData());
                 QVERIFY2(pngColor.colorSpace()->differenceA(pngColor.data(), avifColor.data()) < error, PkString("%5 RGBA Avif color doesn't match PNG color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(pngColor.toXML()).arg(avifColor.toXML()).arg(bitDepth).toLatin1());
+                         .arg(x).arg(y).arg(pngColor.toXML()).arg(avifColor.toXML()).arg(bitDepth).toLatin1().constData());
                 QVERIFY2(avifColor.colorSpace()->differenceA(avifColor.data(), heifColor.data()) < error, PkString("%5 RGBA Heif color doesn't match Avif color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(heifColor.toXML()).arg(heifColor.toXML()).arg(bitDepth).toLatin1());
+                         .arg(x).arg(y).arg(heifColor.toXML()).arg(heifColor.toXML()).arg(bitDepth).toLatin1().constData());
             }
         }
     }
@@ -354,28 +354,28 @@ void KisHeifTest::testLoadHDR()
 
                 // PNG file experiences alpha sampling to 16i-bits, so use differenceA for comparison
                 QVERIFY2(cs->differenceA(pngColor.data(), avifColor.data()) <1, PkString("Avif PQ color doesn't match PNG color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(pngColor.toXML()).arg(avifColor.toXML()).toLatin1());
+                         .arg(x).arg(y).arg(pngColor.toXML()).arg(avifColor.toXML()).toLatin1().constData());
 
                 // PNG file experiences alpha sampling to 16i-bits, so use differenceA for comparison
                 QVERIFY2(cs->differenceA(pngColor.data(), heifColor.data()) <1, PkString("Heif PQ color doesn't match PNG color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(pngColor.toXML()).arg(heifColor.toXML()).toLatin1());
+                         .arg(x).arg(y).arg(pngColor.toXML()).arg(heifColor.toXML()).toLatin1().constData());
 
                 // compare HEIF and AVIF strictly
                 QVERIFY2(cs->difference(heifColor.data(), avifColor.data()) <1, PkString("Heif PQ color doesn't match AVIF color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(heifColor.toXML()).arg(avifColor.toXML()).toLatin1());
+                         .arg(x).arg(y).arg(heifColor.toXML()).arg(avifColor.toXML()).toLatin1().constData());
 
 
                 heif_image_hlg->projection()->pixel(x, y, &heifColor);
                 avif_image_hlg->projection()->pixel(x, y, &avifColor);
 
                 QVERIFY2(cs->difference(heifColor.data(), avifColor.data()) <1, PkString("Avif HLG color doesn't match heif color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(heifColor.toXML()).arg(avifColor.toXML()).toLatin1());
+                         .arg(x).arg(y).arg(heifColor.toXML()).arg(avifColor.toXML()).toLatin1().constData());
 
                 heif_image_smpte428->projection()->pixel(x, y, &heifColor);
                 avif_image_smpte428->projection()->pixel(x, y, &avifColor);
 
                 QVERIFY2(cs->difference(heifColor.data(), avifColor.data()) <1, PkString("Avif smpte428 color doesn't match heif color, (%1, %2) %3 %4")
-                         .arg(x).arg(y).arg(heifColor.toXML()).arg(avifColor.toXML()).toLatin1());
+                         .arg(x).arg(y).arg(heifColor.toXML()).arg(avifColor.toXML()).toLatin1().constData());
             }
         }
     }
