@@ -236,10 +236,18 @@ pk_add_tests(
 # 在 APPLE 上是纯静态库引用、无符号引用即整份丢弃（KRITA_LCMS_NO_AS_NEEDED
 # 在 APPLE 为空，且 --no-as-needed 对静态库本就无效），所以引擎的自注册静态
 # 对象 LcmsEngineRegistration 从来不运行，色彩空间全部退回
-# KoSimpleColorSpace（"unmanaged"）。TestAslStorage 读 ASL 里的颜色时因此
-# 逐条打 "Undefined operation in the ... color space" 并卡在解析里
-# （实测 200 s 超时；栈停在 kis_asl_xml_parser.cpp 的 descriptor 解析）。
-# 与 kis_fill_painter_test / kis_selection_test 同一个机理、同一份处置。
+# KoSimpleColorSpace（"unmanaged"）。TestAslStorage 读 ASL 里的颜色时会逐条打
+# "Undefined operation in the ... color space"（本段就是消这条告警的：
+# 与 kis_fill_painter_test / kis_selection_test 同一个机理、同一份处置）。
+#
+# ⚠ 订正（R-80，实测）：本段**不是** TestAslStorage 200 s 超时的解药。加上本段
+# 之后该测试仍然 Timeout 200 s，栈仍停在 libs/psdutils/asl/kis_asl_xml_parser.cpp
+# 的 descriptor 解析。真正的死循环根因在 libs/psdutils：pkToBase64
+# （asl/kis_asl_byte_utils.cpp:51）对 len%3!=0 的输入少发一个字符 →
+# pkFromBase64+pkQUncompress 拿到坏流 → 返回空 → 解析器那条不推进游标的
+# `continue`（kis_asl_xml_parser.cpp:455/465）原地空转。详见
+# .superpowers/sdd/R-80/libs-image-report.md §TestAslStorage。
+# 本段保留：它确实把 unmanaged 色彩空间换成真色彩管理，只是不解超时。
 foreach(_r80_target TestAslStorage kis_scanline_fill_test kis_image_animation_interface_test)
     target_link_options(${_r80_target} PRIVATE ${KRITA_LCMS_WHOLE_ARCHIVE})
 endforeach()
