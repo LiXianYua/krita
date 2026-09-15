@@ -24,6 +24,15 @@
 #include "../namespace/PkNamespace.h"   // Pk::GlobalColor（R-27 Task 2 交付）
 #include "../string/PkString.h"     // name() 返回类型
 
+// R-87：下面那条 std::ostream 插入运算符的声明只需要 <iosfwd> 的前向声明。
+// ⚠ **这是本头唯一一条系统头**。把本头 include 进某个 namespace 的 TU（
+//   oracle/difftest_color.cpp 的 `namespace pkoracle`）必须把 <iosfwd> **先在
+//   namespace 之外** include 一次，否则会造出 pkoracle::std 遮住 ::std
+//   （该文件顶部那条「std 系统头必须在包外层先 include」的注释就是这条纪律；
+//   与 pk/geometry 对 PkSize.cpp <type_traits> 的处理同型，见
+//   pk/geometry/oracle/geometry_difftest.cpp:119-120）。
+#include <iosfwd>
+
 class PkColor
 {
 public:
@@ -174,5 +183,30 @@ private:
     Spec cspec;
     quint16 extendedWirePad = 0;
 };
+
+// R-87：PK_COMPARE 诊断通道用的 `std::ostream` 插入运算符。
+//
+// **文本 = 真 Qt 5.15.7 `QDebug operator<<(QDebug, const QColor&)` 的原文**
+// （qcolor.cpp「QColor stream functions」一节；声明在 QtGui/qcolor.h:56-57，
+//  `#ifndef QT_NO_DEBUG_STREAM`），只把类型名换成 PkColor。分支与文本逐条照抄：
+//   Invalid    → `PkColor(Invalid)`
+//   Rgb        → `PkColor(ARGB <aF>, <rF>, <gF>, <bF>)`
+//   ExtendedRgb→ `PkColor(Ext. ARGB …)`
+//   Hsv        → `PkColor(AHSV …)`（取值经 getHsvF —— PkColor 没有 hueF/saturationF/
+//                valueF 三个单分量 F 取值器；Qt 那条分支用的就是它们）
+//   Hsl        → `PkColor(AHSL …)`（同上，经 getHslF）
+//   Cmyk       → 见 PkColorTestString.cpp 的注释：PkColor 没有 cyanF/magentaF/
+//                yellowF/blackF（实测用量 0，未交付），复刻不出 Qt 的 `ACMYK` 文本。
+//
+// ⚠ **这是一条超出 Qt 的扩面（Q2-a 裁定），不是对齐 Qt**：真 Qt 的
+//   `QCOMPARE(QColor, QColor)` 判红时**也**打 `<unprintable>`（`QTest::toString<QColor>`
+//   返回 `nullptr`，探针① 实测）—— Qt 里这条文本只出现在 QDebug 通道、
+//   不在 QTest 通道。**所以「Qt 里没有对应物」，这段文本是本仓的选择。**
+//   选它的理由是它是 Qt 对 QColor **唯一存在的**文本；登记见 README 偏离 9。
+//   代价实测过两次：R-75 把 `<unprintable>` 误判成「剥 Qt 后的行为差异」、
+//   R-78 因它白立一次案。
+//
+// 定义在 pk/color/PkColorTestString.cpp（独立 TU，与任何 PkDebug 通道零耦合）。
+std::ostream &operator<<(std::ostream &os, const PkColor &c);
 
 #endif // PK_COLOR_PKCOLOR_H

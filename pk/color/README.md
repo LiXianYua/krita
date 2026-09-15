@@ -73,11 +73,59 @@
    spec=Rgb（真 Qt 实测）。将来若引入 qfloat16 支持，需同时修 lighter/darker 的
    ExtendedRgb 分支。
 
+8. **`std::ostream operator<<(std::ostream&, const PkColor&)` 落位在类型所有者（R-87）** ——
+   真 Qt 把对应的值文本（`QTest::toString<T>` 特化）放在**测试库** `QtTest/qtest.h`；
+   本仓把它放在**类型所有者**（`PkColor.h` 声明 + `PkColorTestString.cpp` 定义），
+   因为 `pk/test` 被 R-82 占着（一个字节都不能动），且 `pk/test/PkTestCompare.h:77-82`
+   的注释表明这条 SFINAE 通道本来就是给「类型自己出 ostream 运算符」设计的。
+   **这是本仓第一处 `std::ostream operator<<`**（实测 `pk/` 全树此前 0 处）。
+   ⚠ **带动一条头文件纪律**：`PkColor.h` 因此新增了它**唯一一条系统头** `#include <iosfwd>`。
+   把本头 include 进某个 namespace 的 TU（`oracle/difftest_color.cpp` 的 `namespace pkoracle`、
+   对拍/试接类 TU）时，`<iosfwd>`（或任何会带出它的系统头）必须**先在 namespace 之外**落地一次，
+   否则会造出 `pkoracle::std` 遮住 `::std`。本仓既有先例见 `pk/geometry/oracle/geometry_difftest.cpp:119-120`
+   与 `pk/color/oracle/difftest_color.cpp` 顶部那条同义注释；`pk/geometry` 侧同型的坑在 R-87 实测过
+   （`rectf_macro_proof.cpp` 的匿名 namespace 造出 `(anonymous)::std`，直接编译失败）。
+   本任务没改对拍/试接 TU（不在 R-87 范围），**实测本头的系统头清单已被 `difftest_color.cpp`
+   的全局 include 块覆盖**（逐字复刻其 include 清单 + `namespace pkoracle { #include "PkColor.h" }`
+   的 syntax-only 编译 exit=0，见 R-87 报告）。
+
+9. **`PkColor` 的失败值文本是「超出 Qt」，不是「对齐 Qt」（R-87，Q2-a）** ——
+   实测真 Qt 5.15.7：`QCOMPARE(QColor, QColor)` 判红时**根本不打 Actual/Expected 行**，
+   `QTest::toString<QColor>` 返回 `nullptr`、退化成 `<unprintable>`（探针见
+   `R-87.md` §1 探针① 原始输出）。**Qt 对 `QColor` 没有任何 `toString` 文本**。
+   ⇒ 本仓给的值文本 `PkColor(ARGB 1, 1, 0, 0)` 是**我们的选择**，Qt **没有对应物**，
+   不作对齐断言（对齐目标是「值文本必须存在且可读」，不是「文本与 Qt 逐字相同」）。
+   文本形态取自 Qt 对 `QColor` **唯一存在的**文本：`QDebug operator<<(QDebug, const QColor&)`
+   （`QtGui/qcolor.h:56-57`，定义在 `qcolor.cpp`）——原文逐字照抄，只把类型名 `QColor`
+   换成 `PkColor`：
+   - `!isValid()` → `PkColor(Invalid)`
+   - `Rgb` → `PkColor(ARGB <alphaF>, <redF>, <greenF>, <blueF>)`
+   - `ExtendedRgb` → `PkColor(Ext. ARGB <alphaF>, <redF>, <greenF>, <blueF>)`
+   - `Hsv` → `PkColor(AHSV <alphaF>, <hsvHueF>, <hsvSaturationF>, <valueF>)`
+   - `Hsl` → `PkColor(AHSL <alphaF>, <hslHueF>, <hslSaturationF>, <lightnessF>)`
+   ⚠ 两处与 Qt 原文的**实现层**差别（文本本身仍逐字对齐）：① PkColor 没有
+   `hueF/saturationF/valueF/hslHueF/hslSaturationF` 这套 getter，改用 `getHsvF()`/`getHslF()`
+   取同名分量（`Hsv` 支 Qt 也是走 `getHsvF`，一致）；② **Cmyk 支无法复现** ——
+   PkColor 没有 `cyanF/magentaF/yellowF/blackF`（偏离 2：CMYK 系不实现，实测用量 0），
+   该支退化成 `PkColor(Cmyk->ARGB <...>)`，即先 `toRgb()` 再按 Rgb 形态打。
+   这条分支在本仓当前**不可达**（没有任何入口能造出 `spec()==Cmyk` 的有效色），
+   留它是为了让分支穷尽、将来真引入 CMYK 时文本有个明确落点。
+   ⚠ **与 `pk/geometry` 侧的分工**：`PkRect` 那条是**真缺口**（真 Qt `QTest::toString<QRect>`
+   打值，Pk 此前不打），文本逐字照抄 `QtTest/qtest.h:168-173`；`PkColor` 这条才是**超出**。
+   两条都被 `pk/color/tests/run_tests.sh`（经 ctest 的 `test_pkcolor_comparable`）
+   与 `pk/geometry/tests/run_tests.sh`（`test_pkgeometry_comparable`）钉在收尾路径上。
+
 ## 判据③ 口径（零 Qt 符号）
 
 `nm -u -C /tmp/r27-color-build/test_pkcolor | grep -i qt` → **无输出**
 （`-C` 反修饰不能省）。test_pkcolor 只链 pkcolor（→ pkstring/pkglobal/pktest），
 零 Qt。
+
+⚠ **R-87 起收尾口径换强判据**：`pk/color/tests/run_tests.sh`（新写）用的是
+`nm -u -C <libpkcolor.a> | grep -E '\bQ[A-Z][A-Za-z0-9_]*\b'` —— 上面那行
+`grep -i qt` 是**作废口径**（R线-spec 2026-09-15 判「不构成证据」：R-70 实测强判据
+命中 14、旧口径漏 10）。上面那行保留为 R-27 当时的历史记录，**新脚本按强口径来**
+（`pk/test`、`pk/geometry` 那两份至今仍是旧口径，各自的任务去修）。
 
 对拍侧 `oracle/difftest_color` 链接真 Qt —— 那是判据② 的工具，不是交付物，不适用
 判据③。
@@ -126,8 +174,21 @@ R-06、QDebug 归 R-08、QPointF 归 R-21/R-22）。driver 复刻调用点形状
   - `tests/` —— PK_* harness，114 例全绿
   - `oracle/` —— 真 Qt 对拍（run_oracle.sh + difftest_color.cpp）
   - `graft/` —— 真实生产头试接（graft_check.sh + instantiate_color.cpp）
-- 构建：
+- 构建（macOS 上必须给部署目标 13.3，理由见下）：
   ```bash
-  cmake -S . -B /tmp/r27-color-build && cmake --build /tmp/r27-color-build
-  /tmp/r27-color-build/test_pkcolor
+  cmake -S pk/color -B pk/color/build -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 && cmake --build pk/color/build
+  pk/color/build/test_pkcolor
   ```
+  ⚠ `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3` **只在这台 macOS + source 过
+  `krita-ci-env/env` 时必要**：env 把 `MACOSX_DEPLOYMENT_TARGET` 设成 `10.15`，
+  而 `pk/string/PkString_format.cpp:408/:743` 用 `std::to_chars` 的浮点重载
+  （macOS ≥ 13.3）⇒ 报 `'to_chars' is unavailable: introduced in macOS 13.3`。
+  **pkcolor PUBLIC 链 pkstring** ⇒ 这条躲不掉。同一个坑与同一个解法在
+  `pk/render/tests/run_tests.sh:62-72`、`pk/image/oracle/run_oracle.sh:143`、
+  `pk/geometry/README.md`「判据② 的工具」一节都有记录。
+- 收尾入口：`pk/color/tests/run_tests.sh`（R-87 新写；此前 pk/color 没有这个脚本，
+  收尾入口就是 CMakeLists 里的 `add_test`）。它 configure+build 后走 ctest 跑
+  `test_pkcolor` + `test_pkcolor_comparable`（R-87 判据），再跑上面那条强判据③。
+  `oracle/run_oracle.sh` 与 `graft/graft_check.sh` **刻意不串进去**（链真 Qt，属判据② 工具；
+  要串请另立任务）。

@@ -46,7 +46,7 @@ if (NOT TARGET pkstring)
     add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring EXCLUDE_FROM_ALL)
 endif()
 
-add_library(pkcolor STATIC PkColor.cpp)
+add_library(pkcolor STATIC PkColor.cpp PkColorTestString.cpp)
 target_include_directories(pkcolor PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PKSTRING_DIR}
@@ -72,6 +72,13 @@ target_include_directories(test_pkcolor PRIVATE
 )
 target_link_libraries(test_pkcolor PRIVATE pkcolor pktest)
 add_test(NAME test_pkcolor COMMAND test_pkcolor)
+
+# R-87：判据本体。策略=「故意失败一次 PK_COMPARE(PkColor…) + dup2 截获 stdout +
+# 断言失败信息里带值」。形态照抄 pk/geometry/tests/comparable_diagnostic_test.cpp。
+# 独立可执行文件而不并进 test_pkcolor：本判据要故意造红，并进去会污染那个二进制的 Totals。
+add_executable(test_pkcolor_comparable tests/comparable_diagnostic_test.cpp)
+target_link_libraries(test_pkcolor_comparable PRIVATE pkcolor pktest)
+add_test(NAME test_pkcolor_comparable COMMAND test_pkcolor_comparable)
 
 # 生成的 binder 是 .inc，由 test_color.cpp 自己 #include（做法与 Qt moc 的
 # "#include moc_X.cpp" 惯例一致）。这里只补上构建期依赖，让生成先于编译发生。
