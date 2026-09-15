@@ -236,27 +236,31 @@ public:
      * 快捷键载荷的解码（丢空 chord、逐和弦取 int）就发生在这里，管理器只做等值比较。
      *
      * **覆盖边界登记（R-62，2026-09-12；`libs/flake` 下没有 README，登记落在这里）**：
-     * `encodeHostActionShortcuts()`（KoCanvasController.cpp）里有两条支路，**树内今天
-     * 没有任何 target 能构造出它们的输入**：
+     * `encodeHostActionShortcuts()`（KoCanvasController.cpp）里有两条支路，**今天没有
+     * 任何能到达 `hostActions()` 这个面的路径能构造出它们的输入**：
      *
      *   (i) **「一条动作上挂 2 个 chord」**（`for (int i = 0; i < hostShortcut.count(); ++i)`）：
-     *       `KisHostActionSpec::shortcut` 是**单个** `Pk::Key`（`KoCanvasActionHost.h:24`），
-     *       物化边界只调 `QAction::setShortcut(int)` **单数形**（`KoToolFactoryBase.cpp`），
-     *       而复数形 `setShortcuts(PkList<QKeySequence>)` 只有 compat `QAction` 有
-     *       （`libs/flake/flake/noqt-compat/QAction`）——qt 桶的 TU 里 `QAction` 是真 Qt，
-     *       造不出 compat 那一个。
+     *       `KisHostActionSpec::shortcut` 是**单个** `Pk::Key`（`KoCanvasActionHost.h:23`），
+     *       物化边界只调 `QAction::setShortcut(int)` **单数形**（`KoToolFactoryBase.cpp`）。
+     *       唯一能装多条 chord 的入口是复数形 `setShortcuts(PkList<QKeySequence>)`：
+     *       真 Qt 与 compat `QAction` **各有各的**这个成员（名字相同、类型不同），
+     *       而 `hostActions()` 读的是 **compat** `QAction`（`findChildren<QAction *>()`
+     *       在 native 桶里展开成 compat 那个）。⇒ 要从这个面构造，就得造出 compat
+     *       `QAction`，而 qt 桶的 TU 里 `QAction` 是真 Qt（见下），造不出。
      *   (ii) **「丢空 chord」**（`if (hostShortcut.toString().isEmpty()) continue;`）：
      *       该 `continue` 只在 `action.shortcuts()` **非空**时才会被求值；而
      *       `KoToolFactoryBase::createActions()` 只在 `spec.shortcut != 0` 时调
      *       `setShortcut`，`shortcut == 0` 的 spec 让 `shortcuts()` 返回**空表** ⇒
-     *       循环体一次都不执行，这条支路**从未被求值**（实测：读 `KoToolFactoryBase.cpp`
-     *       的 `if (spec.shortcut != static_cast<Pk::Key>(0))` 与 compat `QAction::shortcuts()`
-     *       的实现）。
+     *       循环体一次都不执行，这条支路**从未被求值**。（**读源码得出的结论，不是探针
+     *       读数**：依据是 `KoToolFactoryBase.cpp` 的
+     *       `if (spec.shortcut != static_cast<Pk::Key>(0))` 与 compat `QAction::shortcuts()`
+     *       的实现。）
      *
      * **为什么不能靠「换个 task 去补」**：qt 桶造不出 compat `QAction`（见上），
      * 而链 `kritaflake` 的 TU **进不了 native 桶**——`kritaflake` 的 PUBLIC 依赖带
      * `-DQT_CORE_LIB`，`pk/signal/compat/QObject` 的让位守卫 `#if !defined(QT_CORE_LIB)`
-     * 因此恒让位（实测见 `.superpowers/sdd/R-62/probe/`）。⇒ 这一档要可达，得等
+     * 因此恒让位（探针原始输出：`.superpowers/sdd/R-62/probe/` 与本目录上一级的
+     * `scratch-native-probe.log` / `scratch-native-probe2.log`）。⇒ 这一档要可达，得等
      * **native 宿主**（不链 `kritaflake` 的那种 TU）把宿主 `QAction` 接回来。
      * **登记为覆盖边界，不指给任何现有任务。**
      */
