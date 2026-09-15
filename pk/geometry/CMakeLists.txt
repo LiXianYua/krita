@@ -180,6 +180,15 @@ add_executable(test_pkgeometry_debugstream
 target_link_libraries(test_pkgeometry_debugstream PRIVATE pkgeometry)
 
 # ---------------------------------------------------------------------------
+# R-87 判据：PK_COMPARE(PkRect …) 失败时，失败信息必须**带实际值**（不再是
+# <unprintable>）。自带 main()、故意制造一次失败并把 stdout 截回来核对 ——
+# 因此不能并进 test_pkgeometry（那会让它的 Totals 真的变红）。
+# 被 pk/geometry/tests/run_tests.sh 跑（**判据必须在收尾路径上**）。
+# ---------------------------------------------------------------------------
+add_executable(test_pkgeometry_comparable tests/comparable_diagnostic_test.cpp)
+target_link_libraries(test_pkgeometry_comparable PRIVATE pkgeometry pktest)
+
+# ---------------------------------------------------------------------------
 # R-58：arc 大角度档的 **UBSan 闸门**。
 #
 # ⚠ **刻意不链接 pkgeometry、也不继承它的 PUBLIC `-fwrapv`。** 理由实测过：

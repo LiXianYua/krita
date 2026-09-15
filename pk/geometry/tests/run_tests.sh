@@ -15,6 +15,16 @@ cmake --build "$BUILD" -j"$(nproc)" >/dev/null
 
 "$BUILD/test_pkgeometry_debugstream"
 
+# ── R-87：PK_COMPARE 失败信息必须打印**实际值**，不许是 <unprintable> ─────
+# 判据本体在 tests/comparable_diagnostic_test.cpp：它造一条故意失败的
+# PK_COMPARE(PkRect…) 并截获 stdout，断言失败信息里含 `PkRect(1,2 3x4)
+# (bottomright 3,5)` / `PkRect(5,6 7x8) (bottomright 11,13)`、不含
+# `<unprintable>`，且**对照组**（无运算符的局部 struct）仍退化成
+# `<unprintable>` —— 防「无脑点亮」。
+# 落在这里的理由是 R线-spec 的「判据必须在收尾路径上」：不在路径上的判据是装饰
+# （本文件下面 R-63 那段注释里就有两次实测代价）。
+"$BUILD/test_pkgeometry_comparable"
+
 # ── R-58：arc 大角度档的 UBSan 闸门 ───────────────────────────────────────
 # 判据是**退出码**：目标用 -fno-sanitize-recover=all 编，第一条 runtime error 就 abort。
 # 为什么必须单独一个 target、不能复用 pkgeometry：`-fwrapv` 会让 UBSan 的
