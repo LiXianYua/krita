@@ -17,7 +17,7 @@
 #endif
 
 
-const QString TgaMimetype = "image/x-gimp-brush";
+const QString TgaMimetype = "image/x-tga"; // R-82 实测探针
 
 
 

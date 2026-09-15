@@ -76,6 +76,11 @@
 #   include <unistd.h>
 #endif
 
+// R-82：`impex_file_utils.h` 必须在 `namespace TestUtil` **之外** include
+// （该头自己会开这个命名空间；在命名空间内 include 会嵌成 `TestUtil::TestUtil`，
+// 本文件那四个 `testXxx()` 的无限定调用随即全部解析不到）。所以搬到这里。
+#include "impex_file_utils.h"
+
 namespace TestUtil
 {
 
@@ -218,7 +223,15 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
 // `impexTempFilesDir`）已搬到 `sdk/tests/impex_file_utils.h` —— **函数体一字未改**。
 // 搬家的理由见那个头的头注（一句话：`PkTestSupportSelfTest` 零 Krita 库依赖，
 // 够不到 `testutil.h`，而它只需要这三个函数）。
-#include "impex_file_utils.h"
+//
+// **该 include 不在这里**：本文件从上面 `namespace TestUtil` 那行起就已经在
+// `TestUtil` 里了，而 `impex_file_utils.h` 自己**也**开 `namespace TestUtil`
+// ——在命名空间内 include 会得到 `TestUtil::TestUtil::*`，本文件下面那四个
+// `testXxx()` 里的无限定调用 `prepareFile(...)` 就全都解析不到（实测首错
+// `filestest.h:244:33: use of undeclared identifier 'impexTempFilesDir';
+// did you mean '::TestUtil::TestUtil::impexTempFilesDir'`）。
+// 故它被提到**命名空间之外**的顶部 include 区（见文件上方 `#include <QStandardPaths>`
+// 之后那一行）。函数体、断言、容差一个字未动，只动了 include 的位置。
 
 
 

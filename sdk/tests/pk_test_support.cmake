@@ -130,7 +130,14 @@ function(pk_add_test testbase)
     # `pk_test_moc.py <该 cpp> --stats` → `1  5`，5 个测试方法全列出），
     # wrap TU 不再单独 include 源文件（binder 自己会 include，避免无 include guard
     # 的 .cpp 被编两遍），并补一个空的 <testbase>.moc 占位（见下）。
-    cmake_parse_arguments(ARG "HEADERLESS;BENCHMARK" "SRCDIR;TEST_NAME;NAME_PREFIX;BENCHMARK_TARGET" "SOURCES;LINK_LIBRARIES" ${ARGN})
+    # BROKEN（R-82 新增）：把「破测试」语义也接过来。5 个 plugin target 在原树里是
+    # `krita_add_broken_unit_test`（= KRITA_ADD_UNIT_TEST(... BROKEN)），而
+    # KritaAddBrokenUnitTest.cmake 只在 `KRITA_ENABLE_BROKEN_TESTS` 时才 add_test
+    # ⇒ 它们**本来不在 ctest 里**。R-82 把它们切到 pk 栈时若不转发这个位，ctest
+    # 测试数会从 378 涨到 383（改变测试面），那是判据之外的变化。
+    # kis_add_test 本来就是 KRITA_ADD_UNIT_TEST 的别名，而后者 parse 了 BROKEN
+    # 选项 ⇒ 直接透传即可，不需要另写一条注册路径。
+    cmake_parse_arguments(ARG "HEADERLESS;BENCHMARK;BROKEN" "SRCDIR;TEST_NAME;NAME_PREFIX;BENCHMARK_TARGET" "SOURCES;LINK_LIBRARIES;REGISTER_FILTERS" ${ARGN})
 
     if(ARG_SRCDIR)
         set(_srcdir "${ARG_SRCDIR}")
@@ -203,6 +210,58 @@ function(pk_add_test testbase)
 ")
     endif()
 
+    # -----------------------------------------------------------------------
+    # REGISTER_FILTERS（R-82 新增）：把给定的 `extern "C" bool` 静态注册入口
+    # **调用一次**，并借此把入口所在的归档成员按引用拉进链接。
+    #
+    # 为什么需要它（判据不是「编过」而是「跑绿」）：决策 D-12 之后插件是 STATIC +
+    # 静态注册，注册表（libs/impex/KisImportExportManager.cpp:119-131 的**函数内
+    # 静态表**）只被 `registerKisXxxFilter()` 写入。而链接器只按符号引用取归档成员
+    # ⇒ 没人引用、更没人调用 ⇒ 表恒空 ⇒ `importDocument()` 一律返回
+    # `FileFormatNotSupported`。此时断言「失败」的用例会**假绿**
+    # （实测：KisTgaTest 的 testImportFromWriteonly / testExportToReadonly 在没有
+    #  注册时照样 PASS，而断言**具体错误码**的 testImportIncorrectFormat 才把它
+    #  暴露出来 —— 那一条正是本机制在收尾路径上的判别力对照物）。
+    #
+    # 形制取自 plugins/impex/tests/kis_impex_static_registration_test.cpp:20-60：
+    # 它对每个 codec 的入口做 `extern "C" … KIS_WEAK_REGISTRATION` 声明并取地址，
+    # 既拉成员又调用。那里是**全 42 个** codec 的 oracle；此处**按 target 窄取**
+    # 该格式自己的那一两个入口（R-77 已裁定：不要把全部插件拖进每一个 pk 测试目标）。
+    #
+    # 生成的 TU 是 target 的**直接源文件**（不在归档里），所以它自己不会被丢弃，
+    # 而它对外部入口的引用会把 `<archive>(member)` 拉进来 —— 于是不再需要
+    # `-force_load <整档>`（整档形态在「同一个 .cpp 同时编进 import 与 export 两个
+    # 归档」的 6 个格式上会撞 `duplicate symbol`，实测 tga）。
+    # -----------------------------------------------------------------------
+    set(_register_src)
+    if(ARG_REGISTER_FILTERS)
+        set(_register_src "${CMAKE_CURRENT_BINARY_DIR}/pk_register_${_tgt}.cpp")
+        set(_pk_decls "")
+        set(_pk_calls "")
+        foreach(_sym IN LISTS ARG_REGISTER_FILTERS)
+            string(APPEND _pk_decls "extern \"C\" bool ${_sym}();\n")
+            string(APPEND _pk_calls "        (void)${_sym}();\n")
+        endforeach()
+        file(WRITE "${_register_src}"
+"// R-82 生成：pk 测试栈的**静态注册激活 TU**（由 pk_add_test 的 REGISTER_FILTERS 生成）。
+// 两个作用，缺一不可：
+//   1) 引用这些入口符号 ⇒ 链接器把含它们的归档成员拉进二进制
+//      （否则 .o 整份被丢弃，构造函数/入口都不存在）；
+//   2) 在静态初始化期**调用**它们 ⇒ KisImportExportManager 的注册表真的被填充。
+// 顺序无关：注册表是函数内静态表（libs/impex/KisImportExportManager.cpp:121），
+// 任何静态初始化期写入都安全；filter 本体由各入口的 lambda 惰性构造。
+${_pk_decls}
+namespace {
+struct PkImportExportRegistration {
+    PkImportExportRegistration()
+    {
+${_pk_calls}    }
+};
+const PkImportExportRegistration pkImportExportRegistration;
+} // namespace
+")
+    endif()
+
     # NAME_PREFIX：只在显式给了才转发（否则 kis_add_test 按路径自动推导，
     # 与基线一致）。libs/flake/flake/tests 这类目录的基线前缀是 libs-ui-，
     # 必须逐字转发，否则 ctest 名与基线不符。
@@ -241,9 +300,14 @@ function(pk_add_test testbase)
             endif()
         endif()
     else()
-        kis_add_test("${_wrap}" ${ARG_SOURCES}
+        set(_broken_arg)
+        if(ARG_BROKEN)
+            set(_broken_arg BROKEN)
+        endif()
+        kis_add_test("${_wrap}" ${_register_src} ${ARG_SOURCES}
             TEST_NAME "${_tgt}"
             ${_nameprefix_arg}
+            ${_broken_arg}
             LINK_LIBRARIES ${ARG_LINK_LIBRARIES} kritatestsdk_pk
         )
     endif()
@@ -257,6 +321,9 @@ function(pk_add_test testbase)
         "${CMAKE_CURRENT_BINARY_DIR}"
         "${_srcdir}")
     set_source_files_properties("${_wrap}" PROPERTIES OBJECT_DEPENDS "${_binder}")
+    if(_register_src)
+        set_source_files_properties("${_register_src}" PROPERTIES GENERATED TRUE)
+    endif()
 
     set(${_tgt}_PK_ADDED TRUE PARENT_SCOPE)
 endfunction()
