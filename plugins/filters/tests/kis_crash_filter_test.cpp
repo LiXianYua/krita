@@ -17,7 +17,8 @@
 #include <KoColorSpaceRegistry.h>
 #include <simpletest.h>
 #include <testing_timed_default_bounds.h>
-#include <KisPortingUtils.h>
+#include <PkFileStream.h>
+#include <PkTextStream.h>
 
 bool KisCrashFilterTest::applyFilter(const KoColorSpace * cs,  KisFilterSP f)
 {
@@ -36,23 +37,20 @@ bool KisCrashFilterTest::applyFilter(const KoColorSpace * cs,  KisFilterSP f)
         dbgKrita << "creating new file for " << f->id();
         if (file.open(PkStream::WriteOnly | PkStream::Text)) {
             PkTextStream out(&file);
-            KisPortingUtils::setUtf8OnStream(out);
             out << kfc->toXML();
         } else {
-            qDebug() << "Could not open" << file.fileName() << "for writing:" <<  file.errorString();
+            qDebug() << "Could not open" << file.fileName().PkToUtf8().c_str() << "for writing:" <<  file.errorString().PkToUtf8().c_str();
         }
     } else {
-        PkString s;
         PkTextStream in(&file);
-        KisPortingUtils::setUtf8OnStream(in);
-        s = in.readAll();
+        PkString s(in.readAll().c_str());
         kfc->fromXML(s);
     }
     dbgKrita << f->id() << ", " << cs->id() << ", " << cs->profile()->name();// << kfc->toXML() << "\n";
 
     {
         kfc->createLocalResourcesSnapshot(KisGlobalResourcesInterface::instance());
-        KisTransaction t(kundo2_noi18n(f->name()), dev);
+        KisTransaction t(kundo2_text_raw(f->name()), dev);
         f->process(dev, PkRect(PkPoint(0,0), qimage.size()), kfc);
     }
 
@@ -68,7 +66,7 @@ bool KisCrashFilterTest::testFilter(KisFilterSP f)
 
         // Alpha color spaces are never processed directly. They are
         // first converted into GrayA color space
-        if (colorSpace->id().startsWith("ALPHA", Qt::CaseInsensitive)) {
+        if (colorSpace->id().toUpper().startsWith("ALPHA")) {
             continue;
         }
 
@@ -103,7 +101,7 @@ void KisCrashFilterTest::testCrashFilters()
     }
     dbgKrita << "Success: " << successes;
     if (failures.size() > 0) {
-        QFAIL(PkString("Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1());
+        QFAIL(PkString("Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1().constData());
     }
 }
 

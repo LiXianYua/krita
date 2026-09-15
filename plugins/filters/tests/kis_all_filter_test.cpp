@@ -19,7 +19,9 @@
 #include <qimage_test_util.h>
 #include <simpletest.h>
 #include <testing_timed_default_bounds.h>
-#include <KisPortingUtils.h>
+#include <PkFileStream.h>
+#include <PkTextStream.h>
+#include <testutil.h>
 
 bool testFilterSrcNotIsDev(KisFilterSP f)
 {
@@ -43,16 +45,13 @@ bool testFilterSrcNotIsDev(KisFilterSP f)
         //qDebug() << "creating new file for " << f->id();
         if (file.open(PkStream::WriteOnly | PkStream::Text)) {
             PkTextStream out(&file);
-            KisPortingUtils::setUtf8OnStream(out);
             out << kfc->toXML();
         } else {
-            qDebug() << "Could not open" << file.fileName() << "for writing:" <<  file.errorString();
+            qDebug() << "Could not open" << file.fileName().PkToUtf8().c_str() << "for writing:" <<  file.errorString().PkToUtf8().c_str();
         }
     } else {
-        PkString s;
         PkTextStream in(&file);
-        KisPortingUtils::setUtf8OnStream(in);
-        s = in.readAll();
+        PkString s(in.readAll().c_str());
         //qDebug() << "Read for " << f->id() << "\n" << s;
         kfc->fromXML(s);
     }
@@ -61,12 +60,12 @@ bool testFilterSrcNotIsDev(KisFilterSP f)
     kfc->createLocalResourcesSnapshot(KisGlobalResourcesInterface::instance());
     f->process(dev, dstdev, 0, PkRect(PkPoint(0,0), qimage.size()), kfc);
 
-    PkPoint errpoint;
+    QPoint errpoint;
 
     PkImage actualResult = dstdev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
 
-    if (!TestUtil::compareQImages(errpoint, result, actualResult, 1, 1)) {
-        qDebug() << "Failed compare result images for: " << f->id();
+    if (!TestUtil::compareQImages(errpoint, TestUtil::diagnosticQImage(result), TestUtil::diagnosticQImage(actualResult), 1, 1)) {
+        qDebug() << "Failed compare result images for: " << f->id().PkToUtf8().c_str();
         qDebug() << errpoint;
         actualResult.save(PkString("carrot_%1.png").arg(f->id()));
         result.save(PkString("carrot_%1_expected.png").arg(f->id()));
@@ -88,7 +87,7 @@ bool testFilter(KisFilterSP f)
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->setDefaultBounds(new TestUtil::TestingTimedDefaultBounds(qimage.rect()));
     dev->convertFromQImage(qimage, 0, 0, 0);
-    KisTransaction * cmd = new KisTransaction(kundo2_noi18n(f->name()), dev);
+    KisTransaction * cmd = new KisTransaction(kundo2_text_raw(f->name()), dev);
 
     // Get the predefined configuration from a file
     KisFilterConfigurationSP  kfc = f->defaultConfiguration(KisGlobalResourcesInterface::instance());
@@ -98,22 +97,19 @@ bool testFilter(KisFilterSP f)
         //qDebug() << "creating new file for " << f->id();
         if (file.open(PkStream::WriteOnly | PkStream::Text)) {
             PkTextStream out(&file);
-            KisPortingUtils::setUtf8OnStream(out);
             out << kfc->toXML();
         } else {
-            qDebug() << "Could not open" << file.fileName() << "for writing:" <<  file.errorString();
+            qDebug() << "Could not open" << file.fileName().PkToUtf8().c_str() << "for writing:" <<  file.errorString().PkToUtf8().c_str();
         }
     } else {
-        PkString s;
         PkTextStream in(&file);
-        KisPortingUtils::setUtf8OnStream(in);
-        s = in.readAll();
+        PkString s(in.readAll().c_str());
         //qDebug() << "Read for " << f->id() << "\n" << s;
         const bool validConfig = kfc->fromXML(s);
 
 
         if (!validConfig) {
-            qDebug() << PkString("Couldn't parse XML settings for filter %1").arg(f->id()).toLatin1();
+            qDebug() << PkString("Couldn't parse XML settings for filter %1").arg(f->id()).toLatin1().constData();
             return false;
         }
     }
@@ -122,14 +118,14 @@ bool testFilter(KisFilterSP f)
 
     f->process(dev, PkRect(PkPoint(0,0), qimage.size()), kfc);
 
-    PkPoint errpoint;
+    QPoint errpoint;
 
     delete cmd;
 
     PkImage actualResult = dev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
 
-    if (!TestUtil::compareQImages(errpoint, result, actualResult, 1, 1)) {
-        qDebug() << "Failed compare result images for: " << f->id();
+    if (!TestUtil::compareQImages(errpoint, TestUtil::diagnosticQImage(result), TestUtil::diagnosticQImage(actualResult), 1, 1)) {
+        qDebug() << "Failed compare result images for: " << f->id().PkToUtf8().c_str();
         qDebug() << errpoint;
         actualResult.save(PkString("carrot_%1.png").arg(f->id()));
         result.save(PkString("carrot_%1_expected.png").arg(f->id()));
@@ -157,16 +153,13 @@ bool testFilterWithSelections(KisFilterSP f)
         //qDebug() << "creating new file for " << f->id();
         if (file.open(PkStream::WriteOnly | PkStream::Text)) {
             PkTextStream out(&file);
-            KisPortingUtils::setUtf8OnStream(out);
             out << kfc->toXML();
         } else {
-            qDebug() << "Could not open" << file.fileName() << "for writing:" <<  file.errorString();
+            qDebug() << "Could not open" << file.fileName().PkToUtf8().c_str() << "for writing:" <<  file.errorString().PkToUtf8().c_str();
         }
     } else {
-        PkString s;
         PkTextStream in(&file);
-        KisPortingUtils::setUtf8OnStream(in);
-        s = in.readAll();
+        PkString s(in.readAll().c_str());
         //qDebug() << "Read for " << f->id() << "\n" << s;
         kfc->fromXML(s);
     }
@@ -178,12 +171,12 @@ bool testFilterWithSelections(KisFilterSP f)
     kfc->createLocalResourcesSnapshot(KisGlobalResourcesInterface::instance());
     f->process(dev, dev, sel1, PkRect(PkPoint(0,0), qimage.size()), kfc);
 
-    PkPoint errpoint;
+    QPoint errpoint;
 
     PkImage actualResult = dev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
 
-    if (!TestUtil::compareQImages(errpoint, result, actualResult, 1, 1)) {
-        qDebug() << "Failed compare result images for: " << f->id();
+    if (!TestUtil::compareQImages(errpoint, TestUtil::diagnosticQImage(result), TestUtil::diagnosticQImage(actualResult), 1, 1)) {
+        qDebug() << "Failed compare result images for: " << f->id().PkToUtf8().c_str();
         qDebug() << errpoint;
         actualResult.save(PkString("carrot_%1.png").arg(f->id()));
         result.save(PkString("carrot_%1_expected.png").arg(f->id()));
@@ -220,7 +213,7 @@ void KisAllFilterTest::testAllFilters()
     }
     dbgKrita << "Success: " << successes;
     if (failures.size() > 0) {
-        QFAIL(PkString("Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1());
+        QFAIL(PkString("Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1().constData());
     }
 }
 
@@ -251,7 +244,7 @@ void KisAllFilterTest::testAllFiltersSrcNotIsDev()
     }
     dbgKrita << "Src!=Dev Success: " << successes;
     if (failures.size() > 0) {
-        QFAIL(PkString("Src!=Dev Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1());
+        QFAIL(PkString("Src!=Dev Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1().constData());
     }
 
 }
@@ -283,7 +276,7 @@ void KisAllFilterTest::testAllFiltersWithSelections()
     }
     dbgKrita << "Success: " << successes;
     if (failures.size() > 0) {
-        QFAIL(PkString("Failed filters with selections:\n\t %1").arg(failures.join("\n\t")).toLatin1());
+        QFAIL(PkString("Failed filters with selections:\n\t %1").arg(failures.join("\n\t")).toLatin1().constData());
     }
 }
 
