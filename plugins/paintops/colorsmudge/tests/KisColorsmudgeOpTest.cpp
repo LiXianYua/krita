@@ -19,6 +19,26 @@
 // 同目录同类测试 KisBrushOpTest（kis_brushop_test.h + .cpp）用的就是
 // `<simpletest.h>` + SIMPLE_TEST_MAIN 这一形态，此处与之对齐；测试体、断言、
 // QImageBasedTest 的像素比对全部不动。
+// ⚠ 【声明出来的覆盖洞 —— R-85，2026-09-15 人拍板走 A：对齐上游】
+// 本文件下半部分那处 checkOneLayer 调用是**裸调用**（丢弃返回值），与上游
+// KDE/krita v6.0.3（同文件 :83）逐字同形。**因此本测试从此不检查任何东西。**
+//
+// 为什么：checkOneLayer 会比对本用例的参考图，而它要的 **16 张参考图**
+// （8 个 .kpp 预设 × norm/over 两个模式）**上游与 fork 都不存在** —— 两侧
+// tests/data/ 都只有 8 个 .kpp、一张 .png 都没有（2026-09-15 双向实测：fork 侧
+// `find ... -name '*.png'` 为 0；上游 GitHub contents API `?ref=v6.0.3` 同样 0）。
+// 参考图缺席时 QImageBasedTest::checkOneQImage（sdk/tests/qimage_based_test.h:246）
+// 拿到的是**空 QImage**，裸调用下无所谓；M0 基线记的 `Passed` 只可能由这一形态解释。
+//
+// **不许顺手「补」参考图** —— 上游都没有的参考图 = 自己造判据，明令禁止。
+// 先例（R-80）：用「复制 5 个 .asl」凑 TestAslStorage 的绿，复制让解析器第一次
+// 真跑起来、撞上潜伏死循环，把那门测试从 `Failed 0.04 s` 变成 `Timeout 200 s`
+// —— 比原来更坏。**凑出来的绿，代价常常在别处结算。**
+//
+// **这个洞是登记出来的，不是静默的。** 通则见 R线-spec〈上游与 fork 不同形、且参考
+// 数据两边都不存在时：对齐上游，并把「它其实不检查」写在明处〉；本文件的改动与理由
+// 见 docs/superpowers/plans/R-85.md 与 docs/TASKS.md 的 R-85 行。
+// 关闭条件：上游补进参考图（那时删掉本注释并把裸调用恢复成断言），或本测试判不迁。
 
 #define USE_DOCUMENT 0
 #include <qimage_based_test.h>
@@ -97,7 +117,7 @@ public:
 
         doPaint(gc);
 
-        QVERIFY(checkOneLayer(image, targetNode, testPrefix));
+        checkOneLayer(image, targetNode, testPrefix);
     }
 
     void doPaint(KisPainter &gc) {
