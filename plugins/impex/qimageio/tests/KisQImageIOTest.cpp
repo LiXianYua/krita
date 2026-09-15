@@ -17,7 +17,7 @@
 #endif
 
 
-const QString QImageIOMimetype = "image/x-gimp-brush";
+const QString QImageIOMimetype = "image/bmp";
 
 
 

@@ -1,5 +1,9 @@
-kis_add_test(
-    KisQImageIOTest.cpp
-    TEST_NAME KisQImageIOTest
-    LINK_LIBRARIES kritaimpex kritatestsdk
+pk_add_test(
+    KisQImageIOTest
+    REGISTER_FILTERS
+        registerKisQImageIOImportFilter
+        registerKisQImageIOExportFilter
+    LINK_LIBRARIES
+        kritaimpex
+        kritaqimageioimport kritaqimageioexport
     )
