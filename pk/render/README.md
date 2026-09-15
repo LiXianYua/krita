@@ -170,28 +170,62 @@ shape oracle compares per-image digests, not pixel counts.
   **shift** (measured; see R-52 plan §1.1). Restoring them needed polygon fill +
   readback. **R-52 restores both** (see the R-52 section below).
 
-**Host portability of this directory's scripts** (measured on macOS arm64, 2026-09-11):
-`tests/run_tests.sh` and both `oracle/run_brush_*.sh` cannot run there —
-they `source` a Linux path (`/mnt/ssd-disk/...`), and the two brush runners pass
-`-Wl,--start-group`/`--end-group`, which GNU ld accepts but ld64 does not.
-`tests/run_tests.sh` additionally calls `readelf`/`ldd` (Linux binutils; `otool -L` is
-the macOS equivalent).
-`oracle/run_shape_primitive.sh` rewrites `oracle/shape_primitive_golden.txt` in the
-source tree on every run — that is deliberate (the golden is a checked-in record of the
-Qt measurement, and regenerating it is how it stays honest), and it is idempotent: when
-the two sides agree the file comes back byte-identical and `git status` stays clean. `oracle/run_shape_primitive.sh` is written to work on both and
-locates the dependency env by searching upwards from `pk/render` rather than hardcoding
-a path. The three older scripts are registered here as a gap, not fixed by R-51.
+**Host portability of this directory's scripts** (measured on macOS arm64, 2026-09-15,
+commit `fa56cde`): `tests/run_tests.sh` **runs on both platforms** — it locates the
+dependency env by searching upwards for `krita-ci-env/env`, passes
+`-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3` on Darwin (the `pk/` layer needs `std::to_chars`'s
+floating-point overload; the CI env sets 10.15), and picks `otool -L` on Darwin vs
+`readelf -d` + `ldd` on Linux for the dynamic-dependency closure.
+**It is the finishing entry**: it builds, runs `ctest` (**asserting `Not Run == 0`**),
+runs `test_pkrender` (which has no `add_test`), then runs all three oracles
+(`oracle/run_shape_primitive.sh`, `oracle/run_svg_primitive.sh`,
+`oracle/probes/run_probes.sh`) and finally the criterion-③ symbol scan with a
+**freshly picked** discriminating control.
+`oracle/run_brush_gradient.sh` / `oracle/run_brush_transform.sh` **still do not run here**
+(they hardcode the Linux env path `/mnt/ssd-disk/...` and pass `-Wl,--start-group`, which
+ld64 rejects); `oracle/run_blur_kernel.sh` and `oracle/run_text.sh` are **not on the
+finishing path either** — the entry runs only the three oracles above, and R-76 registers
+all four as a gap it did not close.
+`oracle/run_shape_primitive.sh` rewrites `oracle/shape_primitive_golden.txt` in the source
+tree on every run — that is deliberate (the golden is a checked-in record of the Qt
+measurement, and regenerating it is how it stays honest), and it is idempotent: when the
+two sides agree the file comes back byte-identical and `git status` stays clean.
+⚠ **Every number in this file is a measurement with a date.** Anything quoting a
+discriminating control older than the current tree is stale by construction: re-measure
+before quoting (`R线-spec`〈判别力对照物〉).
 
 ## Dependency checks
 
-`tests/run_tests.sh` runs the brief's blanket `nm -u -C ... | grep -i qt` command and
-reports its real exit code. That grep intentionally matches copied compatibility names
-(`Qt::GlobalColor`, `Qt::AspectRatioMode`, and `pk_qt_assert`), so it cannot be a clean
-linkage predicate without renaming measured public APIs. The runner therefore also
-enforces a reviewed real-Qt class/C-ABI matcher with an explicit compatibility
-allowlist, verifies the final test executable's `readelf`/`ldd` dependency closure, and
-checks Ninja's complete `pkrender` command closure for Qt targets and libraries.
+**The finishing entry for this directory is `tests/run_tests.sh`** (R-76 rewrote it; it
+had been unrunnable on this host). It builds, runs `ctest` in full **asserting
+`Not Run == 0`**, runs `test_pkrender` (which has no `add_test`), runs the three oracles
+(`oracle/run_shape_primitive.sh`, `oracle/run_svg_primitive.sh`,
+`oracle/probes/run_probes.sh`, ~30 s together), then runs the criterion-③ symbol scan
+with a **freshly picked** discriminating control. Three shapes a reader must not misread
+(all measured live 2026-09-15, commit `fa56cde`):
+
+1. **The two `EXCLUDE_FROM_ALL` targets are point-built by the entry, and that is why
+   `Not Run` is 0.** `pk/render/CMakeLists.txt:75-76` still marks the `pk/font` and
+   `pk/xml` sub-directories `EXCLUDE_FROM_ALL` (unchanged by R-76), so the default `all`
+   target omits the `test_pkfont` / `test_pkxml` executables and a bare `ctest` would
+   report them `Not Run`. The entry names them explicitly
+   (`ninja -C <build> test_pkfont test_pkxml`) and then asserts `Not Run == 0`, so the
+   failure mode is a red entry, not a silent skip.
+2. **`test_pkrender` is not in the ctest list.** `pk/render/CMakeLists.txt:89` gives it
+   only `add_executable` (no `add_test`), so the entry runs it directly. **The `ctest`
+   count is not the count of tests this directory ran.**
+3. **The three oracles run on every finishing run** (~30 s) — `R线-spec`〈判据必须在收尾
+   路径上，否则它是装饰〉; before R-76 none of them was on any path on this host.
+
+The symbol scan itself: `tests/run_tests.sh` runs the brief's blanket
+`nm -u -C ... | grep -i qt` command and reports its real exit code. That grep
+intentionally matches copied compatibility names (`Qt::GlobalColor`,
+`Qt::AspectRatioMode`, and `pk_qt_assert`), so it cannot be a clean linkage predicate
+without renaming measured public APIs. The runner therefore also enforces a reviewed
+real-Qt class/C-ABI matcher with an explicit compatibility allowlist, verifies the final
+test executable's dynamic-dependency closure (`otool -L` on Darwin, `readelf -d` + `ldd`
+on Linux), and checks Ninja's complete `pkrender` command closure for Qt targets and
+libraries.
 
 ## R-52 — restoring the two blur-filter kernels (registered deviations)
 
@@ -211,13 +245,21 @@ libkritablurfilter.a` carries zero Qt-class symbols.
 - numerator — `nm -u -C libkritablurfilter.a | grep -E '\bQ[A-Z][A-Za-z0-9_]*\b'` → **0**.
 - denominator — 294 raw `nm -u -C` lines / **282** symbol lines (the rest are member
   headings) across **7** archive members.
-- discriminating power — the same command on `bin/libkritaflake.dylib` (`otool -L`
-  confirms Qt 5.15.7: QtSvg/QtXml/QtWidgets/QtGui/QtCore) → **39** hits.
-- the old blanket `grep -i qt` is a **false-negative machine**: on that same dylib it
-  finds only **6** of the 39, because most Qt class names (`QAction`, `QChar`, `QEvent`,
-  `QMenu`, `QMetaMethod`, `QPixmap`, `QString`, …) do not contain the literal substring
-  `qt`. It happens to read 0 on this archive, but it would also read 0 if `QImage` or
-  `QString` symbols were present — hence the strong criterion above.
+- discriminating power — **re-measured live 2026-09-15, commit `fa56cde`**, replacing the
+  retired `libkritaflake.dylib … 39 hits` row: the same command on
+  `pk/render/build/oracle-probes/probe` (the Qt-side probe `oracle/probes/run_probes.sh`
+  just built; `otool -L` confirms Qt 5.15.7: QtSvg/QtWidgets/QtGui/QtCore) →
+  **denominator 131 undefined-symbol lines, 37 hits**. The retired control now reads
+  **663 / 0** — `krita/build-macos/bin/libkritaflake.dylib` still links **five** Qt
+  frameworks (`otool -L`: QtSvg/QtXml/QtWidgets/QtGui/QtCore) yet has **zero** Qt class
+  symbols left, i.e. it stopped being a control without anyone noticing. **Pick a control
+  live, and always print its denominator.**
+- the old blanket `grep -i qt` is a **false-negative machine**: on the same live control
+  (the probe) it finds only **6** of the 37 class symbols, because most Qt class names
+  (`QAction`, `QChar`, `QEvent`, `QMenu`, `QMetaMethod`, `QPixmap`, `QString`,
+  `QArrayData`, `QSvgRenderer`, …) do not contain the literal substring `qt`. It happens
+  to read 0 on this archive, but it would also read 0 if `QImage` or `QString` symbols
+  were present — hence the strong criterion above.
 
 Registered deviations / gaps, each with its source and its measured numbers:
 
@@ -512,7 +554,7 @@ re-measured by **R-54 修复轮 1**), thin-shell build `/tmp/r54-pkrender-build`
 | thin-shell ctest | **7 / 7 pass, 0 skipped** (`test_pksvg_rasterizer`, `test_shape_primitive`, `test_svg_primitive`, `test_blur_kernel`, `test_text`, `test_pkfont`, `test_pkxml`) |
 | 判据③ `nm -u -C libpkrender.a \| grep -E '\bQ[A-Z][A-Za-z0-9_]*\b'` | **0 hits** (denominator: 12 objects, 16998 raw `nm` lines, 683 undefined symbols) |
 | 判据③ same command on `svg_primitive_oracle_pk` / `svg_backend_driver` | **0 / 0** (6805 / 6883 raw lines; 163 / 166 undefined symbols) |
-| discriminating control: same command on `krita/build-macos/bin/libkritaflake.dylib` (links Qt 5.15.7 — `otool -L`) | **39 hits** — the criterion has discriminating power |
+| discriminating control: same command on `pk/render/build/oracle-probes/probe` (the Qt-side probe this run's `run_probes.sh` built; links Qt 5.15.7 — `otool -L`) | **denominator 131 undefined-symbol lines, 37 hits** (**re-measured live 2026-09-15, commit `fa56cde`**; the retired `krita/build-macos/bin/libkritaflake.dylib` row now reads **663 / 0** — it still links five Qt frameworks (`otool -L`) yet has zero Qt class symbols. Pick a control live; always print its denominator.) |
 | deprecated negative control: `nm -u libpkrender.a \| grep -i qt` | **1 hit** — a false positive on a Qt-free target (`pk_qt_assert`). This is why `grep -i qt` is retired. |
 
 **判据② — both batches sit behind a dependency wall, so the R线-spec degrade path is used.**
