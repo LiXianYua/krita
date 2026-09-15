@@ -206,6 +206,19 @@ private:
 //   代价实测过两次：R-75 把 `<unprintable>` 误判成「剥 Qt 后的行为差异」、
 //   R-78 因它白立一次案。
 //
+// ⚠ **连带变更（R-87 修复轮登记）**：本运算符让 `PkDebugIsOstreamable<PkColor>`
+//   由 0 变 1（pk/log/PkDebug.h:43-49 的 SFINAE 探针），于是 `qDebug() << pkColor`
+//   从「分支三」的 `<unprintable>` 改走「分支二」打本运算符的值文本。**方向上这是
+//   朝真 Qt 收敛、不是偏离** —— 真 Qt 的 `QDebug operator<<(QDebug, const QColor&)`
+//   本来就打值（探针文本 `QColor(ARGB 1, 1, 0, 0)`，见 PkColorTestString.cpp 文件头）。
+//   当前**不可观测**：全树零处同时「内联编 `PkColor.cpp`」+「用 `PkDebug` 流 `PkColor`」
+//   （实测 `grep -rln PkColor.h pk/` 再筛 `PkDebug.h` 只命中两份 CMakeLists、无 TU）——
+//   是「现在测不到」，不是「无影响」。登记见 README 偏离 10。
+//   ⚠ **对照组 `PkRect` 没有这条连带**：它有自由
+//   `PkDebug operator<<(PkDebug, const PkRect&)`（PkGeometryDebug.cpp:107），重载决议
+//   仍选中那条，`dbg << rect` 文本一字未漂（`test_pkgeometry_debugstream` 全绿）——
+//   **两边不同形**，别照搬。
+//
 // 定义在 pk/color/PkColorTestString.cpp（独立 TU，与任何 PkDebug 通道零耦合）。
 std::ostream &operator<<(std::ostream &os, const PkColor &c);
 

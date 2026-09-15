@@ -115,6 +115,23 @@
    两条都被 `pk/color/tests/run_tests.sh`（经 ctest 的 `test_pkcolor_comparable`）
    与 `pk/geometry/tests/run_tests.sh`（`test_pkgeometry_comparable`）钉在收尾路径上。
 
+10. **新运算符的连带：`PkDebugIsOstreamable<PkColor>` 由 0 变 1（R-87 修复轮登记）** ——
+   偏离 8 那条 `std::ostream operator<<(std::ostream&, const PkColor&)` 落地后，
+    `pk/log/PkDebug.h:43-49` 的 SFINAE 探针命中，`PkDebugIsOstreamable<PkColor>` 由
+    `false` 变 `true` ⇒ `qDebug() << pkColor` 由「分支三」的 `<unprintable>` 改走
+    「分支二」打偏离 9 那条值文本。**方向上这是朝真 Qt 收敛，不是偏离**：真 Qt 的
+    `QDebug operator<<(QDebug, const QColor&)` 本来就打值（探针文本
+    `QColor(ARGB 1, 1, 0, 0)`，见 `PkColorTestString.cpp` 文件头）。本条登记的是这条
+    **连带变更本身**（0→1 与消息通道的改道），不是文本形态——文本形态见偏离 9。
+    - **可观测性：当前不可观测**。全树零处同时「内联编 `PkColor.cpp`」+「用 `PkDebug`
+      流 `PkColor`」（实测 `grep -rln PkColor.h pk/` 再筛 `PkDebug.h`，只命中
+      `pk/CMakeLists.txt`、`pk/geometry/CMakeLists.txt` 两份 CMakeLists，无 TU）——
+      是「现在测不到」，**不是「无影响」**。
+    - ⚠ **对照组 `PkRect` 没有这条连带**：`PkRect` 另有自由
+      `PkDebug operator<<(PkDebug, const PkRect&)`（`pk/geometry/PkGeometryDebug.cpp:107`），
+      重载决议仍选中它，`dbg << rect` 文本一字未漂（`test_pkgeometry_debugstream` 全绿）。
+      **两边不同形**，别以为 PkColor 的连带在 PkRect 上同样存在。
+
 ## 判据③ 口径（零 Qt 符号）
 
 `nm -u -C /tmp/r27-color-build/test_pkcolor | grep -i qt` → **无输出**
