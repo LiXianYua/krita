@@ -1,0 +1,105 @@
+// R-77 · sdk/tests/compat/QTemporaryFile
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：`pk/` 树里没有 QTemporaryFile（`ls pk/*/compat/QTemporaryFile`
+// 实测无；`libs/image/tiles3` 的 QTemporaryDir 是**目录**版，不是这个）。
+// 唯一的真实调用点：plugins/impex/exr/tests/kis_exr_test.cpp:54-58
+//     QTemporaryFile savedFile(QDir::tempPath() + QLatin1String("/krita_XXXXXX")
+//                              + QLatin1String(".exr"));   // :54
+//     savedFile.setAutoRemove(true);                       // :55
+//     KIS_ASSERT(savedFile.open());                        // :56
+//     … savedFile.fileName().toUtf8() …                    // :58
+// 注：`sdk/tests/filestest.h:67` 也 include 了它，但**函数体零使用**——按 brief
+//     §3.3 那一行已从 pk 分支移除（见该文件的端口化注释）。
+//
+// **API 面 = 判据① 的用量表，一项不多一项不少**：模板构造 · `setAutoRemove(bool)`
+// · `open()` · `fileName()` · `close()`。表外**不实现** `autoRemove()` /
+// `openMode()` / `isOpen()` / `size()` / `write()` / `readAll()` / 默认构造。
+//
+// 语义（**真 Qt 5.15.7 探针实测**，原始输出见 task1-report.md §3.2，探针源
+//       `pk/test/oracle/probe_file_shims.cpp`，Qt 5.15.7 / macOS）：
+//   * 模板展开：`<tempPath>/krita_XXXXXX.exr` → `<tempPath>/krita_rHmeMb.exr`
+//     （§8：`XXXXXX` 换成 6 个随机字符，**后缀 `.exr` 原样保留**）。
+//   * 构造后、`open()` 前 `fileName()` = **空串**（§8 实测 ''）。
+//   * `open()` 就是 `open(QIODevice::ReadWrite)`（§8：openMode=3），返回 bool；
+//     成功后才把展开后的名字写进 `fileName()`。
+//   * `close()` **不删文件**（§8：close 后 exists=1）——删除只发生在**析构**。
+//   * `autoRemove` **默认 true**（§8），析构时自动 unlink；`setAutoRemove(false)`
+//     后 close + 析构都不删（§8 实测仍 exists）。
+//   ⇒ 后两条是**析构即删**的语义，与「close 即删」是两种实现——照探针抄，不照直觉。
+//
+// 实现用 `mkstemps()`：它一次做完「模板里 XXXXXX → 唯一随机名 + 保留后缀」，
+// 正是探针测到的行为；`mkstemp()` 不支持后缀，会错把 `.exr` 也当成 XXXXXX 的一部分。
+// 模板里没有 `XXXXXX` 时退化成 `mkstemp` 的等价形态（追加 `XXXXXX`）——用量表里
+// 没有这种调用点，保留它只是不让同一个类对合法输入崩掉。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkString.h"
+
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <unistd.h>
+
+class QTemporaryFile
+{
+public:
+    explicit QTemporaryFile(const PkString &templateName)
+        : m_template(templateName.PkToUtf8())
+    {
+    }
+
+    ~QTemporaryFile()
+    {
+        // 探针 §8：先 close（close 不删），再由析构按 autoRemove 删。
+        close();
+        if (m_autoRemove && !m_name.empty()) {
+            ::unlink(m_name.c_str());
+        }
+    }
+
+    QTemporaryFile(const QTemporaryFile &) = delete;
+    QTemporaryFile &operator=(const QTemporaryFile &) = delete;
+
+    // 真 Qt 语义：setAutoRemove 返回 void（不是 bool）。
+    void setAutoRemove(bool b) { m_autoRemove = b; }
+
+    // 真 Qt 语义：open() 前是空串（探针 §8）。
+    PkString fileName() const { return PkString(m_name.c_str()); }
+
+    bool open()
+    {
+        std::string tmpl = m_template;
+        std::size_t marker = tmpl.find("XXXXXX");
+        if (marker == std::string::npos) {
+            tmpl += "XXXXXX";
+            marker = tmpl.size() - 6;
+        }
+
+        std::vector<char> buf(tmpl.begin(), tmpl.end());
+        buf.push_back('\0');
+        const int suffixLen = static_cast<int>(tmpl.size() - (marker + 6));
+
+        const int fd = ::mkstemps(buf.data(), suffixLen);
+        if (fd < 0) {
+            return false;
+        }
+        m_fd = fd;
+        m_name.assign(buf.data());
+        return true;
+    }
+
+    // 真 Qt 语义：close 只关 fd，**不删文件**（探针 §8）。
+    void close()
+    {
+        if (m_fd >= 0) {
+            ::close(m_fd);
+            m_fd = -1;
+        }
+    }
+
+private:
+    std::string m_template;
+    std::string m_name;
+    int m_fd = -1;
+    bool m_autoRemove = true; // 真 Qt 默认 true（探针 §8）
+};

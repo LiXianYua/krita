@@ -13,6 +13,16 @@
 //        KisMemoryWindow(const PkString&, …) 直接对接）
 // 语义：`QDir::currentPath()` 是「进程 cwd 的绝对路径」，真 Qt 探针见报告（R-3）。
 // ---------------------------------------------------------------------------
+// R-77 增补 `tempPath()` 与 `cleanPath()`（见类内两处注释）：
+//   * `tempPath()`  —— 使用量表的**连带**项：`QTemporaryFile` 的唯一真实调用点
+//     `plugins/impex/exr/tests/kis_exr_test.cpp:54` 同一行就用了 `QDir::tempPath()`
+//     （`QDir::tempPath() + QLatin1String("/krita_XXXXXX") + QLatin1String(".exr")`），
+//     不补它那一行仍然编不过。
+//   * `cleanPath()` —— `sdk/tests/filestest.h:259`（端口化后的 `impexTempFilesDir()`）
+//     与 `filestest.h:214,217,237,239,252,254` 一族 `absoluteFilePath()` 的落点。
+// 两者的真 Qt 语义都由 `pk/test/oracle/probe_file_shims.cpp` 实测钉死，原始输出见
+// task1-report.md §3.2。算法本体住在同目录 `PkPathClean.h`（`QFileInfo` 共用）。
+// ---------------------------------------------------------------------------
 #pragma once
 // ---------------------------------------------------------------------------
 // R-65 T2+4 增补：真 Qt 5.15 的 <QDir> **传递**声明 QFileInfo（qdir.h 里
@@ -30,9 +40,11 @@
 #include "PkString.h"
 #include "QFileInfo"
 #include "PkGlobal.h"
+#include "PkPathClean.h"
 #include <sys/stat.h>
 #include <unistd.h>
 #include <climits>
+#include <cstdlib>
 #include <string>
 
 class QDir {
@@ -55,8 +67,54 @@ public:
         return stat(m_path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
     }
 
+    // R-77 增补。真 Qt 5.15.7 探针实测（task1-report.md §3.2 的 §9d）：
+    //   TMPDIR = '/var/folders/…/T/'（带尾斜杠）
+    //   QDir::tempPath() = '/private/var/folders/…/T'
+    // 即真 Qt **去尾斜杠 + 走 realpath**（macOS 上 /var 是指向 /private/var 的符号
+    // 链接，两者不同串——所以这里必须 realpath，不能只 cleanPath）。
+    // TMPDIR 未设时退化成 "/tmp"（真 Qt 同款；该分支本机探针覆盖不到，按 Qt 文档口径）。
+    // 调用点：plugins/impex/exr/tests/kis_exr_test.cpp:54。
+    static PkString tempPath() {
+        const char *tmp = std::getenv("TMPDIR");
+        std::string base = (tmp && *tmp) ? tmp : "/tmp";
+        while (base.size() > 1 && base.back() == '/') {
+            base.pop_back();
+        }
+        char resolved[PATH_MAX];
+        if (realpath(base.c_str(), resolved) != nullptr) {
+            return PkString(resolved);
+        }
+        return PkString(base.c_str());
+    }
+
+    // R-77 增补。真 Qt 5.15.7 的 18 个边角用例逐条对齐（task1-report.md §3.2 的
+    // §9e），算法本体在 PkPathClean.h（与 QFileInfo::absoluteFilePath 共用，
+    // 唯一的差别是这里**不保留**尾斜杠：`/a/b/` → `/a/b`）。
+    // 调用点：sdk/tests/filestest.h:259（端口化后的 impexTempFilesDir()）。
+    static PkString cleanPath(const PkString &path) {
+        return PkString(pkCleanPath(path.PkToUtf8(), false).c_str());
+    }
+
+    // 真 Qt 语义：`dirPath` 是**相对路径**时相对于本 QDir 的目录；`"."` 即本目录
+    // 自身。探针 §1 已实测并钉死这一点（task1-report.md §3.2）：
+    //   `QDir("/tmp/pk_probe_mkpath/x/y").mkpath(".")` 返回 1，且随后
+    //   `QDir("/tmp/pk_probe_mkpath/x/y").exists()` == 1 —— 即**创建的是 QDir 自己
+    //   那个目录**，不是 cwd 下的 "."。
+    //
+    // R-77 修：此前这里直接 `mkdir(dirPath)`、完全忽略 m_path，于是
+    // `QDir(path).mkpath(".")` 只做了一次 `mkdir(".")`（EEXIST，且 mkpath_recursive
+    // 恒返回 true ⇒ 静默"成功"），真 Qt 语义下该创建的 `path` 根本没被创建。
+    // 第一个把这条语义暴露出来的真实调用点是 R-77 端口化后的
+    // `sdk/tests/filestest.h:263` 的 `QDir(path).mkpath(QStringLiteral("."))`。
+    //
+    // 绝对路径不受影响，因此既有消费者逐字不变：`sdk/tests/qimage_test_util.h:279-280`
+    // 用的是**默认构造**的 QDir（m_path 空）+ 绝对路径，走不到上面那个分支。
     bool mkpath(const PkString& dirPath) const {
-        return mkpath_recursive(dirPath.PkToUtf8());
+        std::string p = dirPath.PkToUtf8();
+        if (!p.empty() && p[0] != '/' && !m_path.empty()) {
+            p = m_path + "/" + p;
+        }
+        return mkpath_recursive(pkCleanPath(p, false));
     }
 
     static bool mkpath_recursive(const std::string& path) {

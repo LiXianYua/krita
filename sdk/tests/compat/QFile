@@ -1,0 +1,209 @@
+// R-77 · sdk/tests/compat/QFile
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：`pk/` 树里没有 QFile（`ls pk/*/compat/QFile` 实测无；
+// pk/port/PkResourceStorage 有 cleanPath/joinPath 一类工具，但没有「按路径开关
+// 文件」的对象）。真实调用点两处：
+//   * sdk/tests/filestest.h:214,217-223,237,239,252,254,324,384,487 —— 端口化出来的
+//     `prepareFile()` / `restorePermissionsToReadAndWrite()` / `testImportFromWriteonly()`
+//     / `testExportToReadonly()`（前两个在 pk 栈下活着，后两个是 Qt 栈体）。
+//   * plugins/metadata/tests/kis_exif_test.cpp:33 —— `QFile file(...)` 构造。
+//
+// **类形态：独立类，不继承 QFileDevice。** 与 compat/{QFileInfo,QTemporaryDir} 同款
+// （那两份也都是独立类）。真 Qt 里 QFile : QFileDevice，但没有任何调用点依赖这条
+// 继承关系——它只用 `QFileDevice::Permissions` / `QFileDevice::FileError` 这两个
+// **嵌套名字**，独立类 + `#include "QFileDevice"` 完全够，且不必把 QFileDevice 的
+// 全部成员（size()/atEnd()/seek()…）凭空造出来（判据①「一项不多」）。
+//
+// **API 面 = 判据① 的用量表，一项不多一项不少：**
+//   构造(QString) · open(QIODevice::ReadWrite) · close() · error() · errorString()
+//   · permissions() · static permissions(path) · static setPermissions(path, perms)
+//   · static remove(path)
+// 表外**不实现**：`exists()` / `fileName()` / `size()` / `atEnd()` / `write()` /
+// `readAll()` —— 调用点都没有。「不对存在的文件多加一个 exists() 更省事」是刻意的。
+//
+// 语义（**真 Qt 5.15.7 探针实测**，原始输出见 task1-report.md §3.2，探针源
+//       `pk/test/oracle/probe_file_shims.cpp`，Qt 5.15.7 / macOS）：
+//
+//   * `permissions(path)` 对**不存在的路径** = 0（探针 §3；不是 -1、不是异常）。
+//     `permissions()`（非 static，未 open）同样 = 0；对**存在**文件则返回真实位模式
+//     而与是否 open 无关（§7b：`QFile(path).permissions()` 未 open = 26176 0x6640）。
+//     ⇒ 实例版直接委托 static 版。
+//
+//   * `setPermissions(path, perms)`：成功返回 **true**、失败返回 **false**
+//     （§4：对存在文件 =1，对不存在路径 =0）。真 Qt 在 POSIX 上的位映射是
+//     「owner 位同时点亮 Owner 与 User 两组标志」，实测 0600 → 0x6600、0640 → 0x6640、
+//     0755 → 0x7755（§9c）；本垫片逐位照抄，故含 exe 位的完整位模式也能原样往返。
+//
+//   * `remove(path)`：删掉返回 true、路径不存在返回 false（§5：1 / 0）。
+//
+//   * `open(QIODevice::ReadWrite)` 对**不存在的文件是创建**（§6：返回 1，
+//     open 后 exists=1）。各模式对「不存在/已存在」的行为**逐格探针实测**（§6b），
+//     本垫片按那张表实现，不按 Qt 文档推断：
+//       ReadOnly           exist=0 → 失败(error=5)   exist=1 → 成功(不截断)
+//       WriteOnly          exist=0 → 创建             exist=1 → 成功(**截断**)
+//       ReadWrite          exist=0 → 创建             exist=1 → 成功(不截断)
+//       ReadWrite|Truncate exist=0 → 创建             exist=1 → 成功(截断)
+//       WriteOnly|Append   exist=0 → 创建             exist=1 → 成功(不截断)
+//       ReadWrite|NewOnly  exist=0 → 创建             exist=1 → **失败**(error=5)
+//     ⇒ 规则：可写或 NewOnly 时加 O_CREAT（ExistingOnly 抑制）；
+//        Truncate，或「只写且非 Append」，加 O_TRUNC；NewOnly 加 O_EXCL。
+//
+//   * `error()`：open 失败 = `QFileDevice::OpenError`(5)——ENOENT 与 EEXIST
+//     **都是 5**（§6、§6b）；未出错 = NoError(0)（§3）。
+//
+//   * `errorString()`：**刻意不逐字对齐真 Qt**。真 Qt 的文本是
+//     `strerror(errno)`（§6：'No such file or directory'），但那是**面向人的消息**、
+//     不是判据里的可观察行为（没有任何调用点断言它，filestest.h 只把它 qDebug 出去）。
+//     本垫片返回 `strerror(errno)`，未出错时返回 "Unknown error"——后者与真 Qt
+//     逐字相同（§3 实测 `f.errorString() = 'Unknown error'`）。**登记为已声明差异**：
+//     差异面只可能出现在 POSIX 各平台 strerror 的措辞上，而真 Qt 自己也是这么来的。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkString.h"
+#include "QFileDevice"
+#include "PkStream.h"
+
+#include <cerrno>
+#include <cstring>
+#include <string>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+class QFile
+{
+public:
+    explicit QFile(const PkString &name)
+        : m_name(name.PkToUtf8())
+    {
+    }
+
+    bool open(PkStream::OpenMode mode)
+    {
+        m_error = QFileDevice::NoError;
+        m_errno = 0;
+
+        const unsigned int m = static_cast<unsigned int>(mode);
+        const bool wantRead  = (m & static_cast<unsigned int>(PkStream::ReadOnly))  != 0;
+        const bool wantWrite = (m & static_cast<unsigned int>(PkStream::WriteOnly)) != 0;
+        const bool append    = (m & static_cast<unsigned int>(PkStream::Append))    != 0;
+        const bool truncate_ = (m & static_cast<unsigned int>(PkStream::Truncate))  != 0;
+        const bool newOnly   = (m & static_cast<unsigned int>(PkStream::NewOnly))   != 0;
+        const bool existing  = (m & static_cast<unsigned int>(PkStream::ExistingOnly)) != 0;
+
+        int flags = 0;
+        if (wantRead && wantWrite) {
+            flags |= O_RDWR;
+        } else if (wantWrite) {
+            flags |= O_WRONLY;
+        } else {
+            flags |= O_RDONLY;
+        }
+        // 探针 §6b：ReadOnly 对不存在的文件**不**创建；可写或 NewOnly 才创建。
+        if (!existing && (wantWrite || newOnly)) {
+            flags |= O_CREAT;
+        }
+        // 探针 §6b：WriteOnly 隐含截断，WriteOnly|Append 不截断，Truncate 显式截断。
+        if (truncate_ || (wantWrite && !wantRead && !append)) {
+            flags |= O_TRUNC;
+        }
+        if (append) {
+            flags |= O_APPEND;
+        }
+        if (newOnly) {
+            flags |= O_EXCL;
+        }
+
+        const int fd = ::open(m_name.c_str(), flags, static_cast<mode_t>(0666));
+        if (fd < 0) {
+            m_error = QFileDevice::OpenError;
+            m_errno = errno;
+            return false;
+        }
+        m_fd = fd;
+        m_isOpen = true;
+        return true;
+    }
+
+    void close()
+    {
+        if (m_isOpen) {
+            ::close(m_fd);
+            m_fd = -1;
+            m_isOpen = false;
+        }
+    }
+
+    QFileDevice::FileError error() const { return m_error; }
+
+    PkString errorString() const
+    {
+        if (m_error == QFileDevice::NoError) {
+            return PkString("Unknown error"); // 真 Qt 逐字相同（探针 §3）
+        }
+        if (m_errno == 0) {
+            return PkString("Unknown error");
+        }
+        return PkString(std::strerror(m_errno));
+    }
+
+    // 实例版 = static 版（探针 §7b：与是否 open 无关）。
+    QFileDevice::Permissions permissions() const { return permissionsOf(m_name); }
+
+    static QFileDevice::Permissions permissions(const PkString &name)
+    {
+        return permissionsOf(name.PkToUtf8());
+    }
+
+    static bool setPermissions(const PkString &name, QFileDevice::Permissions perms)
+    {
+        const int b = static_cast<int>(perms);
+        mode_t mode = 0;
+        // 真 Qt POSIX 映射（探针 §4/§9c）：owner 位同时点亮 Owner 与 User 两组标志。
+        if (b & 0x4000 || b & 0x0400) mode |= S_IRUSR;
+        if (b & 0x2000 || b & 0x0200) mode |= S_IWUSR;
+        if (b & 0x1000 || b & 0x0100) mode |= S_IXUSR;
+        if (b & 0x0040) mode |= S_IRGRP;
+        if (b & 0x0020) mode |= S_IWGRP;
+        if (b & 0x0010) mode |= S_IXGRP;
+        if (b & 0x0004) mode |= S_IROTH;
+        if (b & 0x0002) mode |= S_IWOTH;
+        if (b & 0x0001) mode |= S_IXOTH;
+        const std::string path = name.PkToUtf8();
+        return ::chmod(path.c_str(), mode) == 0;
+    }
+
+    static bool remove(const PkString &name)
+    {
+        const std::string path = name.PkToUtf8();
+        return ::unlink(path.c_str()) == 0;
+    }
+
+private:
+    // 探针 §0/§9c 的位映射：读 st_mode 逐位翻成真 Qt 的 Permissions 位模式
+    // （**含 exe 位** —— 合法，PkFlags 就是 int；只是不给出 exe 的**具名常量**）。
+    static QFileDevice::Permissions permissionsOf(const std::string &path)
+    {
+        struct stat st;
+        if (stat(path.c_str(), &st) != 0) {
+            return QFileDevice::Permissions(); // 0（探针 §3）
+        }
+        int bits = 0;
+        if (st.st_mode & S_IRUSR) bits |= 0x4000 | 0x0400;
+        if (st.st_mode & S_IWUSR) bits |= 0x2000 | 0x0200;
+        if (st.st_mode & S_IXUSR) bits |= 0x1000 | 0x0100;
+        if (st.st_mode & S_IRGRP) bits |= 0x0040;
+        if (st.st_mode & S_IWGRP) bits |= 0x0020;
+        if (st.st_mode & S_IXGRP) bits |= 0x0010;
+        if (st.st_mode & S_IROTH) bits |= 0x0004;
+        if (st.st_mode & S_IWOTH) bits |= 0x0002;
+        if (st.st_mode & S_IXOTH) bits |= 0x0001;
+        return QFileDevice::Permissions(PkFlag(bits));
+    }
+
+    std::string m_name;
+    int m_fd = -1;
+    bool m_isOpen = false;
+    QFileDevice::FileError m_error = QFileDevice::NoError;
+    int m_errno = 0;
+};

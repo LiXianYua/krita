@@ -1,0 +1,94 @@
+// R-77 · sdk/tests/compat/QStandardPaths
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：`pk/` 树里没有 QStandardPaths（`ls pk/*/compat/QStandardPaths`
+// 实测无）。真实调用点两处：
+//   * sdk/tests/filestest.h:259（端口化后的 `impexTempFilesDir()`）
+//       `QStandardPaths::writableLocation(QStandardPaths::CacheLocation)`
+//   * plugins/impex/libkra/tests/kis_kra_loader_test.cpp:206
+//     plugins/impex/libkra/tests/kis_kra_saver_test.cpp:631
+//       `QStandardPaths::setTestModeEnabled(true)`
+//
+// **API 面 = 判据① 的用量表，一项不多一项不少**：只交付
+//   `enum StandardLocation { CacheLocation }` · `setTestModeEnabled(bool)`
+//   · `writableLocation(StandardLocation)`。
+// 真 Qt 的 QStandardPaths 有 20+ 个 StandardLocation 取值与 9 个静态函数；
+// 用量表里**一个都没用到别的** ⇒ 不实现（判据①「一项不多」）。
+//
+// 语义（**真 Qt 5.15.7 探针实测**，原始输出见 task1-report.md §3.2，探针源
+//       `pk/test/oracle/probe_file_shims.cpp`，Qt 5.15.7 / macOS）：
+//   * `CacheLocation` 的枚举值 = **10**（探针 §2 实测打印）。
+//   * `setTestModeEnabled(false/true/false)` 三态下 `writableLocation(CacheLocation)`
+//     返回**同一个值**（§2 实测：都是 `/Users/liyang/Library/Caches`）——
+//     在 macOS 上这个开关**不改变** CacheLocation。垫片照抄该行为。
+//   * 有 QCoreApplication 且设了 org/app 名时，真 Qt 返回
+//     `<Caches>/<org>/<app>`（§2：`/Users/liyang/Library/Caches/KritaOrg/krita`）。
+//     本垫片**不**复刻这一段：唯一调用点 `impexTempFilesDir()` 只拿它拼一个
+//     测试用的临时目录并 mkpath，从不断言具体路径；而复刻需要 QCoreApplication
+//     的 org/app 名，那是另一个类型面的状态（不在本 Task 的用量表里）。
+//
+// ⚠ **登记差异（真 Qt 探针与本垫片不一致，且是**刻意**的）**：
+//   探针 §2/§10 实测：真 Qt 在 macOS 上**忽略 `$HOME`**——探针里 `HOME` 被显式改成
+//   `mktemp -d` 出来的隔离目录，真 Qt 仍返回 `/Users/liyang/Library/Caches`
+//   （它走 Cocoa 的 NSSearchPathForDirectoriesInDomains，不看环境变量）。
+//   本垫片**故意读 `$HOME`**（Apple → `$HOME/Library/Caches`，其它平台 →
+//   `$XDG_CACHE_HOME` 或 `$HOME/.cache`），理由两条：
+//     (1) ctest 的隔离口径就是 `HOME=$(mktemp -d)`（brief §0）——测试的临时文件
+//         必须落在每次运行独立的目录里，否则并发跑的多个 test 会互相踩；
+//     (2) 没有任何消费者能观察到这个差异：`impexTempFilesDir()` 的返回值只用于
+//         mkpath + 存临时 PNG，测试不断言它的字面值。
+//   同日，`QDir::tempPath()`（本 Task 同时交付）也是读 `$TMPDIR` 的——真 Qt 的
+//   `QDir::tempPath()` 探针实测**确实**跟着 `$TMPDIR` 走（§9d），两者行为一致。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkString.h"
+
+#include <cstdlib>
+#include <string>
+
+class QStandardPaths
+{
+public:
+    // 真 Qt 5.15.7 实测值（探针 §2）。用量表只用到这一个取值。
+    enum StandardLocation {
+        CacheLocation = 10,
+    };
+
+    // 探针 §2 实测：macOS 上 true/false 对 CacheLocation 返回同一值。
+    // 这里把标志**真的存下来**再丢弃效果（而不是写成空函数体），让「调用被接受、
+    // 但不影响本平台这一项」这件事在代码里可读——这正是真 Qt 在该平台的行为。
+    static void setTestModeEnabled(bool enable)
+    {
+        testModeFlag() = enable;
+    }
+
+    static PkString writableLocation(StandardLocation type)
+    {
+        (void)type; // 用量表只用到 CacheLocation
+        return cacheRoot();
+    }
+
+private:
+    static bool &testModeFlag()
+    {
+        static bool s_flag = false;
+        return s_flag;
+    }
+
+    static PkString cacheRoot()
+    {
+        const char *home = std::getenv("HOME");
+        const std::string h = (home && *home) ? home : "";
+        if (h.empty()) {
+            return PkString();
+        }
+#ifdef __APPLE__
+        return PkString((h + "/Library/Caches").c_str());
+#else
+        const char *xdg = std::getenv("XDG_CACHE_HOME");
+        if (xdg && *xdg) {
+            return PkString(xdg);
+        }
+        return PkString((h + "/.cache").c_str());
+#endif
+    }
+};

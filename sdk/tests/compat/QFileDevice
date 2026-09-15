@@ -1,0 +1,88 @@
+// R-77 · sdk/tests/compat/QFileDevice
+// ---------------------------------------------------------------------------
+// 为什么测试面需要它：`pk/` 树里没有 QFileDevice（`ls pk/*/compat/QFileDevice`
+// 实测无）。R-77 把 `sdk/tests/filestest.h` 的 pk 分支端口化之后，唯一真实消费者
+// 是它端口化出来的两个函数体：
+//   `TestUtil::prepareFile()`                    filestest.h:209-242
+//   `TestUtil::restorePermissionsToReadAndWrite()` filestest.h:244-257
+// 逐次出现（去注释后）：
+//   `QFileDevice::Permissions permissionsBefore;`（默认构造）
+//   `~QFileDevice::{Read,Write}{User,Owner,Group,Other}`（裸枚举取反，`&` 串联）
+//   `QFileDevice::{Read,Write}×{User,Owner,Group,Other}` 共 8 个常量，`&` 与 `|` 串联
+//
+// 语义（**真 Qt 5.15.7 探针实测**，不是推断；原始输出见 task1-report.md §3.2，
+//       探针源 `pk/test/oracle/probe_file_shims.cpp`，Qt 5.15.7 / macOS）：
+//   ReadOwner=16384(0x4000)  WriteOwner=8192(0x2000)  ReadUser=1024(0x400)
+//   WriteUser=512(0x200)     ReadGroup=64(0x40)       WriteGroup=32(0x20)
+//   ReadOther=4(0x4)         WriteOther=2(0x2)
+//   8 个常量的**数值**逐位照抄真 Qt（探针 §0）。
+//
+// 判据① 的两条口径说明（本垫片刻意收窄/补足的地方，评审核这里）：
+//
+//  (a) 真 Qt 的 QFileDevice 还有 `ExeOwner/ExeUser/ExeGroup/ExeOther` 四个常量
+//      （探针 §9c 实测 4096/256/16/1）。用量表里**没有任何调用点**用它们 ⇒
+//      **不实现**（判据①「一项不多」）。但 `QFile::permissions()` 仍返回含 exe 位
+//      的**完整**位模式（数值对齐真 Qt，见 compat/QFile 头注），所以
+//      `permissions()` → `setPermissions()` 的往返与真 Qt 逐位一致——收窄的只是
+//      **常量名字空间**，不是行为。
+//
+//  (b) `Permissions` 用 `PK_DECLARE_FLAGS` 而**不是** `#define QFileDevice ...`：
+//      QFileDevice 是 class（有嵌套类型与 enum），宏化它没有先例也没有必要；
+//      调用点写的是 `QFileDevice::Permissions`，普通类完全够。（对照 pk/port/compat/
+//      QIODevice 用宏，是因为真实调用点里有 `class QIODevice;` 前置声明。）
+//
+//  (c) `FileError` 不在判据① 的用量表里，但 `QFile::error()` **在**表里
+//      （filestest.h:220 `file.error()`），而 `error()` 的返回类型只能是
+//      `QFileDevice::FileError`（真 Qt 的口径）——枚举随 `QFile::error()` 一并交付。
+//      15 个取值全部探针实测（§9b）：NoError=0 ReadError=1 WriteError=2
+//      FatalError=3 ResourceError=4 OpenError=5 AbortError=6 TimeOutError=7
+//      UnspecifiedError=8 RemoveError=9 RenameError=10 PositionError=11
+//      ResizeError=12 PermissionsError=13 CopyError=14。
+//      先例：pk/log/compat/QDebug 同样把 QtMsgType 的 5 个取值全部按名映射。
+// ---------------------------------------------------------------------------
+#pragma once
+#include "PkFlags.h"
+
+class QFileDevice
+{
+public:
+    // 真 Qt 的 8 个 rw 权限常量（探针 §0 逐位实测）。
+    enum Permission {
+        ReadOwner  = 0x4000, // 16384
+        WriteOwner = 0x2000, //  8192
+        ReadUser   = 0x0400, //  1024
+        WriteUser  = 0x0200, //   512
+        ReadGroup  = 0x0040, //    64
+        WriteGroup = 0x0020, //    32
+        ReadOther  = 0x0004, //     4
+        WriteOther = 0x0002, //     2
+    };
+    PK_DECLARE_FLAGS(Permissions, Permission)
+
+    // QFile::error() / errorString() 的返回类型（真 Qt 的 QFileDevice::FileError）。
+    enum FileError {
+        NoError          = 0,
+        ReadError        = 1,
+        WriteError       = 2,
+        FatalError       = 3,
+        ResourceError    = 4,
+        OpenError        = 5,
+        AbortError       = 6,
+        TimeOutError     = 7,
+        UnspecifiedError = 8,
+        RemoveError      = 9,
+        RenameError      = 10,
+        PositionError    = 11,
+        ResizeError      = 12,
+        PermissionsError = 13,
+        CopyError        = 14,
+    };
+};
+
+// 判据① 的「`~ & |` 三个运算符」：`&` 由 PkFlags 的成员重载覆盖（含 int 重载，
+// filestest.h:227 `permissionsBefore & (~ReadUser & …)` 的右操作数是裸枚举取反后的
+// int）；`|` 需要**自由** operator——因为 `ReadUser | ReadOwner` 两侧都是裸枚举，
+// 没有它会被积分提升成 `int`，而 PkFlags 的 `|` **刻意没有 int 重载**（pk/flags/
+// PkFlags.h:11-14：`&` 有 int/uint/Enum 三重载，`|` 与 `^` 只有 PkFlags/Enum）。
+// PK_DECLARE_OPERATORS_FOR_FLAGS 正是 Qt 的 Q_DECLARE_OPERATORS_FOR_FLAGS 的对应物。
+PK_DECLARE_OPERATORS_FOR_FLAGS(QFileDevice::Permissions)

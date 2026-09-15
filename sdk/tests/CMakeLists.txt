@@ -56,7 +56,24 @@ if(BUILD_TESTING)
     # 且今后聚合头再加需要 pk 模块的垫片也不会再让本 target 静默红。
     # 注意：必须用**无关键字**签名——`kis_add_test`（KRITA_ADD_UNIT_TEST）用的是
     # 纯签名，CMake 要求同一个 target 的 target_link_libraries 全纯或全带关键字。
-    target_link_libraries(PkTestSupportSelfTest pkxml)
+    #
+    # R-77 第三处：本 target 现在 `#include "filestest.h"`（brief §3.4 要它直接调
+    # 端口化后的 `prepareFile` / `restorePermissionsToReadAndWrite` /
+    # `impexTempFilesDir`），而那两个函数体里有 `qDebug() << …`（该头 :215,220,239,254）。
+    # `qDebug` 展开成 `PkMessageLogger(...).debug`（`pk/log/PkMessageLogger.h`），
+    # 其符号 `PkDebug::maybeSpace/applyFieldWidth/operator<<(char const*)/~PkDebug`
+    # **定义在 `pk/log/PkDebug.cpp`，编进 `pklog`**（`pk/CMakeLists.txt:275-282`）。
+    # 而本 target 的链接闭包 `kritatestsdk_pk` = `pktest + pkconcurrent + pkimageio`
+    # （+ 本行的 pkxml），`pktest` 只 PUBLIC 链 `pkstring`（`pk/CMakeLists.txt:602`）
+    # ——**闭包里没有 pklog**，于是链接期报一片 `Undefined symbols: PkDebug::…`。
+    #
+    # 别的 pk target 不撞：它们链 `kritaimage` 一类 Krita 库，pklog 经那条链传递到位；
+    # 只有本 target 是零 Krita 库依赖，传递不到。所以修在**本 target** 上，不动
+    # `kritatestsdk_pk`——那会把 `-lpklog` 加到全部 ~90 个 pk target 的链接行上，
+    # 而它们并不需要它（判据① 的"一项不多"）。
+    # `pklog` 是**pk 库，不是 Krita 库**，「零 **Krita** 库依赖 ⇒ 红了就是机器坏了」
+    # 这条性质仍然成立（同 pkxml 那段的理由）。
+    target_link_libraries(PkTestSupportSelfTest pkxml pklog)
 endif()
 
 add_library(kritatransformmaskstubs STATIC

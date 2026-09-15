@@ -17,17 +17,43 @@
 #ifndef FILESTEST
 #define FILESTEST
 
-#include <testutil.h>
+// ---------------------------------------------------------------------------
+// R-77：pk 分支端口化。**Qt 栈（未定义 KRITA_TESTSDK_PK_NATIVE）的路径逐字不变**
+// ——下面每一处 `#ifndef` 包住的都是「pk 栈拿不到、且 pk 分支用不着」的东西，
+// Qt 栈展开后的 include 清单与相对顺序与原文件**完全相同**（做法同 :21-23 对
+// testui.h 的既有守卫）。分三类：
+//
+//  1) Krita 侧的重量级头（`testutil.h` / `kis_debug.h` / `Kis*` / `KoColorSpace`）：
+//     KisDocument 一族住在 libs/ui + libs/importexport，在壳闭包外、也不在
+//     `kritatestsdk_pk` 的 include 目录表上；只有 `testFiles()` 与四个 `testXxx()`
+//     用得到，而那些函数整段归 Qt 栈（见下面的函数级守卫）。
+//  2) brief §3.3 点名的 4 个**零使用** include（`QTemporaryFile` / `QApplication` /
+//     `kaboutdata.h` / `klocalizedstring.h`）——用量表实测：函数体零使用。
+//     注：`<klocalizedstring.h>` 就算不删也能在 pk 栈解析（`kritatestsdk_pk` 的
+//     目录表里有 libs/flake/flake/noqt-compat/klocalizedstring.h），删它是 §3.3
+//     的清单要求，不是编译需要。
+//  3) 文件 I/O 垫片面本身（`QDir` / `QFileInfo` / `QFile` / `QFileDevice` /
+//     `QIODevice` / `QStandardPaths`）**两栈都要**，不加守卫——这正是本 Task
+//     交付的 sdk/tests/compat/ 垫片族。
+//
+// `#ifdef Q_OS_UNIX` 那一段（`<unistd.h>`）**刻意一个字不动**：pk 树里
+// `Q_OS_UNIX` 全树未定义（实测），所以两栈都会跳过它，端口化后的三个函数也不
+// 直接用 POSIX 调用（它们走 QFile/QDir/QStandardPaths 垫片）。
+// ---------------------------------------------------------------------------
 #ifndef KRITA_TESTSDK_PK_NATIVE
+#include <testutil.h>
 #include "testui.h"
 #endif
 
 #include <QDir>
 
+#ifndef KRITA_TESTSDK_PK_NATIVE
 #include <kaboutdata.h>
 #include <klocalizedstring.h>
 #include <kis_debug.h>
+#endif
 
+#ifndef KRITA_TESTSDK_PK_NATIVE
 #include <KisImportExportManager.h>
 
 #include <KisDocument.h>
@@ -35,10 +61,15 @@
 #include <kis_image.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
+#endif
 
+#ifndef KRITA_TESTSDK_PK_NATIVE
 #include <QTemporaryFile>
+#endif
 #include <QFileInfo>
+#ifndef KRITA_TESTSDK_PK_NATIVE
 #include <QApplication>
+#endif
 #include <QFile>
 #include <QFileDevice>
 #include <QIODevice>
@@ -68,11 +99,27 @@ inline PkString impexApiString(const PkString &text)
     return text;
 }
 
+// R-77：`QString` 在 pk 栈下是 `#define QString PkString`，所以这个重载展开后与
+// 上面那个 `impexApiString(const PkString&)` **签名相同**（redefinition）。它在
+// Qt 栈下才是真正独立的第二个重载，故只给 Qt 栈。pk 分支没有任何调用点用它
+// （三个端口化函数都不用）。
+#ifndef KRITA_TESTSDK_PK_NATIVE
 inline PkString impexApiString(const QString &text)
 {
     return pkStringFromQString(text);
 }
+#endif
 
+// ===========================================================================
+// R-77 函数级守卫：下面三处 `#ifndef KRITA_TESTSDK_PK_NATIVE` 包住的函数体全部
+// 依赖 KisDocument / KisImportExportManager / KoColorSpace（壳闭包外），pk 栈编不了。
+// **留在两个栈里编译的是中间那三个函数**：`prepareFile()` /
+// `restorePermissionsToReadAndWrite()` / `impexTempFilesDir()` —— 它们只依赖
+// sdk/tests/compat/ 的文件 I/O 垫片面（brief §3.4 的原话：「这三个只依赖垫片面，
+// 不需要 KisDocument」），所以 `PkTestSupportSelfTest` 的零 Krita 库依赖里也能跑。
+// 三个函数的**源文本两栈一字不差**——那正是垫片存在的意义。
+// ===========================================================================
+#ifndef KRITA_TESTSDK_PK_NATIVE
 void testFiles(const QString& _dirname, const QStringList& exclusions, const QString &resultSuffix = QString(), int fuzzy = 0, int maxNumFailingPixels = 0, bool showDebug = true)
 {
     QDir dirSources(_dirname);
@@ -150,8 +197,15 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
 
     FILESTEST_FAIL("Failed testing files");
 }
+#endif // !KRITA_TESTSDK_PK_NATIVE  （testFiles：需要 KisDocument）
 
 
+// ---------------------------------------------------------------------------
+// R-77：下面三个函数**两栈同源**（pk 栈也编译）。函数体自 R-77 起只依赖
+// sdk/tests/compat/ 的垫片面；**断言、容差、行为一律未改**——它们本来就是纯文件
+// 权限操作，R-77 之前之所以编不了，只是因为这些垫片当时还不存在。
+// 真 Qt 语义逐条探针实测（task1-report.md §3.2），改动前先看那份原始输出。
+// ---------------------------------------------------------------------------
 void prepareFile(QFileInfo sourceFileInfo, bool removePermissionToWrite, bool removePermissionToRead)
 {
 
@@ -213,6 +267,12 @@ const QString &impexTempFilesDir() {
 }
 
 
+// ---------------------------------------------------------------------------
+// R-77：从此处到 namespace 收尾的四个 testXxx() 全部依赖 KisDocument /
+// KisImportExportManager / KoColorSpace / KoColorSpaceRegistry（壳闭包外），
+// **整段留 Qt 栈**。段内断言、容差、`#ifdef Q_OS_WIN` 分支一律未动。
+// ---------------------------------------------------------------------------
+#ifndef KRITA_TESTSDK_PK_NATIVE
 void testImportFromWriteonly(const ImpexTestString &mimetype)
 {
 #ifdef Q_OS_WIN
@@ -433,6 +493,8 @@ void testExportToColorSpace(const ImpexTestString &mimetype, const KoColorSpace*
     FILESTEST_VERIFY(statusExport.isOk());
     FILESTEST_VERIFY(statusExport == expected);
 }
+#endif // !KRITA_TESTSDK_PK_NATIVE  （testImportFromWriteonly / testExportToReadonly /
+       //  testImportIncorrectFormat / testExportToColorSpace：需要 KisDocument）
 
 #undef FILESTEST_VERIFY
 #undef FILESTEST_FAIL

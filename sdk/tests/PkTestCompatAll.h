@@ -245,6 +245,27 @@
 #if PKC_HAS(<QDir>)
 #include <QDir>
 #endif
+// R-77：文件 I/O 垫片族。sdk/tests/filestest.h（25 个 impex/metadata 消费者的
+// 公共头）在真 Qt 下靠 QtCore 传递拿到这几个名字；pk 栈下 compat 头不复制那条链，
+// 所以在这里预激活。垫片全在 sdk/tests/compat/。
+//   * QFileDevice：`QFileDevice::Permissions` / `FileError`（filestest.h:154,167,188）
+//   * QFile：filestest.h:156,159,179,194,260,320,423 与 plugins/metadata 的构造
+//   * QStandardPaths：filestest.h:204 与 libkra 两个测试的 setTestModeEnabled(true)
+//   * QTemporaryFile：plugins/impex/exr/tests/kis_exr_test.cpp:54
+// 顺序：QFile 依赖 QFileDevice（返回类型），QFileInfo 依赖 QFile（permissions 委托），
+// QDir 依赖 QFileInfo（R-65 的传递面）——按依赖序排列，不靠 include 顺序碰运气。
+#if PKC_HAS(<QFileDevice>)
+#include <QFileDevice>
+#endif
+#if PKC_HAS(<QFile>)
+#include <QFile>
+#endif
+#if PKC_HAS(<QStandardPaths>)
+#include <QStandardPaths>
+#endif
+#if PKC_HAS(<QTemporaryFile>)
+#include <QTemporaryFile>
+#endif
 // QElapsedTimer：kis_tiled_data_manager_test 的三处 benchmark 段用 `QElapsedTimer timer;`
 // 计时，但不 include <QElapsedTimer>（真 Qt 由 QtTest/QtCore 传递）。垫片在 pk/time/compat。
 #if PKC_HAS(<QElapsedTimer>)

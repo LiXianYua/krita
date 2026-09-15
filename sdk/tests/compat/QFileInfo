@@ -21,8 +21,14 @@
 // 本垫片只覆盖上述唯一调用点所需的最小 API（构造/exists/absolutePath/path()），
 // 一路一项不多。
 // ---------------------------------------------------------------------------
+// R-77 增补 `absoluteFilePath()` 与 `permissions()`（见类内两处注释）。两者的真 Qt
+// 语义都由 pk/test/oracle/probe_file_shims.cpp 实测钉死，原始输出见 task1-report.md
+// §3.2。**impact-map §2 的用量表里没有这两项** —— 它们是从 filestest.h 的真实调用点
+// 反查出来的缺口，已在报告 §5「表外但真实存在」登记。
 #pragma once
 #include "PkString.h"
+#include "QFile"
+#include "PkPathClean.h"
 #include <sys/stat.h>
 #include <unistd.h>
 #include <climits>
@@ -90,6 +96,45 @@ public:
             return PkString("/"); // "/x" → "/"
         }
         return PkString(abs.substr(0, slash).c_str());
+    }
+
+    // R-77 增补。真 Qt 5.15.7 探针实测 18 个边角用例（task1-report.md §3.2 的 §7b）：
+    //   "a/b/c.png"→"<cwd>/a/b/c.png" · "a/../b"→"<cwd>/b" · ""→""（空串原样）
+    //   "/a/b/../c"→"/a/c" · "./x"→"<cwd>/x" · "x/./y"→"<cwd>/x/y"
+    //   ".."→"<cwd 父>" · "."→"<cwd>" · "a//b"→"<cwd>/a/b" · "//a"→"/a"
+    //   "/../a"→"/../a"（越根 ".." 保留）· "/a/./b"→"/a/b" · "/a/b/.."→"/a"
+    //   "a/b/.."→"<cwd>/a" · "/a/../../b"→"/../b"
+    //   **尾斜杠保留**（与 QDir::cleanPath 的唯一差别）：
+    //   "/a/b/"→"/a/b/" · "a/b/"→"<cwd>/a/b/" · "a/b/../"→"<cwd>/a/"
+    // 即：先按 cwd 绝对化（已是绝对路径则不碰），再走 PkPathClean.h 的清理，
+    // keepTrailingSlash=true。
+    // 调用点：sdk/tests/filestest.h:214,217,237,239,252,254,…（prepareFile /
+    // restorePermissionsToReadAndWrite / testImportFromWriteonly 族）。
+    PkString absoluteFilePath() const
+    {
+        if (m_path.empty()) {
+            return PkString();
+        }
+        std::string abs = m_path;
+        if (abs[0] != '/') {
+            char buf[PATH_MAX];
+            if (getcwd(buf, sizeof(buf)) == nullptr) {
+                return PkString();
+            }
+            abs = std::string(buf) + "/" + abs;
+        }
+        return PkString(pkCleanPath(abs, true).c_str());
+    }
+
+    // R-77 增补。语义（探针 §7 实测）：与 `QFile::permissions(路径)` 逐位相同
+    // （存在文件 = 真实位模式，含 exe 位；不存在 = 0）⇒ 直接委托 `QFile`，
+    // 不在这里重写一遍位映射（位映射只有一处，在 compat/QFile 的 permissionsOf）。
+    // 注意**不用** absoluteFilePath() 中转：stat 对相对路径本来就以 cwd 为基准，
+    // 走原始路径少一层函数、也少一条 absoluteFilePath 边角规则的耦合。
+    // 调用点：sdk/tests/filestest.h:246（restorePermissionsToReadAndWrite）。
+    QFileDevice::Permissions permissions() const
+    {
+        return QFile::permissions(PkString(m_path.c_str()));
     }
 
 private:
