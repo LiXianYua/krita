@@ -70,7 +70,7 @@ public:
 class CursorController final : public KoCanvasController
 {
 public:
-    explicit CursorController(QObject *actionCollection = nullptr)
+    explicit CursorController(PkObject *actionCollection = nullptr)
         : KoCanvasController(actionCollection)
     {
     }
@@ -207,6 +207,81 @@ public:
     PkPoint offset{17, 23};
     PkRectF rect{0, 0, 640, 480};
 };
+
+KisDocumentApplicationServices::InputMethodTextFormat nativeTextFormat(const QTextCharFormat &format)
+{
+    using Services = KisDocumentApplicationServices;
+    Services::InputMethodTextFormat result;
+    if (format.hasProperty(QTextFormat::FontUnderline)) {
+        result.underline = format.property(QTextFormat::FontUnderline).toBool();
+    }
+    if (format.hasProperty(QTextFormat::FontOverline)) {
+        result.overline = format.property(QTextFormat::FontOverline).toBool();
+    }
+    if (format.hasProperty(QTextFormat::FontStrikeOut)) {
+        result.strikeOut = format.property(QTextFormat::FontStrikeOut).toBool();
+    }
+    if (format.hasProperty(QTextFormat::TextUnderlineStyle)) {
+        const QTextCharFormat::UnderlineStyle style = format.underlineStyle();
+        result.underline = style != QTextCharFormat::NoUnderline;
+        if (style == QTextCharFormat::DotLine) {
+            result.style = Services::InputMethodLineStyle::Dotted;
+        } else if (style == QTextCharFormat::DashUnderline) {
+            result.style = Services::InputMethodLineStyle::Dashed;
+        } else if (style == QTextCharFormat::WaveUnderline || style == QTextCharFormat::SpellCheckUnderline) {
+            result.style = Services::InputMethodLineStyle::Wavy;
+#ifdef Q_OS_MACOS
+            if (style == QTextCharFormat::SpellCheckUnderline) {
+                result.style = Services::InputMethodLineStyle::Dotted;
+            }
+#endif
+        }
+    }
+    if (format.hasProperty(QTextFormat::BackgroundBrush)) {
+        result.thick = format.background().isOpaque();
+#ifdef Q_OS_LINUX
+        if (result.style == Services::InputMethodLineStyle::Dashed) {
+            result.style = Services::InputMethodLineStyle::Solid;
+        }
+#endif
+    }
+    if (!result.underline && !result.overline && !result.strikeOut) {
+        result.underline = true;
+    }
+    return result;
+}
+
+KisDocumentApplicationServices::InputMethodEvent
+svgTextNativeInputMethodEvent(const QInputMethodEvent &event)
+{
+    using Services = KisDocumentApplicationServices;
+    Services::InputMethodEvent result;
+    result.commitString = toPkString(event.commitString());
+    result.preeditString = toPkString(event.preeditString());
+    result.replacementStart = event.replacementStart();
+    result.replacementLength = event.replacementLength();
+    for (const QInputMethodEvent::Attribute &attribute : event.attributes()) {
+        Services::InputMethodAttribute nativeAttribute;
+        nativeAttribute.start = attribute.start;
+        nativeAttribute.length = attribute.length;
+        if (attribute.type == QInputMethodEvent::Selection) {
+            nativeAttribute.type = Services::InputMethodAttributeType::Selection;
+        } else if (attribute.type == QInputMethodEvent::Cursor) {
+            nativeAttribute.type = Services::InputMethodAttributeType::Cursor;
+        } else if (attribute.type == QInputMethodEvent::TextFormat) {
+            if (attribute.length == 0 || attribute.start < 0 || !attribute.value.isValid()) {
+                continue;
+            }
+            nativeAttribute.type = Services::InputMethodAttributeType::TextFormat;
+            nativeAttribute.format = nativeTextFormat(attribute.value.value<QTextFormat>().toCharFormat());
+        } else {
+            continue;
+        }
+        result.attributes.append(nativeAttribute);
+    }
+    return result;
+}
+
 }
 
 void SvgTextCursorTest::clipboardCopyAndPasteShareInjectedApplicationService()
@@ -493,7 +568,7 @@ void SvgTextCursorTest::nativeActionDispatchPreservesPropertySemantics()
 
 void SvgTextCursorTest::hostActionDispatchKeepsPrintableAltGrInput()
 {
-    QObject actionCollection;
+    PkObject actionCollection;
     SvgTextToolFactory factory;
     factory.createActions(&actionCollection);
     QAction *const alignRight =
@@ -531,7 +606,7 @@ void SvgTextCursorTest::hostActionDispatchKeepsPrintableAltGrInput()
 
 void SvgTextCursorTest::hostTextTypeRetriggerKeepsCurrentActionChecked()
 {
-    QObject actionCollection;
+    PkObject actionCollection;
     SvgTextToolFactory factory;
     factory.createActions(&actionCollection);
 
@@ -590,7 +665,7 @@ void SvgTextCursorTest::hostTextTypeRetriggerKeepsCurrentActionChecked()
 
 void SvgTextCursorTest::hostMappedTextTypeShortcutDispatches()
 {
-    QObject actionCollection;
+    PkObject actionCollection;
     SvgTextToolFactory factory;
     factory.createActions(&actionCollection);
 
@@ -627,7 +702,7 @@ void SvgTextCursorTest::hostMappedTextTypeShortcutDispatches()
 
 void SvgTextCursorTest::hostMappedMovementShortcutDispatchesWhenEnabled()
 {
-    QObject actionCollection;
+    PkObject actionCollection;
     SvgTextToolFactory factory;
     factory.createActions(&actionCollection);
 
