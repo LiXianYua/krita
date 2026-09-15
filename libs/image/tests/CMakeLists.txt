@@ -243,6 +243,28 @@ pk_add_tests(
 # ⚠ 订正（R-80，实测两次）：本段**不是** TestAslStorage 的解药，它只消上面那条
 # unmanaged 告警。本段保留，理由就是那一句。
 #
+# ⚠⚠ 订正二（R-78，2026-09-15，实测）：上面那句「理由就是那一句」**低估了本段**——
+# 本段不只是消告警，它是 `kis_scanline_fill_test` **10 条用例全过**的必要条件。
+# 受控实验（同一棵树、同一份源码，只把下面那三行 foreach 注释掉，重建同一 target）：
+#   本段在   → ./bin/kis_scanline_fill_test  exit=0 · Totals: 10 passed, 0 failed
+#              · "KoSimpleColorSpace … unmanaged" 告警 0 条
+#   本段不在 → exit=4 · Totals: 6 passed, 4 failed · 同一条告警 9 条
+#              · 首错 kis_scanline_fill_test.cpp:58  QCOMPARE(c, expectedResult[i])
+#                     kis_scanline_fill_test.cpp:277 QCOMPARE(other->exactBounds(), rc1)
+# 机理与上面那段同源：没有 lcms 引擎时 `rgb8()` 退回 KoSimpleColorSpace，
+# `KoColor(…, cs)` 与 `device->pixel(x,y,&c)` 的颜色转换变成「未定义操作」，于是
+# **颜色断言与 `exactBounds()` 双双对不上**。M0（Linux/CI，lcms 动态装配）没有这一步，
+# 所以 M0 是绿的，中间那段红纯粹是 macOS 上静态库的链接形态。
+#
+# ⇒ **不要因为「本段只是消告警」就把它删掉；也不要把 `kis_scanline_fill_test` 从这个
+#    foreach 里摘出去**（除非它另有拿到 lcms 引擎的途径）——摘掉就是 4 条断言静默变红。
+#    这个坑的代价已经付过两次：失败信息是 `<unprintable>`（`PK_COMPARE` 对
+#    `PkColor`/`PkRect` 没有 toString，见 R-87），R-75 据此把它误判成「剥 Qt 后的行为
+#    差异」并立了案，R-78 才查出它其实是链接形态问题。
+#    口径订正：R-75 记的「6/10 Failed」按 QTest 的 Totals 行读应是「6 passed / 10」。
+#    （第三个 target `kis_image_animation_interface_test` 对本段的依赖 R-78 **未实测**，
+#      不要照上面那两行外推。）
+#
 # 而 TestAslStorage 的**真根因不在本文件能修的地方**，记录如下（R-80 实测，避免
 # 下一个人重走）：
 #   ① 该测试在 `pk_add_tests` 块（pk 栈）。pk 栈**没有** `FILES_DEFAULT_DATA_DIR`
